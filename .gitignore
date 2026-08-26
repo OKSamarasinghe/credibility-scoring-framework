@@ -223,5 +223,5 @@ data/interim/
 model_artifacts/
 *.pkl
 *.joblib
-audit_report.md
-audit_results.json
+/audit/audit_report.md
+/audit/audit_results.json

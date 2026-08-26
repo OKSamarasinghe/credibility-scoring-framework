@@ -335,19 +335,26 @@ norm = desc.map(normalise)
 df["_hash"] = norm.map(lambda t: hashlib.md5(t.encode()).hexdigest())
 n_norm = int(df["_hash"].nunique())
 
+vc_all = df["_hash"].value_counts()
+n_in_dup_groups = int(vc_all[vc_all > 1].sum())  # TRUE count of records sitting in a group >1
+n_excess = len(df) - n_norm                       # old (mislabeled) figure: n - n_unique
+
 say(f"Total records                          : {len(df):,}")
 say(f"Unique descriptions (exact, raw)       : {n_exact:,}")
 say(f"Unique descriptions (normalised)       : {n_norm:,}")
-say(f"Records in a duplicate group           : {len(df) - n_norm:,}")
-say(f"Duplicate groups (size > 1)            : {int((df['_hash'].value_counts() > 1).sum()):,}")
+say(f"Records sitting in a duplicate group    : {n_in_dup_groups:,}  ({100*n_in_dup_groups/len(df):.1f}%)")
+say(f"  (excess-over-unique figure, for reference only: {n_excess:,} — NOT the group-")
+say(f"   membership count; fixed 2026-08-27, see sources.md #5 note)")
+say(f"Duplicate groups (size > 1)            : {int((vc_all > 1).sum()):,}")
 if "title" in df.columns:
     say(f"Unique titles                          : {df['title'].nunique():,}")
 
 R["duplicates"] = {
     "unique_desc_exact": n_exact,
     "unique_desc_normalised": n_norm,
-    "records_in_dup_groups": int(len(df) - n_norm),
-    "n_dup_groups": int((df["_hash"].value_counts() > 1).sum()),
+    "records_in_dup_groups": n_in_dup_groups,
+    "records_in_dup_groups_excess_figure_deprecated": n_excess,
+    "n_dup_groups": int((vc_all > 1).sum()),
     "unique_titles": int(df["title"].nunique()) if "title" in df.columns else None,
 }
 
@@ -359,8 +366,10 @@ say("is the one that matters for group-aware partitioning (Stage 3).")
 if "fraudulent_i" in df.columns:
     fr = df[df["fraudulent_i"] == 1]
     lg = df[df["fraudulent_i"] == 0]
-    f_dup = len(fr) - fr["_hash"].nunique()
-    l_dup = len(lg) - lg["_hash"].nunique()
+    f_dup_vc = fr["_hash"].value_counts()
+    l_dup_vc = lg["_hash"].value_counts()
+    f_dup = int(f_dup_vc[f_dup_vc > 1].sum())  # TRUE group-membership count (fixed 2026-08-27,
+    l_dup = int(l_dup_vc[l_dup_vc > 1].sum())  # same bug/fix as the top-level figure above)
     say()
     say(f"Duplicated fraudulent records          : {f_dup:,} of {len(fr):,} ({100*f_dup/max(len(fr),1):.1f}%)")
     say(f"Duplicated legitimate records          : {l_dup:,} of {len(lg):,} ({100*l_dup/max(len(lg),1):.1f}%)")
@@ -430,6 +439,8 @@ say(f"Text operand for C3-C6 = {' + '.join(body_cols)} (not description alone)."
 say()
 
 REMOTE = re.compile(r"\b(?:work from home|remote|telecommut|home based|home-based|virtual office|anywhere)\b")
+ONSITE = re.compile(r"\b(?:on site|onsite|in office|in-office|in person|relocat|commute|our office|headquarters|must be located|based in our)\b")
+ARRANGEMENT = re.compile(REMOTE.pattern + "|" + ONSITE.pattern)
 PARTTIME = re.compile(r"\b(?:part time|parttime|part-time|contract|temporary|freelance|internship)\b")
 YEARS = re.compile(r"\b\d{1,2}\s*\+?\s*(?:or more\s*)?year")
 EDU = re.compile(r"\b(?:degree|diploma|bachelor|master|phd|graduate|qualification|certificat)\b")
@@ -443,24 +454,39 @@ def field_present(col):
 
 
 rules = {}
+DEFERRED = set()  # rules whose evaluable coverage is not measured yet (report field coverage only)
 
-# C1 — telecommuting vs remote language. telecommuting is a boolean, always present.
+# C1 — telecommuting vs remote/on-site language.
+# STRICT/symmetric definition (2026-08-27 fix, revised same day): bounded vocabulary,
+# same category as C3 — NOT deferred like C2. Must detect a contradiction in EITHER
+# direction (field says on-site but text says remote, OR field says remote but text
+# describes an on-site arrangement), so both REMOTE and ONSITE language count.
 c1_field = df["telecommuting_i"].notna() if "telecommuting_i" in df.columns else pd.Series(False, index=df.index)
-c1_eval = c1_field & d_norm.ne("")
+c1_eval = c1_field & d_norm.str.contains(ARRANGEMENT)
 rules["C1"] = ("Remote / on-site", c1_field, c1_eval)
 
 # C2 — location vs locations named in description
+# NOT symmetric with the other five rules, and deliberately so (logged decision, 2026-08-27).
+# The rule's actual premise is "a place name from the text differs from the structured
+# field" — genuine location extraction, which is Stage 4 work. A quick regex proxy here
+# would silently become a second, weaker implementation of the rule, and the two would be
+# guaranteed to disagree at Stage 4. Field coverage is reported as an explicit UPPER BOUND;
+# evaluable coverage is deferred until the real Stage 4 matcher exists.
 if "location" in df.columns:
     c2_field = df["location"].fillna("").str.strip().ne("")
     has_city = df["location"].fillna("").str.split(",").map(lambda p: len(p) >= 3 and p[2].strip() != "")
-    c2_eval = c2_field & has_city & d_norm.ne("")
+    c2_field = c2_field & has_city  # the only field-side condition this audit can measure
 else:
-    c2_field = c2_eval = pd.Series(False, index=df.index)
+    c2_field = pd.Series(False, index=df.index)
+c2_eval = pd.Series(False, index=df.index)  # placeholder; not reported (see DEFERRED)
 rules["C2"] = ("Location mismatch", c2_field, c2_eval)
+DEFERRED.add("C2")
 
 # C3 — employment_type vs working-arrangement language
+# STRICT/symmetric definition (2026-08-27 fix): body must actually contain arrangement
+# language (part-time/contract/temporary/etc.), not merely be non-empty.
 c3_field = field_present("employment_type")
-c3_eval = c3_field & b_norm.ne("")
+c3_eval = c3_field & b_norm.str.contains(PARTTIME)
 rules["C3"] = ("Employment type", c3_field, c3_eval)
 
 # C4 — required_experience vs "N years" in text
@@ -484,20 +510,36 @@ rules["C6"] = ("Salary", c6_field, c6_eval)
 
 ESTIMATED = {"C1": 100, "C2": 98, "C3": 81, "C4": 61, "C5": 55, "C6": 16}
 
-say(f"{'ID':4s} {'Rule':20s} {'Field cov':>10s} {'Evaluable':>10s} {'Was est.':>9s} {'Delta':>7s}")
-say("-" * 66)
+say("CAVEAT: all evaluable-coverage figures below are provisional — they use this audit")
+say("script's own placeholder patterns (REMOTE/PARTTIME/YEARS/EDU/MONEY), not the final")
+say("Stage 4 lexicons. Re-measure once those lexicons are frozen. C2 has no evaluable")
+say("figure at all yet: its field coverage is an explicit UPPER BOUND, not a measurement —")
+say("see the code comment on C2 for why a quick proxy was deliberately not used.")
+say()
+say(f"{'ID':4s} {'Rule':20s} {'Field cov':>10s} {'Evaluable':>14s} {'Was est.':>9s} {'Delta':>7s}")
+say("-" * 74)
 cov = {}
 for rid, (label, fcol, ecol) in rules.items():
     fpct = 100 * fcol.mean()
-    epct = 100 * ecol.mean()
     est = ESTIMATED[rid]
-    delta = epct - est
-    cov[rid] = {"rule": label,
-                "field_coverage_pct": round(fpct, 1),
-                "evaluable_coverage_pct": round(epct, 1),
-                "previous_estimate_pct": est,
-                "delta_vs_estimate": round(delta, 1)}
-    say(f"{rid:4s} {label:20s} {fpct:>9.1f}% {epct:>9.1f}% {est:>8d}% {delta:>+6.1f}")
+    if rid in DEFERRED:
+        cov[rid] = {"rule": label,
+                    "field_coverage_pct": round(fpct, 1),
+                    "field_coverage_is_upper_bound": True,
+                    "evaluable_coverage_pct": None,
+                    "evaluable_status": "DEFERRED to Stage 4 (see code comment)",
+                    "previous_estimate_pct": est}
+        say(f"{rid:4s} {label:20s} {fpct:>9.1f}% {'DEFERRED':>14s} {est:>8d}% {'n/a':>7s}")
+    else:
+        epct = 100 * ecol.mean()
+        delta = epct - est
+        cov[rid] = {"rule": label,
+                    "field_coverage_pct": round(fpct, 1),
+                    "evaluable_coverage_pct": round(epct, 1),
+                    "evaluable_is_provisional": True,
+                    "previous_estimate_pct": est,
+                    "delta_vs_estimate": round(delta, 1)}
+        say(f"{rid:4s} {label:20s} {fpct:>9.1f}% {epct:>13.1f}% {est:>8d}% {delta:>+6.1f}")
 R["rule_coverage"] = cov
 
 # description-only comparison, so the effect of including requirements/benefits is visible
@@ -514,7 +556,9 @@ for k, v in desc_only.items():
 
 say()
 say("ACTION: replace the Field Coverage column in Research_Methodology_Final.docx")
-say("        section 3.1 with the EVALUABLE figures above, and mark sources.md #3 verified.")
+say("        section 3.1 with the EVALUABLE figures above. C1,C3-C6 are provisional")
+say("        (placeholder patterns). C2 has no evaluable figure — field coverage only,")
+say("        an upper bound. Do NOT mark sources.md #3 fully verified yet.")
 
 # how many postings can be checked by at least one rule
 any_eval = np.logical_or.reduce([e.values for _, _, e in rules.values()])
@@ -540,8 +584,13 @@ say("sources.md:")
 say(f"  #4 boolean t/f encoding      -> {'VERIFIED' if R.get('tf_encoding_confirmed') else 'CORRECTION NEEDED'}")
 say(f"  #9 class composition         -> {'VERIFIED' if R.get('class_counts_match_expected') else 'CORRECTION NEEDED'}")
 say(f"  #7 contact tokens            -> {'VERIFIED' if not missing_tok else 'CORRECTION NEEDED'}")
-say( "  #5 duplicate counts          -> VERIFIED (measured figures above)")
-say( "  #3 rule coverage             -> VERIFIED (evaluable figures above)")
+say( "  #5 duplicate counts          -> VERIFIED (measured figures above; group-membership")
+say( "                                   count corrected 2026-08-27, was mislabeled)")
+say( "  #3 rule coverage             -> PARTIALLY VERIFIED. C1,C3-C6 evaluable coverage")
+say( "                                   measured but PROVISIONAL (placeholder patterns,")
+say( "                                   not final Stage 4 lexicons). C2 evaluable coverage")
+say( "                                   NOT measured — field coverage only, reported as")
+say( "                                   an upper bound. Do not mark #3 fully verified.")
 say()
 say("Research_Methodology_Final.docx:")
 say("  section 3.1  -> replace Field Coverage column with measured evaluable coverage")

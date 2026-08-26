@@ -1,0 +1,293 @@
+{
+  "file": "DataSet.csv",
+  "audit_date": "2026-08-26",
+  "n_rows": 17880,
+  "n_cols": 18,
+  "columns": [
+    "title",
+    "location",
+    "department",
+    "salary_range",
+    "company_profile",
+    "description",
+    "requirements",
+    "benefits",
+    "telecommuting",
+    "has_company_logo",
+    "has_questions",
+    "employment_type",
+    "required_experience",
+    "required_education",
+    "industry",
+    "function",
+    "fraudulent",
+    "in_balanced_dataset"
+  ],
+  "row_count_matches_expected": true,
+  "boolean_encoding": {
+    "telecommuting": [
+      "f",
+      "t"
+    ],
+    "has_company_logo": [
+      "f",
+      "t"
+    ],
+    "has_questions": [
+      "f",
+      "t"
+    ],
+    "fraudulent": [
+      "f",
+      "t"
+    ],
+    "in_balanced_dataset": [
+      "f",
+      "t"
+    ]
+  },
+  "tf_encoding_confirmed": true,
+  "n_fraudulent": 866,
+  "n_legitimate": 17014,
+  "fraud_pct": 4.843,
+  "class_counts_match_expected": true,
+  "in_balanced_dataset_present": true,
+  "missingness": {
+    "title": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "location": {
+      "present": 17534,
+      "missing": 346,
+      "missing_pct": 1.94
+    },
+    "department": {
+      "present": 6327,
+      "missing": 11553,
+      "missing_pct": 64.61
+    },
+    "salary_range": {
+      "present": 2868,
+      "missing": 15012,
+      "missing_pct": 83.96
+    },
+    "company_profile": {
+      "present": 14572,
+      "missing": 3308,
+      "missing_pct": 18.5
+    },
+    "description": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "requirements": {
+      "present": 15191,
+      "missing": 2689,
+      "missing_pct": 15.04
+    },
+    "benefits": {
+      "present": 10684,
+      "missing": 7196,
+      "missing_pct": 40.25
+    },
+    "telecommuting": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "has_company_logo": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "has_questions": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "employment_type": {
+      "present": 14409,
+      "missing": 3471,
+      "missing_pct": 19.41
+    },
+    "required_experience": {
+      "present": 10830,
+      "missing": 7050,
+      "missing_pct": 39.43
+    },
+    "required_education": {
+      "present": 9775,
+      "missing": 8105,
+      "missing_pct": 45.33
+    },
+    "industry": {
+      "present": 12977,
+      "missing": 4903,
+      "missing_pct": 27.42
+    },
+    "function": {
+      "present": 11425,
+      "missing": 6455,
+      "missing_pct": 36.1
+    },
+    "fraudulent": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    },
+    "in_balanced_dataset": {
+      "present": 17880,
+      "missing": 0,
+      "missing_pct": 0.0
+    }
+  },
+  "salary": {
+    "present": 2868,
+    "zero_zero": 142,
+    "parseable": 2867,
+    "usable": 2725,
+    "usable_pct": 15.24
+  },
+  "contact_tokens": {
+    "#URL_#": {
+      "postings": 7362,
+      "total": 23270,
+      "pct_rows": 41.17
+    },
+    "#EMAIL_#": {
+      "postings": 1377,
+      "total": 2368,
+      "pct_rows": 7.7
+    },
+    "#PHONE_#": {
+      "postings": 657,
+      "total": 1026,
+      "pct_rows": 3.67
+    }
+  },
+  "token_types_found": [
+    "EMAIL",
+    "PHONE",
+    "URL"
+  ],
+  "token_by_class": {
+    "#URL_#": {
+      "fraud_pct": 42.38,
+      "legit_pct": 41.11,
+      "ratio": 1.03
+    },
+    "#EMAIL_#": {
+      "fraud_pct": 20.09,
+      "legit_pct": 7.07,
+      "ratio": 2.84
+    },
+    "#PHONE_#": {
+      "fraud_pct": 9.24,
+      "legit_pct": 3.39,
+      "ratio": 2.72
+    }
+  },
+  "duplicates": {
+    "unique_desc_exact": 15095,
+    "unique_desc_normalised": 14375,
+    "records_in_dup_groups": 4762,
+    "records_in_dup_groups_excess_figure_deprecated": 3505,
+    "n_dup_groups": 1257,
+    "unique_titles": 11231,
+    "fraud_dup_records": 349,
+    "legit_dup_records": 4412,
+    "fraud_dup_pct": 40.3,
+    "legit_dup_pct": 25.93,
+    "top_fraud_clusters": [
+      {
+        "copies": 22,
+        "title": "Home Based Payroll Data Entry Clerk Position - Earn $100-$200 Daily "
+      },
+      {
+        "copies": 21,
+        "title": "Data Entry Admin/Clerical Positions - Work From Home"
+      },
+      {
+        "copies": 21,
+        "title": "Cruise Staff Wanted *URGENT*"
+      },
+      {
+        "copies": 21,
+        "title": "Home Based Payroll Typist/Data Entry Clerks Positions Available"
+      },
+      {
+        "copies": 20,
+        "title": "Admin Clerk Remote Position"
+      }
+    ]
+  },
+  "location": {
+    "present": 17534,
+    "country": 17534,
+    "city": 15812,
+    "city_pct": 88.43
+  },
+  "rule_coverage": {
+    "C1": {
+      "rule": "Remote / on-site",
+      "field_coverage_pct": 100.0,
+      "evaluable_coverage_pct": 10.5,
+      "evaluable_is_provisional": true,
+      "previous_estimate_pct": 100,
+      "delta_vs_estimate": -89.5
+    },
+    "C2": {
+      "rule": "Location mismatch",
+      "field_coverage_pct": 88.4,
+      "field_coverage_is_upper_bound": true,
+      "evaluable_coverage_pct": null,
+      "evaluable_status": "DEFERRED to Stage 4 (see code comment)",
+      "previous_estimate_pct": 98
+    },
+    "C3": {
+      "rule": "Employment type",
+      "field_coverage_pct": 80.6,
+      "evaluable_coverage_pct": 12.2,
+      "evaluable_is_provisional": true,
+      "previous_estimate_pct": 81,
+      "delta_vs_estimate": -68.8
+    },
+    "C4": {
+      "rule": "Experience level",
+      "field_coverage_pct": 60.6,
+      "evaluable_coverage_pct": 30.2,
+      "evaluable_is_provisional": true,
+      "previous_estimate_pct": 61,
+      "delta_vs_estimate": -30.8
+    },
+    "C5": {
+      "rule": "Education",
+      "field_coverage_pct": 54.7,
+      "evaluable_coverage_pct": 27.8,
+      "evaluable_is_provisional": true,
+      "previous_estimate_pct": 55,
+      "delta_vs_estimate": -27.2
+    },
+    "C6": {
+      "rule": "Salary",
+      "field_coverage_pct": 15.2,
+      "evaluable_coverage_pct": 7.6,
+      "evaluable_is_provisional": true,
+      "previous_estimate_pct": 16,
+      "delta_vs_estimate": -8.4
+    }
+  },
+  "rule_coverage_description_only": {
+    "C4": 7.4,
+    "C5": 3.6,
+    "C6": 4.0
+  },
+  "rule_coverage_summary": {
+    "postings_with_any_evaluable_rule": 10145,
+    "pct_with_any_evaluable_rule": 56.74,
+    "mean_evaluable_rules_per_posting": 0.88
+  }
+}

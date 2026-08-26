@@ -1,6 +1,6 @@
 # methodology.md — How I'm Doing This (and the Evaluation Plan)
 
-_Last updated: 2026-08-07_
+_Last updated: 2026-08-27_
 
 > Companion to `Research_Methodology_Final.docx` (the formal, supervisor-facing version).
 > This file is the **working** version: it tracks what I am *actually* doing, records results
@@ -19,6 +19,10 @@ the FEDS framework (Venable, Pries-Heje & Baskerville) as **ex post** (the built
 evaluated, not the design in advance) and predominantly **artificial** (benchmark dataset
 under controlled conditions), with a **naturalistic** component in the Tier 2 assessment on
 independently collected contemporary postings.
+
+> ⚠️ Full references for Hevner et al., Peffers et al., and Venable/Pries-Heje/Baskerville
+> are not yet confirmed — see `sources.md` #1, #2, #8. Do not cite these from memory in any
+> submitted document.
 
 ---
 
@@ -42,7 +46,8 @@ held throughout: no objective states its expected result (see `decisions.md`, 20
 Nine implementation stages (below). Design decisions and their rationale are recorded in
 `decisions.md`, which is the primary evidence for this step.
 
-**Status: not yet started. No code written, no data loaded.**
+**Status: data audit complete (2026-08-27). Stage 1 (ingestion) not yet started. No model
+code written.**
 
 ### Step 4 — Demonstration
 
@@ -61,7 +66,8 @@ For each, the full JSON response is captured (`credibility_score`, `risk_band`,
 the input.
 
 **Demonstration proves the artefact works at all. It proves nothing about how well.**
-That is Step 5's job, and the two are reported separately.
+That is Step 5's job, and the two are reported separately. This is Stage 8b in the
+implementation table below.
 
 ### Step 5 — Evaluation
 
@@ -78,11 +84,12 @@ from scratch. AI-use declaration to be included — see `project.md` open questi
 
 | Stage | Activity | Objective | Status |
 |---|---|---|---|
+| — | **Data audit** (pre-Stage 1) | grounds Stage 1 | **Complete — 2026-08-27, see Results below** |
 | 1 | Data ingestion & preprocessing | Foundation | Not started |
 | 2 | Evidence taxonomy definition & manual audit | O1 | Not started |
-| 3 | Leakage-controlled data partitioning | O2, O3, O5 | Not started |
+| 3 | Leakage-controlled data partitioning | O2, O3, O5 | Not started — blocked on Decision 0.2 (near-duplicate grouping method) |
 | 4 | Multi-signal evidence extraction | O1, O3 | Not started |
-| 5 | Model development (baseline & improved) | O2, O3 | Not started |
+| 5 | Model development (baseline & improved) | O2, O3 | Not started — blocked on architecture review + rules-only baseline decision |
 | 6 | Probability calibration & score mapping | O4 | Not started |
 | 7 | Explainability layer & fidelity evaluation | O4 | Not started |
 | 8 | API development | O4 | Not started |
@@ -92,12 +99,17 @@ from scratch. AI-use declaration to be included — see `project.md` open questi
 ### Stage 1 critical ordering constraints
 
 1. Map `t`/`f` string literals to integers **on load**; assert fraud count = 866 before
-   proceeding. _(Encoding claim unverified — see `sources.md` #4.)_
-2. Drop `in_balanced_dataset`.
+   proceeding. _(Encoding claim VERIFIED — see `sources.md` #4. Confirmed: all five boolean
+   columns are `t`/`f`, zero nulls, fraud count exactly 866.)_
+2. Drop `in_balanced_dataset`. _(Confirmed present in the real CSV — must be dropped.)_
 3. **Extract `#EMAIL_#` / `#PHONE_#` / `#URL_#` tokens, image refs and link counts BEFORE
-   stripping HTML.** Reversing this destroys the whole E2 feature group.
-4. Treat `salary_range` value `"0-0"` as missing.
-5. Flag missingness per field; never impute.
+   stripping HTML.** Reversing this destroys the whole E2 feature group. _(All three token
+   types confirmed present — see Results below.)_
+4. Treat `salary_range` value `"0-0"` as missing. _(Confirmed: 142 records carry this
+   placeholder.)_
+5. Flag missingness per field; never impute. _(Missingness now measured per field — see
+   Results below. The audit script's original missingness calculation double-counted every
+   missing value — fixed 2026-08-27, see Results.)_
 
 ---
 
@@ -112,20 +124,44 @@ from scratch. AI-use declaration to be included — see `project.md` open questi
 
 ### Consistency rule set (C1–C6) — the novelty
 
-| ID | Rule | Trigger | Field coverage | Measured coverage |
-|---|---|---|---|---|
-| C1 | Remote / on-site | `telecommuting` false but description matches remote-work lexicon | 100% ⚠️ est. | [TO MEASURE] |
-| C2 | Location mismatch | location country/city absent from description while a different location is named | 98% ⚠️ est. | [TO MEASURE] |
-| C3 | Employment type | `employment_type` conflicts with working-arrangement language | 81% ⚠️ est. | [TO MEASURE] |
-| C4 | Experience level | `required_experience` conflicts with "N+ years" extracted from text | 61% ⚠️ est. | [TO MEASURE] |
-| C5 | Education | `required_education` conflicts with qualification statements | 55% ⚠️ est. | [TO MEASURE] |
-| C6 | Salary | description figures fall outside parsed `salary_range` beyond tolerance | 16% ⚠️ est. | [TO MEASURE] |
+> ⚠️ **Definitional note (2026-08-27):** "evaluable coverage" means both operands the rule
+> compares are present, so the rule could actually attempt a comparison — not merely that
+> some text exists nearby. An earlier version of this audit applied that standard
+> inconsistently (strict for C4–C6, loose for C1–C3), which understated the gap between
+> field coverage and real coverage. All six rules now use one consistent standard. See
+> `sources.md` #3 for full detail and `decisions.md` for the reasoning.
 
-> ⚠️ **The "field coverage" column is UNVERIFIED and is an upper bound, not rule coverage.**
-> These are field-availability rates inferred from a dataset profile, not measured on the
-> CSV. True triggerable coverage will be **lower** — C2 needs both a parseable location
-> *and* a location mention in the text. Replace with measured values from the data audit
-> before these figures enter the dissertation. See `sources.md` #3.
+| ID | Rule | Trigger | Field coverage (measured) | Evaluable coverage (measured) | Status |
+|---|---|---|---|---|---|
+| C1 | Remote / on-site | `telecommuting` conflicts with remote/on-site language in description | **100.0%** | **10.5%** | 🟡 Provisional — placeholder pattern |
+| C2 | Location mismatch | location field absent from text while a different location is named | **88.4%** | **not measured** | ❌ Deferred to Stage 4 — see note |
+| C3 | Employment type | `employment_type` conflicts with working-arrangement language | **80.6%** | **12.2%** | 🟡 Provisional |
+| C4 | Experience level | `required_experience` conflicts with "N+ years" extracted from text | **60.6%** | **30.2%** | 🟡 Provisional |
+| C5 | Education | `required_education` conflicts with qualification statements | **54.7%** | **27.8%** | 🟡 Provisional |
+| C6 | Salary | description figures fall outside parsed `salary_range` | **15.2%** | **7.6%** | 🟡 Provisional |
+
+**Aggregate (measured, 2026-08-27):** postings evaluable by at least one rule: **10,145
+(56.7%)** of 17,880. Mean rules evaluable per posting: **0.88 of 6**.
+
+**Why C2 is deferred, not estimated:** C2's premise — a place name in free text differing
+from the structured field — is an open-vocabulary problem. A quick regex proxy, unlike the
+bounded vocabularies used for C1/C3 (remote/on-site language, employment-arrangement
+language), would amount to a second, weaker implementation of the rule that is guaranteed to
+disagree with the real Stage 4 location matcher. Field coverage (88.4%) is reported as an
+explicit upper bound only.
+
+**Why C1, C3–C6 are "provisional," not final:** all five use placeholder pattern-matching
+written for audit purposes, not the final Stage 4 lexicons. **Re-measure every one of these
+figures once Stage 4 lexicons are frozen** — do not carry today's numbers into the
+dissertation as final results.
+
+**What this means for E4 as a whole:** the original field-coverage estimates (used since
+2026-08-07) implied E4 was observable on nearly every posting. The measured, honestly-defined
+picture is that under half the corpus (56.7%) can be evaluated by even one rule, and on
+average less than one rule per posting (0.88 of 6) can fire at all. This is a real and
+significant finding about the practical reach of the consistency-verification contribution —
+not a data-quality failure, but something the dissertation must state plainly and account
+for, rather than let the original optimistic estimate stand uncorrected.
 
 ### Taxonomy validation (O1)
 
@@ -185,21 +221,38 @@ under identical conditions. Δ F1 and Δ PR-AUC reported per category.
 
 ### Tier 2 experiments
 
+> ⚠️ **Renamed 2026-08-27** to avoid notation collision with the evidence taxonomy (E1–E4
+> above refers to evidence categories; these experiments now use T1–T3).
+
 | ID | Experiment | What it tests |
 |---|---|---|
-| E1 | Temporal transfer — EMSCAD-trained model evaluated on Tier 2 | Does an EMSCAD-trained framework still work in 2026? |
-| E2 | Signal durability — ablation repeated on Tier 2, profiles compared across eras | **Central hypothesis:** do consistency signals transfer better than lexical cues? |
-| E3 | Domain adaptation — fine-tune on a Tier 2 portion, evaluate on remainder | Is the framework maintainable? |
+| T1 | Temporal transfer — EMSCAD-trained model evaluated on Tier 2 | Does an EMSCAD-trained framework still work in 2026? |
+| T2 | Signal durability — ablation repeated on Tier 2, profiles compared across eras | **Central hypothesis:** do consistency signals transfer better than lexical cues? |
+| T3 | Domain adaptation — fine-tune on a Tier 2 portion, evaluate on remainder | Is the framework maintainable? |
 
 Plus the **source-probe leakage test** (classifier predicts collection source, not label).
 Near-perfect probe accuracy indicates residual leakage requiring further normalisation.
 Result reported regardless of outcome.
 
+> ⚠️ **Open problem, not yet solved (Decision 0.4):** if fraudulent Tier 2 postings arrive
+> as text-only (from scam repositories/advisories) while legitimate postings arrive with
+> full structured fields (from ATS/feed provenance), then E3 would separate the classes for
+> collection-artefact reasons rather than fraud reasons, and E4 — the actual contribution —
+> could not fire on the fraud side at all. This must be resolved before Tier 2 collection
+> begins, not discovered afterward. Fallback if unresolved: report Tier 2 qualitatively and
+> state the limitation openly.
+
 ### Reproducibility
 
 - All seeds fixed and recorded; every experiment repeated across **five seeds**, reported
   as mean ± SD.
+- **Open question, not yet decided:** does "five seeds" mean five model initialisations
+  against one fixed train/validation/test split, or five different splits? These are only
+  compatible with the "test set used once" guardrail under the first reading. Must be
+  decided before Stage 3, not assumed.
 - Environment specs, library versions, model configs version-controlled with the code.
+  (Environment established 2026-08-26/27: Python 3.13.9, pandas 3.0.5, PyTorch 2.13.0+cpu,
+  Transformers 5.16.1 — full pinned list in `requirements.txt`.)
 - Tier 2 results reported with confidence intervals given the small sample.
 
 ---
@@ -208,9 +261,10 @@ Result reported regardless of outcome.
 
 | Category | Threat | Mitigation |
 |---|---|---|
-| Internal | Duplicate postings spanning train/test | Content-hash group-aware partitioning; duplicate count reported |
+| Internal | Duplicate postings spanning train/test | Content-hash group-aware partitioning; duplicate count measured (see Results) — **near-duplicate grouping method still undecided, see Decision 0.2** |
 | Internal | `has_company_logo` may encode dataset construction | Targeted ablation; results with and without |
 | Internal | Tier 2 provenance labelling → model learns source not fraud | Normalisation, source-dependent feature exclusion, reported source probe |
+| Internal | **E4 evaluable on only 56.7% of postings, 0.88 rules/posting on average** _(new, 2026-08-27)_ | State plainly in Results and Limitations; do not let the original field-coverage estimate stand uncorrected anywhere in the dissertation |
 | External | EMSCAD is 2012–2014, predates AI-assisted fraud | Tier 2 temporal assessment, reported as a primary result |
 | External | English-language only | Stated scope boundary; multilingual as future work |
 | External | Anonymisation destroys email domain | Token counts used instead; unavailable feature documented |
@@ -223,23 +277,86 @@ Result reported regardless of outcome.
 
 ## Results (fill in as they come)
 
-### Data audit — [DATE]
+### Data audit — 2026-08-27
 
-- Total records: [ ]
-- Fraudulent / legitimate: [ ] / [ ]
-- Boolean encoding confirmed as `t`/`f`: [ yes / no ]
-- Unique normalised descriptions: [ ]  → duplicates removed/grouped: [ ]
-- Unique titles: [ ]
-- `in_balanced_dataset` present and dropped: [ yes / no ]
-- `salary_range` `"0-0"` count: [ ]
-- Contact token counts — `#EMAIL_#`: [ ] · `#PHONE_#`: [ ] · `#URL_#`: [ ]
-- **Measured coverage C1–C6:** [ ]
+_Measured on `DataSet.csv` (the real EMSCAD original, 17,880 rows × 18 columns, no `job_id`
+column — confirmed not the reduced Kaggle derivative). Script: `audit/emscad_audit_fixed.py`.
+Reproduced identically in two independent environments (sandbox pandas, and the project venv
+on pandas 3.0.5 / Python 3.13.9) — same results both times._
+
+- Total records: **17,880**
+- Fraudulent / legitimate: **866 / 17,014** (4.84% / 95.16%) — matches published figures exactly
+- Boolean encoding confirmed as `t`/`f`: **yes**, all five boolean columns, zero nulls
+- `in_balanced_dataset` present and dropped: **yes, present — to be dropped at Stage 1**
+
+**Missingness per field** (bug fixed 2026-08-27 — original audit script double-counted
+every missing value; figures below are corrected):
+
+| Field | Present | Missing | Missing % |
+|---|---|---|---|
+| title | 17,880 | 0 | 0.0% |
+| location | 17,534 | 346 | 1.9% |
+| department | 6,327 | 11,553 | 64.6% |
+| salary_range | 2,868 | 15,012 | 84.0% |
+| company_profile | 14,572 | 3,308 | 18.5% |
+| description | 17,880 | 0 | 0.0% |
+| requirements | 15,191 | 2,689 | 15.0% |
+| benefits | 10,684 | 7,196 | 40.2% |
+| telecommuting | 17,880 | 0 | 0.0% |
+| has_company_logo | 17,880 | 0 | 0.0% |
+| has_questions | 17,880 | 0 | 0.0% |
+| employment_type | 14,409 | 3,471 | 19.4% |
+| required_experience | 10,830 | 7,050 | 39.4% |
+| required_education | 9,775 | 8,105 | 45.3% |
+| industry | 12,977 | 4,903 | 27.4% |
+| function | 11,425 | 6,455 | 36.1% |
+
+**Salary quality:** present 2,868 (16.0%); literal `"0-0"` placeholder 142; numeric
+parseable 2,867; **usable (parseable, not `"0-0"`): 2,725 (15.2%)** — the real ceiling for C6.
+
+**Duplicates** (bug fixed 2026-08-27 — original figure was `n − n_unique`, the *excess*
+count, not true group membership; corrected in both the overall and per-class figures):
+
+- Unique descriptions, normalised: 14,375 (vs 15,095 exact-raw — normalising finds more)
+- **Records sitting in a duplicate group: 4,762 (26.6% of the corpus)**
+- Duplicate groups (size > 1): 1,257; largest group: 417 records
+- Fraudulent records in a duplicate group: **349 of 866 (40.3%)**
+- Legitimate records in a duplicate group: **4,412 of 17,014 (25.9%)**
+- The fraud class is substantially more duplicated than the legitimate class — strong
+  independent justification for the group-aware split.
+- **Correction:** the "English Teacher Abroad" cluster previously cited in `decisions.md`
+  as an example of a duplicated *fraudulent* campaign is in fact 100% legitimate (0 of 715
+  records fraudulent, under a looser text-prefix match; the 417-record exact-normalised
+  group is entirely legitimate). `decisions.md` needs correcting — the decision itself
+  still stands on independent grounds.
+- **Open — near-duplicate grouping method (Decision 0.2, not yet made):** exact-normalised
+  MD5 hashing fragments genuine campaigns (the "English Teacher Abroad" campaign, 715
+  records, splits across 15 separate hash groups). A cheap first-12-token proxy was tested
+  for comparison but not adopted — it merges 48.9% of the corpus, likely over-merging
+  unrelated postings.
+
+**Contact tokens (E2):** all three placeholder token types present and confirmed —
+`#URL_#` 7,362 postings (41.2%), `#EMAIL_#` 1,377 postings (7.7%), `#PHONE_#` 657 postings
+(3.7%). No other placeholder token types exist in the corpus. E2 stands as designed — this
+was the single highest-impact unknown in the audit. Token-by-class rates (descriptive only):
+EMAIL 20.1% fraud vs 7.1% legit (ratio 2.84); PHONE 9.2% vs 3.4% (ratio 2.72); URL 42.4% vs
+41.1% (ratio 1.03 — not discriminative).
+
+**Location parseability (drives C2):** location present 98.1%; country component usable
+98.1%; city component usable 88.4%.
+
+**Measured coverage C1–C6:** see the Consistency rule set table above (Evidence taxonomy
+section) — field coverage fully verified for all six rules; evaluable coverage measured but
+provisional for C1, C3–C6; deferred entirely for C2 pending Stage 4 location matching.
+Aggregate: 56.7% of postings evaluable by at least one rule; mean 0.88 rules evaluable per
+posting.
 
 ### Partition summary — [DATE]
 
 - Train / validation / test sizes: [ ] / [ ] / [ ]
 - Fraud ratio per partition: [ ] / [ ] / [ ]
 - Duplicate groups spanning partitions: **must be 0**
+- Near-duplicate grouping method used: [ ] _(Decision 0.2 must be settled first)_
 
 ### Baseline results (O2) — [DATE]
 
@@ -281,9 +398,9 @@ Result reported regardless of outcome.
 
 - Collected: [ ] legitimate / [ ] fraudulent, from [sources]
 - Source-probe accuracy: [ ] — interpretation: [ ]
-- E1 temporal transfer: [ ]
-- E2 signal durability — per-category Δ comparison across eras: [ ]
-- E3 domain adaptation recovery: [ ]
+- T1 temporal transfer: [ ]
+- T2 signal durability — per-category Δ comparison across eras: [ ]
+- T3 domain adaptation recovery: [ ]
 
 ### Demonstration (Step 4) — [DATE]
 
