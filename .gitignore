@@ -220,7 +220,7 @@ __marimo__/
 # Project-specific: data and model artefacts
 data/raw/
 data/interim/
-models/
+model_artifacts/
 *.pkl
 *.joblib
 audit_report.md
