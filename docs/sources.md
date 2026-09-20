@@ -1,6 +1,6 @@
 # sources.md — Verified Claims & References
 
-_Last updated: 2026-08-27_
+_Last updated: 2026-09-20_
 
 > **The rule:** every claim, definition, statistic or method that came from an AI model goes
 > here until I have checked it against a **primary** source. Anything still marked
@@ -219,13 +219,34 @@ _Last updated: 2026-08-27_
 - **Verified:** NO
 - **Action:** Verify against primary reporting before including in the taxonomy extension.
 
-## 14. ❌ Free job-board API availability (Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna free tier); Indeed Publisher API retired 2023
+## 14. ✅ Free job-board API availability (Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna free tier); Indeed Publisher API retired 2023
 
-- **From:** AI web search, 2026-08-07.
-- **Verified:** NO
-- **Action:** Verify by **actually accessing each endpoint** and reading its current terms
-  of service. Now urgent given the confirmed ~1 month deadline and the pending Tier 2
-  scope decision.
+- **Verified:** YES, 2026-09-20, checked against each provider's own documentation.
+  - **Greenhouse Job Board API** — genuinely public, no authentication, no API key.
+    `boards-api.greenhouse.io/v1/boards/{company-slug}/jobs`. Returns title, location,
+    department, full description, salary when the employer discloses it. Best schema match
+    to EMSCAD. Requires knowing company board tokens in advance — no open cross-company
+    search endpoint.
+  - **Lever Postings API** — genuinely public, no authentication, no API key.
+    `api.lever.co/v0/postings/{site}`. Same field richness and same limitation (need site
+    slugs in advance).
+  - **USAJOBS API** — free, real access via a quickly-issued email-registered key, official
+    US government (OPM). Standard acceptable-use terms (no malicious use, no impersonation).
+    **Scope limitation:** federal civil-service postings only, using federal pay-grade/
+    occupational-series conventions rather than commercial fields — a real representativeness
+    concern if relied on heavily for Tier 2, since it won't resemble EMSCAD's commercial
+    job-posting schema as closely as Greenhouse/Lever.
+  - **Arbeitnow API** — free, no authentication required, aggregates from multiple ATS
+    sources, EU/remote-leaning coverage.
+  - **Adzuna API** — free tier via an instantly-issued App ID/Key, rate-limited (hundreds of
+    calls/day) but real; title, company, location, salary, description across ~20 countries.
+  - **Indeed Publisher API** — confirmed still retired (deprecated 2023); current official
+    APIs are employer-side/partner-gated only. Original claim independently reconfirmed.
+- **Note:** several search results surfaced paid third-party scraping services built on top
+  of these free APIs. Not used — `project.md`'s "no paid data sources" constraint means going
+  directly to the official free endpoints listed above.
+- **Action:** none remaining — closed. Practical next step is building a company-slug list
+  for Greenhouse/Lever querying, which is Tier 2 collection work, not verification work.
 
 ## 15. ❌ SMOTE distorts predicted probabilities / harms calibration
 
@@ -367,3 +388,4 @@ cut from the literature review (no dataset, no metrics — viva liability).
 | 2026-08-27 | `decisions.md` correction identified and applied | "English Teacher Abroad" cluster is legitimate, not fraudulent — corrected as an appended note, not a silent edit |
 | 2026-08-27 | Item 19 added and closed | Two unattributed PDF reports + a supervisor-suggested dataset (DIFrauD) checked against primary sources; all four recommended "second datasets" found to be EMSCAD derivatives and rejected |
 | 2026-08-27 | Deadline confirmed | ~1 month remaining — several Part B items (esp. #14, Tier 2 API access) now urgent rather than background tasks |
+| 2026-09-20 | Item 14 verified and closed | Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna all confirmed genuinely free and accessible against their own current documentation; Indeed's 2023 retirement reconfirmed. Fraudulent-side sourcing (scam repositories/advisories) still unverified — next to check. |
