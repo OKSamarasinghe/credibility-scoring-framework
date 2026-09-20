@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-08-27_
+_Last updated: 2026-09-20_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -15,6 +15,158 @@ _Last updated: 2026-08-27_
 > Format: newest at the top.
 
 ---
+
+## 2026-09-20 — Correction: hardware constraint was wrong; DistilBERT will be fine-tuned, not frozen
+
+- **Correction, not a new decision:** every project file (`project.md`, `SKILL.md`,
+  `build.md`, and this file's own "Frozen vs. fine-tuned DistilBERT" pending entry) states
+  "no dedicated GPU" as a hard constraint. **This was wrong.** My laptop has an RTX 3050
+  (gaming laptop, 16GB RAM). This constraint was assumed at proposal stage and never
+  actually checked against my own hardware.
+
+- **Consequence — resolves the frozen-vs-fine-tuned question:** with a CUDA-capable GPU,
+  fine-tuning DistilBERT (66M parameters) is feasible in hours, not days. Fine-tuning also
+  reliably outperforms frozen embeddings for domain-specific text classification. **Decision:
+  fine-tune, not frozen.** This also removes the earlier worry about needing an external
+  environment like Colab for a seeded run — everything now runs locally, which is better for
+  reproducibility, not just faster.
+
+- **Why logged as a correction, not silently fixed:** the same principle as the "English
+  Teacher Abroad" correction earlier in this file — the wrong assumption stood for weeks and
+  shaped planning (e.g. it's the entire reason "frozen vs. fine-tuned" was ever a real
+  question). Recording that it was wrong, and why it wasn't caught earlier, is worth more in
+  a viva than quietly updating `project.md`'s hardware line with no trace.
+
+- **Self-check:** *Why was "no GPU" assumed for months without being checked, and what
+  single fact changed once it was?*
+
+---
+
+## 2026-09-20 — Scope-cut decisions given the confirmed ~1 month deadline
+
+- **Context:** the actual submission deadline was confirmed for the first time on
+  2026-08-27 as approximately one month away. Full rigor on all nine stages as originally
+  scoped does not fit that timeline for a single developer. Five related decisions were
+  made together, deliberately, in one CONVERGENT session, rather than left to erode
+  piecemeal under time pressure later.
+
+### 1. Rules-only baseline (E2+E3+E4, no text model): CUT
+
+- **Options considered:** (A) keep it as a third model arm; (B) cut it entirely.
+- **Why cut:** it was always logged as optional ("does the transformer earn its
+  complexity?"). Stage 9's leave-one-category-out ablation already measures how much E4
+  alone contributes, via a different but overlapping route, without a whole separate
+  training arm, retraining, and extra ablation rows.
+- **What I gave up:** a clean, standalone answer to "how far would rules alone get me,
+  with zero text model at all." The ablation study answers a related but not identical
+  question.
+- **Self-check:** *What question would the rules-only baseline have answered that the
+  ablation study doesn't cover, and why is losing that answer acceptable here?*
+
+### 2. Tier 2 depth: REDUCED collection (~50–100 postings), not full, not zero
+
+- **Options considered:** (A) full collection (300–600, as originally planned); (B) reduced
+  collection (~50–100); (C) qualitative-only (the pre-planned 2026-08-07 fallback).
+- **Why reduced, not the extremes:** qualitative-only (C) discards the one finding no
+  reviewed paper has produced — whether an EMSCAD-trained model survives contact with 2026
+  fraud — and that's too valuable to give up pre-emptively. Full collection (A) risks
+  cannibalising time from Stages 3–9 if it overruns; a project with no finished pipeline is
+  worse than one with a modest, honestly-scoped Tier 2. A reduced set, reported with wide
+  confidence intervals and explicitly labelled as time-constrained, is a legitimate,
+  disclosed limitation rather than a hidden shortcut.
+- **Concrete plan:** start sourcing immediately, in parallel with the Stage 2 manual audit,
+  not queued up after it. Target: at least 20–30 verified fraudulent postings and 30–50
+  legitimate.
+- **Checkpoint, not open-ended:** if fewer than 20 verified fraudulent postings are secured
+  within roughly one week of starting, the qualitative-only fallback is invoked instead of
+  letting collection drag on unbounded.
+- **What I gave up:** statistical power. A 50–100 posting Tier 2 will have wide confidence
+  intervals; this must be stated plainly, not minimised.
+- **Self-check:** *Why is a small, honestly-reported Tier 2 more defensible than either
+  collecting the full 300–600 or abandoning quantitative Tier 2 entirely?*
+
+### 3. Reproducibility seeds: 3, not 5 — and the "what does five seeds mean" question is now settled
+
+- **The seed-count reduction:** ablation alone multiplies retrains (~5 category removals ×
+  multiple models × seeds); this compounds fast even with GPU acceleration. 3 seeds still
+  supports mean ± SD reporting and is a documented, disclosed reduction, not a silent one.
+- **The definition question (previously open, now resolved):** "repeated across N seeds"
+  means N *model initialisations* run against **one fixed train/validation/test split** —
+  not N different splits. This is the only reading compatible with the existing guardrail
+  that the test set is used once; N different splits would mean N different test sets.
+- **What I gave up:** some robustness in the noise estimate on the test set (~130 fraud
+  postings), compared to 5 seeds.
+- **Self-check:** *Why is "5 different splits" incompatible with "test set used once," and
+  what does the seed count actually vary instead?*
+
+### 4. Explainability: SHAP only, LIME dropped
+
+- **Options considered:** (A) both SHAP and LIME, as originally planned; (B) SHAP only.
+- **Why SHAP alone:** SHAP has stronger theoretical grounding (Shapley values, consistency
+  guarantees) and handles both the structured evidence vector and text attribution
+  reasonably well in one framework. Building and validating two separate explanation
+  pipelines — each needing its own fidelity testing — isn't worth the cost under this
+  timeline when SHAP alone satisfies O4's fidelity-testing requirement.
+- **What I gave up:** a second, independent explanation method to cross-check SHAP's output
+  against. `Research_Objectives_and_Questions_Final.docx` names both SHAP and LIME as
+  examples ("e.g."), not a hard requirement of exactly two methods, so this doesn't violate
+  the objective as written — but the .docx wording should be checked before submission.
+- **Self-check:** *Does dropping LIME violate Objective 4 as formally written, or does its
+  "e.g." wording leave room for this?*
+
+### 5. Divergent architecture review: skipped, time-driven
+
+- **Context:** this was logged as a pending decision since 2026-08-07 — survey alternatives
+  (gradient boosting, sentence-transformer + gradient-boosted classifier, other lightweight
+  transformers) before committing to TF-IDF + DistilBERT fusion.
+- **Decision:** given the confirmed deadline, this survey is not done. The original design
+  is committed to as-is.
+- **Why this is acceptable to state plainly rather than quietly skip:** the honest position
+  in a viva is "I did not conduct a full landscape review before committing to this
+  architecture, because of the timeline, and I can name what that costs me" — not silence
+  on the question, and not a retrofitted justification pretending the review happened.
+- **What I gave up:** the ability to say with evidence that TF-IDF + DistilBERT fusion was
+  chosen over specific, considered alternatives. It was chosen at proposal stage and never
+  re-examined against the landscape.
+- **Self-check:** *Why is honestly stating "I skipped this survey because of time" better
+  than either silently skipping it or fabricating a comparison that wasn't done?*
+
+---
+
+## 2026-09-20 — Near-duplicate grouping method for Stage 3 (Decision 0.2, resolved)
+
+- **Decision:** exact-normalised MD5 hashing on `description` (already built and tested in
+  the audit script), with a **secondary grouping key on normalised `title`** added at low
+  implementation cost.
+
+- **Options considered:**
+  - (A) Exact-normalised MD5 hashing only (already measured: 4,762 records / 26.6% in a
+    duplicate group, but fragments the 715-record "English Teacher Abroad" campaign across
+    15 separate groups).
+  - (B) First-12-token hash proxy (already measured: merges 48.9% of the corpus — likely
+    over-merging unrelated postings sharing a generic opening line).
+  - (C) MD5 on description, plus a second grouping pass on normalised title text.
+
+- **Why C:** option A under-groups (misses some real near-duplicates); option B over-groups
+  badly (merges nearly half the corpus, a worse failure mode). Many campaigns reuse a
+  near-identical title even when body text varies slightly — adding a title-based grouping
+  key catches some of what pure description-hashing misses, at minimal new code (reuse the
+  same `normalise()` + MD5 pattern already written, applied to `title` instead of
+  `description`, then union the two groupings).
+
+- **What I gave up:** a fully rigorous near-duplicate solution (e.g. MinHash/shingling)
+  that would catch paraphrased campaigns with both different titles and different bodies.
+  Not pursued, given the deadline — title+description exact-hash union catches the
+  documented failure case (English Teacher Abroad) without new algorithmic complexity.
+
+- **Revisit if:** time permits after Stage 3, or if Stage 3's measured duplicate-group
+  statistics look implausible given what title+description hashing should catch.
+
+- **Self-check:** *Why does adding a title-based grouping key specifically address the
+  fragmentation problem measured in the "English Teacher Abroad" campaign?*
+
+---
+
 
 ## 2026-08-27 — Reject four candidate "second datasets"; reaffirm independently-collected Tier 2
 
@@ -634,68 +786,10 @@ _Last updated: 2026-08-27_
 
 # Pending decisions (not yet made)
 
-> ⚠️ **Urgency update, 2026-08-27:** deadline confirmed at ~1 month away. Every item below
-> now needs a decision this week, not "before Stage 5" in the abstract. A fifth item has
-> been added: the scope-cut decision, which is now the most urgent of all.
-
-## URGENT — Scope-cut decision given the 1-month deadline
-
-- **The question:** Full rigor on all nine stages as originally scoped does not fit in one
-  month for a single developer. Candidate cuts, not yet chosen: Tier 2 → qualitative-only
-  (the pre-planned fallback above); DistilBERT frozen not fine-tuned; fewer than five seeds,
-  stated explicitly; drop the rules-only baseline; narrow explainability to one method
-  tested fully rather than both SHAP and LIME partially.
-- **Why it matters:** Deciding this now, deliberately, is the difference between six fully
-  rigorous stages and nine half-finished ones.
-- **Decide by:** Immediately — this blocks efficient planning of everything else.
-
-## Should I add a rules-only baseline as a third model?
-
-- **The question:** Should I train a model using only E2, E3 and E4 features — identity,
-  completeness and consistency — with no text model at all?
-- **For it:** It answers a question my current design cannot: does the transformer actually
-  earn its complexity? If the rules alone perform respectably, that is a striking and very
-  defensible finding about explainable fraud detection, and it supports my
-  consistency-verification argument directly. If the transformer wins clearly, that also
-  strengthens my case for using it.
-- **Against it:** One more training arm, more ablation rows, more writing. **Now a direct
-  candidate for cutting given the 1-month deadline (see above).**
-- **Decide by:** Before Stage 5 starts.
-
-## Divergent review of my model architecture
-
-- **The question:** I carried TF-IDF plus DistilBERT fusion straight over from my proposal
-  without ever mapping the alternatives. I should look at the landscape before I build:
-  gradient boosting over structured features, sentence-transformer embeddings feeding a
-  gradient-boosted classifier, other lightweight transformers.
-- **Why it matters:** I committed on day one to the first approach I named. I should at
-  least be able to say what else was available and why I still chose this.
-- **Decide by:** Before I write any model code.
-
-## Frozen vs. fine-tuned DistilBERT (no GPU available)
-
-- **The question:** Encode with DistilBERT once and cache embeddings, training only the
-  fusion layer (cheap on CPU) — or fine-tune the full model (likely very slow with no GPU,
-  possibly requiring an external environment like Colab, which raises its own reproducibility
-  question about a seeded experiment running in two different environments).
-- **Why it matters:** Directly affects whether Stage 5 is even feasible within a month.
-- **Decide by:** Before Stage 5 starts — effectively now, given the timeline.
-
-## Near-duplicate grouping method for Stage 3 (Decision 0.2)
-
-- **The question:** Exact-normalised MD5 hashing (measured: 4,762 records / 26.6% in a
-  duplicate group, but fragments a known 715-record legitimate campaign across 15 separate
-  groups) vs. a cheap token-prefix proxy (measured: merges 48.9% of the corpus, likely
-  over-merging unrelated postings) vs. something else.
-- **Why it matters:** Blocks Stage 3 (partitioning) entirely.
-- **Decide by:** Before Stage 3 starts.
-
-## "5 seeds" — one fixed split or five different splits?
-
-- **The question:** Does "repeated across five seeds" mean five model initialisations
-  against one fixed train/validation/test split, or five different splits? Only the first
-  reading is compatible with the guardrail that the test set is used once.
-- **Decide by:** Before Stage 3.
+> ✅ **Resolved, 2026-09-20:** the scope-cut decision, the rules-only baseline question, the
+> frozen-vs-fine-tuned DistilBERT question, the "5 seeds" definition question, and the
+> near-duplicate grouping method (Decision 0.2) are all now resolved — see the entries dated
+> 2026-09-20 above. Only two items remain genuinely open below.
 
 ## Success thresholds for each objective
 
@@ -703,4 +797,14 @@ _Last updated: 2026-08-27_
   unset in `methodology.md`.
 - **Constraint:** I must agree these with my supervisor **before** I see any results.
   A threshold set after seeing results is not a threshold.
-- **Decide by:** Before Stage 9.
+- **Decide by:** Before Stage 9. **Now urgent** given the confirmed ~1 month deadline —
+  schedule this conversation with my supervisor immediately, in parallel with Stage 2/3
+  work, not queued up later.
+
+## Tier 2 ethics approval status
+
+- **The question:** Has the institutional ethics application for Tier 2 primary data
+  collection actually been submitted? What is the NIBM/Coventry process and timeline?
+- **Why it matters:** Tier 2 collection is starting now (see the reduced-collection
+  decision, 2026-09-20, above) — this can no longer sit as a background open question.
+- **Decide by:** Immediately — check status today.

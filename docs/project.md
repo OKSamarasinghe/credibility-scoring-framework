@@ -1,6 +1,6 @@
 # project.md — An Explainable Credibility Scoring Framework for Online Recruitment Posts
 
-_Last updated: 2026-08-27_
+_Last updated: 2026-09-20_
 
 > **How to use this file.** Paste it at the start of every AI working session, before doing
 > any work. Keep it current — update "Where I am right now" at the end of each session,
@@ -87,8 +87,11 @@ the *extent of change*, not an improvement. A negative finding still completes t
   explanation, and returns structured JSON.
 - **Response fields:** `credibility_score` (0–100), `risk_band`, `top_reasons`,
   `suspicious_phrases`, `contradictions`, `verification_checklist`.
-- **Hard constraints:** single developer; consumer-grade hardware (DistilBERT chosen partly
-  for this); no paid data sources; English-language postings only.
+- **Hard constraints:** single developer; no paid data sources; English-language postings
+  only. **Corrected 2026-09-20:** "consumer-grade hardware, no dedicated GPU" was assumed
+  since proposal stage and never checked — actual hardware is a gaming laptop with an
+  RTX 3050 GPU and 16GB RAM. DistilBERT will be fine-tuned, not frozen, as a result. See
+  `decisions.md`, 2026-09-20.
 
 ## Evidence taxonomy (four categories)
 
@@ -136,94 +139,100 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 
 ## Where I am right now
 
-- **DSR step:** 3 (Design & Build) — genuinely into implementation now, not just at the
-  transition.
+- **DSR step:** 3 (Design & Build) — genuinely into implementation, with real, tested,
+  committed code — not just at the transition.
 - **Phase:** Dissertation write-up (Chapters 1–3 drafted, in `Research_Thesis_Draft.md`) AND
-  artefact build, running in parallel. **Deadline confirmed 2026-08-27: ~1 month away.**
+  artefact build, running in parallel. **Deadline confirmed: ~1 month from 2026-08-27.**
 - **Completed:**
   - Proposal accepted; objectives finalised; research questions finalised; methodology
-    finalised (9 stages + Stage 8b); dataset strategy decided and, as of 2026-08-27,
-    stress-tested against four external alternatives and reaffirmed.
+    finalised (9 stages + Stage 8b); dataset strategy decided and stress-tested against four
+    external alternatives (2026-08-27) and reaffirmed.
   - Chapter 1 (Introduction) and Chapter 2 (Literature Review) drafted in full, with a
     six-theme empirical review and a four-gap research-gap section. Chapter 3 (Methodology)
     also drafted in full.
   - **Environment and repository:** GitHub repo set up, Python 3.13.9 venv with full
     dependency stack installed and verified (including resolving a Windows long-path
-    install failure for PyTorch).
+    install failure for PyTorch). **Hardware corrected 2026-09-20:** RTX 3050 + 16GB RAM,
+    not "no GPU" as previously assumed throughout the project files.
   - **Data audit:** run on the real EMSCAD CSV, then corrected twice — a missingness
     double-counting bug, a duplicate-count mislabeling bug (in both the overall and
     per-class figures), and an inconsistent "evaluable coverage" definition across the C1–C6
-    rules. All measured figures now verified in two independent environments.
+    rules. All measured figures verified in two independent environments.
   - **Stage 1 (ingestion):** built and tested — 9/9 tests passing against the real dataset,
-    confirmed independently on two machines.
+    confirmed independently on two machines. Committed.
   - **Stage 8 skeleton (API):** FastAPI app, `/score` route, and the full JSON contract
     built and tested. Every pipeline stage honestly reports "not yet built" rather than
-    returning fabricated data. Real wiring still pending Stages 4–7.
-  - **Stage 2 (taxonomy audit) — partial:** the stratified sampling script and 200-posting
-    worksheet are built and tested (seed 42, drawn from unique normalised descriptions to
-    avoid duplicate-campaign inflation of agreement rates). **Not yet confirmed integrated
-    into the repository — needs verification.** The manual coding of the 200 postings
-    (the actual audit) has not started.
-- **Not yet started:** Stages 3–9 in full. Tier 2 collection (zero postings — this is now
-  the most urgent open risk given the confirmed deadline). Chapters 4–6 of the dissertation
-  (Chapter 4 cannot be drafted until Stage 9 produces real measurements).
+    returning fabricated data. Committed. Real wiring still pending Stages 4–7.
+  - **Stage 2 sampling — complete and confirmed committed (2026-09-20):** stratified
+    200-posting sample (seed 42, drawn from unique normalised descriptions) built, tested,
+    reproduced fresh on the real machine, and pushed to the repository. The manual coding of
+    the 200 postings (the actual audit) has not started — that part is human work only I
+    can do.
+  - **Docs sync (2026-09-20):** `project.md`, `decisions.md`, `methodology.md`, `sources.md`
+    and `PROJECT_PLAN.md` are now consistent across the Claude Project, the GitHub repo, and
+    reality. `workplan.md` retired in favour of `PROJECT_PLAN.md`.
+  - **Scope-cut decisions made (2026-09-20):** rules-only baseline cut; DistilBERT will be
+    fine-tuned (enabled by the hardware correction); Tier 2 reduced to ~50–100 postings with
+    a ~1-week checkpoint; seeds reduced to 3 with the "what does N seeds mean" question
+    settled (fixed split, N initialisations); explainability narrowed to SHAP only;
+    divergent architecture review formally skipped, time-driven. Near-duplicate grouping
+    (Decision 0.2) resolved: MD5 hashing plus a secondary title-based grouping key. Full
+    reasoning for all of this in `decisions.md`, 2026-09-20.
+- **Not yet started:** the Stage 2 manual audit itself. Tier 2 collection (zero postings —
+  sourcing starts now, in parallel, with the checkpoint above). Stages 3–9 in full. Chapters
+  4–6 of the dissertation (Chapter 4 cannot be drafted until Stage 9 produces real
+  measurements).
 
 ### Known state of documents
 
 - `Research_Methodology_Final.docx` still shows the *original estimated* C1–C6 field
   coverage figures (100%/98%/81%/61%/55%/16%), not the measured ones (100%/88.4%/80.6%/
-  60.6%/54.7%/15.2%), and has no evaluable-coverage column at all. Needs updating once
-  Stage 4's real lexicons exist — the current measured figures are still provisional.
+  60.6%/54.7%/15.2%), and has no evaluable-coverage column at all. Also still states "no
+  dedicated GPU" as a constraint. Needs updating.
 - All numeric values in `Framework_Explanation_Walkthrough.docx` are illustrative worked
   examples, not results. Logged as `sources.md` #17. Never cite them.
-- `methodology.md`, `sources.md`, and `decisions.md` were re-synced with this project's real
-  progress on 2026-08-27, after a period where the working `.md` files had drifted
-  significantly behind the actual development chat.
 - Chapters 1 and 2 cite 11 sources; several are still unread/unverified — tracked in
   `sources.md` Part C. Must be read before final submission.
 
 ### Next actions (in order)
 
-1. **URGENT — decide scope cuts.** Full rigor on all nine stages as originally planned does
-   not fit in the confirmed one-month deadline for a single developer. A menu of candidate
-   cuts is logged in `decisions.md` under "Pending decisions." This blocks efficient
-   planning of everything below and should be decided first.
-2. **Confirm Stage 2 files are actually committed to the repository** — the sampling script
-   and worksheet were built and tested but integration into git has not been confirmed.
-3. **Complete the Stage 2 manual audit** — 200 postings, using the pre-defined coding scheme
-   in `STAGE2_CODING_INSTRUCTIONS.md`. This is human work only I can do.
-4. **Resolve Decision 0.2** (near-duplicate grouping method) before Stage 3 can start.
-5. **Start Tier 2 sourcing** — in parallel with the above, not queued up after. Given the
-   deadline, decide now whether the pre-planned fallback (report Tier 2 qualitatively) is
-   being invoked.
-6. **Resolve the architecture review and frozen-vs-fine-tuned DistilBERT decisions** before
-   Stage 5 — both are now time-critical, not just methodologically important.
-7. **Read the unverified Chapter 1–2 sources** (sources.md Part C) — especially Vidros
+1. **Start the Stage 2 manual audit** — 200 postings, using the pre-defined coding scheme
+   in `STAGE2_CODING_INSTRUCTIONS.md`. This is human work only I can do, and it's the
+   longest-pole item still blocking Stage 3.
+2. **Start Tier 2 sourcing in parallel, today** — target 20–30 verified fraudulent postings
+   within ~1 week (checkpoint; falls back to qualitative-only if missed) and 30–50
+   legitimate postings.
+3. **Check Tier 2 ethics approval status** — has it actually been submitted? Do this today,
+   not as a background task.
+4. **Build Stage 3** (partitioning) once the Stage 2 audit and Decision 0.2's title+
+   description grouping are both ready.
+5. **Schedule the success-thresholds conversation with my supervisor** — must happen before
+   Stage 9, and the deadline makes "before Stage 9" mean "soon."
+6. **Read the unverified Chapter 1–2 sources** (sources.md Part C) — especially Vidros
    (2017), Mehboob & Malik (2021), Sullivan & Weger (2025) — as time allows.
 
 ---
 
 ## Open questions
 
-- **Scope-cut decision — see `decisions.md`, URGENT, top of Pending decisions.** This is now
-  the single most important open question in the project.
-- **Tier 2 collection is my slowest task and my biggest schedule risk**, and with the
-  deadline confirmed at ~1 month, the pre-planned fallback clause (report Tier 2
-  qualitatively, state the limitation openly) is now under live consideration rather than a
-  hypothetical.
-- **Which specific Tier 2 sources can I actually access?** Both documents currently
-  describe sources generically. Named sources are stronger. Need to test access to
-  Greenhouse/Lever endpoints, USAJOBS, Arbeitnow, Adzuna free tier.
-- **What are my success thresholds?** The evaluation plan in `methodology.md` has metrics
-  and baselines but thresholds are still unset. Agree these with supervisor *before*
-  running the evaluation, not after seeing results.
-- **Ethics form for Tier 2 primary data collection** — submitted? NIBM/Coventry process
-  and timeline? This is now urgent given the confirmed deadline.
+- **Tier 2 collection has now started sourcing**, with a firm ~1-week checkpoint (see
+  `decisions.md`, 2026-09-20). This is no longer an abstract risk — it's an active,
+  time-boxed task.
+- **Which specific Tier 2 sources can I actually access?** Need to test access to
+  Greenhouse/Lever endpoints, USAJOBS, Arbeitnow, Adzuna free tier — now urgent, not
+  background research.
+- **What are my success thresholds?** Still unset in `methodology.md`. Agree these with
+  supervisor *before* running the evaluation, not after seeing results. Urgent given the
+  deadline.
+- **Ethics form for Tier 2 primary data collection** — submitted? Check today.
 - **AI-use declaration** — what wording does my programme require, and where does it go?
 - **Chapter 1 explainability wording** — confirm Chapter 1 says explanations are "rarely
   used and never tested for faithfulness" rather than "absent", so it agrees with Chapter 2
   (which cites Naudé 2023 using LIME in the fraud domain). Sharpened gap, must be consistent
   across both chapters.
+- **LIME references in `Research_Objectives_and_Questions_Final.docx` and the thesis draft**
+  — since Stage 7 now uses SHAP only, check that "e.g., SHAP, LIME" wording doesn't read as
+  a firm commitment to both methods anywhere it's cited.
 
 ---
 
@@ -244,4 +253,8 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 | 2026-08-27 | Stage 2 sampling built | Stratified 200-posting sample + worksheet + coding instructions; reproducibility verified; repo integration not yet confirmed |
 | 2026-08-27 | Dataset strategy stress-tested | Four external "second dataset" suggestions checked against primary sources and rejected; two-tier plan reaffirmed |
 | 2026-08-27 | Deadline confirmed | ~1 month remaining; scope-cut decision now the most urgent open item |
-| 2026-08-27 | `.md` files re-synced | `project.md`, `decisions.md`, `methodology.md`, `sources.md` updated to reflect actual progress after a period of drift |
+| 2026-08-27 | `.md` files re-synced (first pass) | `project.md`, `decisions.md`, `methodology.md`, `sources.md` updated to reflect actual progress after a period of drift |
+| 2026-09-20 | Docs sync verified and completed | Confirmed via repo inspection that the first-pass sync had only reached the Claude Project, not the GitHub repo; corrected. `PROJECT_PLAN.md` added to repo; `workplan.md` retired. Commit `272c70c`. |
+| 2026-09-20 | Stage 2 sampling committed | Third attempt; verified this time — files landed with correct sizes, script re-ran and reproduced the exact sample on the real machine, then committed. Commit `498200d`. |
+| 2026-09-20 | Hardware constraint corrected | "No GPU" was wrong — RTX 3050 + 16GB RAM. Resolves the frozen-vs-fine-tuned DistilBERT question. |
+| 2026-09-20 | Scope-cut decisions made | Rules-only baseline cut; DistilBERT fine-tuned; Tier 2 reduced to ~50–100 postings with a 1-week checkpoint; seeds reduced to 3 with the definition settled; explainability narrowed to SHAP only; architecture review formally skipped. Decision 0.2 resolved (MD5 + title grouping). Full reasoning in `decisions.md`. |

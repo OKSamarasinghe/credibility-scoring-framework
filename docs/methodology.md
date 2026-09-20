@@ -1,6 +1,6 @@
 # methodology.md — How I'm Doing This (and the Evaluation Plan)
 
-_Last updated: 2026-08-27_
+_Last updated: 2026-09-20_
 
 > Companion to `Research_Methodology_Final.docx` (the formal, supervisor-facing version).
 > This file is the **working** version: it tracks what I am *actually* doing, records results
@@ -24,10 +24,11 @@ independently collected contemporary postings.
 > are not yet confirmed — see `sources.md` #1, #2, #8. Do not cite these from memory in any
 > submitted document.
 
-> ⚠️ **Deadline confirmed 2026-08-27: ~1 month away.** A scope-cut decision is pending and
-> urgent — see `decisions.md`, "Pending decisions." Several items in this file (five-seed
-> repetition, both SHAP and LIME, the rules-only baseline, full Tier 2 collection) are
-> candidates for reduction and may change once that decision is made.
+> ⚠️ **Deadline confirmed 2026-08-27: ~1 month away.** Scope-cut decisions were made
+> 2026-09-20 — see `decisions.md`. This file now reflects the resolved scope: 3 seeds
+> (not 5), SHAP only (not SHAP+LIME), no rules-only baseline, Tier 2 reduced to ~50–100
+> postings. Hardware was also corrected 2026-09-20: RTX 3050 + 16GB RAM, not "no GPU" —
+> DistilBERT will be fine-tuned, not frozen.
 
 ---
 
@@ -92,11 +93,11 @@ declaration to be included — see `project.md` open questions.
 | — | Data audit | grounds Stage 1 | ✅ Complete, corrected twice, verified in 2 environments |
 | 1 | Data ingestion & preprocessing | Foundation | ✅ Complete, 9/9 tests passing, verified twice |
 | 2 | Evidence taxonomy definition & manual audit | O1 | 🟡 Sampling script + worksheet built and tested; manual coding of 200 postings not started; repo integration not confirmed |
-| 3 | Leakage-controlled data partitioning | O2, O3, O5 | ⬜ Blocked on Decision 0.2 (near-duplicate grouping method) |
+| 3 | Leakage-controlled data partitioning | O2, O3, O5 | ⬜ Ready to start — Decision 0.2 resolved (MD5 + title grouping), 2026-09-20 |
 | 4 | Multi-signal evidence extraction | O1, O3 | ⬜ Not started |
-| 5 | Model development (baseline & improved) | O2, O3 | ⬜ Not started — blocked on architecture review, rules-only-baseline decision, frozen-vs-fine-tuned DistilBERT decision |
+| 5 | Model development (baseline & improved) | O2, O3 | ⬜ Not started — all blocking decisions resolved 2026-09-20 (fine-tuned DistilBERT, no rules-only arm, architecture review skipped by decision) |
 | 6 | Probability calibration & score mapping | O4 | ⬜ Not started |
-| 7 | Explainability layer & fidelity evaluation | O4 | ⬜ Not started |
+| 7 | Explainability layer & fidelity evaluation | O4 | ⬜ Not started — scope: SHAP only, LIME dropped, decided 2026-09-20 |
 | 8 | API development | O4 | 🟡 Skeleton complete and tested (routing, schema validation, zero fabricated data); real pipeline wiring pending Stages 4–7 |
 | **8b** | **Demonstration** | O4 | ⬜ Not started |
 | 9 | Evaluation, ablation & generalisability | O5 | ⬜ Not started |
@@ -209,16 +210,17 @@ defined in advance and applied consistently. Stated in limitations.
 - **Ex post** — the built artefact is evaluated, not the design in advance.
 - **Artificial** — primary evaluation on a benchmark dataset under controlled conditions.
 - **Naturalistic component** — Tier 2 assessment on independently collected contemporary
-  postings. **Status, 2026-08-27: at risk given the confirmed deadline — see `decisions.md`
-  pending scope-cut decision. Pre-planned fallback (report Tier 2 qualitatively) is under
-  live consideration.**
+  postings. **Status, 2026-09-20: reduced-scope collection decided** — target ~50–100
+  postings (20–30 verified fraud, 30–50 legitimate), sourcing started, ~1-week checkpoint;
+  qualitative-only fallback triggers automatically if the checkpoint is missed. See
+  `decisions.md`, 2026-09-20.
 
 ### Baselines
 
 1. **TF-IDF + Logistic Regression / Random Forest** — the O2 baseline.
 2. **Published EMSCAD results** — external comparison, with the leakage-control caveat.
-3. **Rules-only model** — *pending decision, see `decisions.md` — now a candidate for
-   cutting given the deadline.*
+3. ~~Rules-only model~~ — **cut, 2026-09-20** (see `decisions.md`). Stage 9's
+   leave-one-category-out ablation covers a related question without a separate arm.
 4. **Random-attribution control** — for explanation fidelity.
 
 ### Ablation protocol
@@ -241,9 +243,12 @@ under identical conditions. Δ F1 and Δ PR-AUC reported per category.
 
 > ⚠️ **Dataset strategy stress-tested, 2026-08-27:** four externally-suggested alternative
 > "second datasets" were checked against their primary sources and all found to be EMSCAD
-> derivatives, unsuitable as Tier 2. See `decisions.md`, 2026-08-27. The plan below is
-> unchanged in design, but its feasibility within the confirmed 1-month deadline is now the
-> single biggest open risk in the project.
+> derivatives, unsuitable as Tier 2. See `decisions.md`, 2026-08-27.
+>
+> ⚠️ **Scope decided, 2026-09-20:** the plan below runs at reduced scale (~50–100 postings,
+> not the original 300–600), with a firm ~1-week collection checkpoint. If T1–T3 end up
+> running on a smaller Tier 2 than originally planned, report that plainly — do not let the
+> experiment table below imply a scale that wasn't achieved.
 
 | ID | Experiment | What it tests |
 |---|---|---|
@@ -266,17 +271,18 @@ Result reported regardless of outcome.
 
 ### Reproducibility
 
-- All seeds fixed and recorded; every experiment repeated across **five seeds**, reported
-  as mean ± SD. **Candidate for reduction given the deadline — see `decisions.md` pending
-  scope-cut decision.**
-- **Open question, not yet decided:** does "five seeds" mean five model initialisations
-  against one fixed train/validation/test split, or five different splits? These are only
-  compatible with the "test set used once" guardrail under the first reading. Must be
-  decided before Stage 3, not assumed.
+- All seeds fixed and recorded; every experiment repeated across **3 seeds** (reduced from
+  5, decided 2026-09-20 given the deadline — see `decisions.md`), reported as mean ± SD.
+- **"3 seeds" means 3 model initialisations against one fixed train/validation/test split**
+  — resolved 2026-09-20. This is the only reading compatible with the "test set used once"
+  guardrail; it does not mean 3 different splits.
 - Environment specs, library versions, model configs version-controlled with the code.
   (Environment established 2026-08-26/27: Python 3.13.9, pandas 3.0.5, PyTorch 2.13.0+cpu,
-  Transformers 5.16.1 — full pinned list in `requirements.txt`.)
-- Tier 2 results reported with confidence intervals given the small sample.
+  Transformers 5.16.1 — full pinned list in `requirements.txt`. **Hardware corrected
+  2026-09-20:** RTX 3050 GPU + 16GB RAM — DistilBERT is fine-tuned, not frozen, as a
+  result.)
+- Tier 2 results reported with confidence intervals given the small sample — now expected
+  to be wide, given the reduced ~50–100 posting collection target (see below).
 
 ---
 
