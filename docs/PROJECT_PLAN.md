@@ -1,12 +1,14 @@
 # PROJECT_PLAN.md — Full Project Plan (Start to End)
 
-_Compiled 2026-08-27, last refreshed 2026-08-27 (Stage 2 status corrected). This is a DATED
-SNAPSHOT, not a live-synced file — refresh it at real milestones (a stage completing, a
-decision closing), not every session. `workplan.md` remains the living, frequently-updated
-status tracker; `decisions.md`, `methodology.md`, `sources.md` remain the detailed logs and
-are authoritative over this file on any specific number. If a fact here conflicts with one
-of those four files, or with `SKILL.md`'s standing rules, THEY win — this file is a
-convenience summary, never a primary source._
+_Compiled 2026-08-27, refreshed 2026-09-20 (scope-cut decisions, hardware correction,
+checklist added). This is a DATED SNAPSHOT for the narrative and the guardrails, but
+**Section 7.5 below is a live checklist — update it every time you finish something,
+right when you finish it, not at the next big refresh.** `decisions.md`, `methodology.md`,
+`sources.md` remain the detailed logs and are authoritative over this file on any specific
+number. If a fact here conflicts with one of those three, or with `SKILL.md`'s standing
+rules, THEY win — the narrative sections of this file are a convenience summary, never a
+primary source. (`workplan.md` was retired 2026-09-20 in favour of this file, so there is
+only one planning document now, not two.)_
 
 ---
 
@@ -24,8 +26,8 @@ as **ex post** (the built system is evaluated, not the design in advance) and pr
 **artificial** (benchmark dataset, controlled conditions), with a **naturalistic** component
 in the Tier 2 assessment.
 
-**⚠️ `project.md` line 19 ("Key deadlines") is still `[FILL IN]`.** Nothing in this plan is
-scheduled against a real date. Fill that in — it changes pacing, not scope.
+**Deadline confirmed 2026-08-27: ~1 month from that date.** Exact date still to be confirmed
+with the programme office, but pacing is now real, not open-ended.
 
 ---
 
@@ -121,14 +123,15 @@ re-measured once Stage 4 writes the real lexicons. Full detail: `sources.md` #3.
 | Tier | Dataset | Size | Role | Status |
 |---|---|---|---|---|
 | 1 | EMSCAD (Vidros et al., 2017) | 17,880 (866 fraud / 4.84%) | ALL training, tuning, calibration, ablation | ✅ Audited, ingestion built and tested |
-| 2 | Independently collected contemporary postings | 300–600 target | Held-out temporal validation ONLY | ❌ Not started — biggest schedule risk |
+| 2 | Independently collected contemporary postings | ~50–100 target (reduced 2026-09-20; 20–30 fraud / 30–50 legit), ~1-week checkpoint | Held-out temporal validation ONLY | 🟡 Legitimate-side sourcing verified and ready (Greenhouse/Lever/Arbeitnow/Adzuna, all confirmed free and accessible 2026-09-20); fraud-side sourcing not yet verified; zero postings collected |
 
 Tier 2 is never used for training; the tiers are never merged. **Open problem (Decision
-0.4, unresolved):** if fraudulent Tier 2 postings arrive text-only (scam repositories)
+0.4, still unresolved):** if fraudulent Tier 2 postings arrive text-only (scam repositories)
 while legitimate ones carry full structured fields (ATS/feed provenance), E3 would
 separate the classes for collection-artefact reasons, not fraud reasons — and E4, the
 actual contribution, might not fire on the fraud side at all. Must be resolved before
-collection starts.
+collection starts — this is exactly why fraud-side sourcing needs checking next, not just
+legitimate-side.
 
 ---
 
@@ -169,18 +172,20 @@ C2 (deferred, not yet attempted at all). **Done** = every evaluable-coverage fig
 re-measured against real lexicons, not assumed to match the provisional numbers.
 
 **Stage 5 — Models.** Baseline: TF-IDF + Logistic Regression / Random Forest. Improved:
-DistilBERT text embeddings fused with the E2/E3/E4 structured vector. Pending: rules-only
-baseline (does the transformer earn its complexity?) and frozen-vs-fine-tuned DistilBERT
-(no GPU available). **Done** = baseline and improved differ only in text representation +
+DistilBERT (**fine-tuned**, decided 2026-09-20 — hardware is an RTX 3050 + 16GB RAM, not
+"no GPU" as previously assumed) fused with the E2/E3/E4 structured vector. Rules-only
+baseline **cut** (2026-09-20). Divergent architecture review **formally skipped**,
+time-driven (2026-09-20) — committing to the original design as-is. 3 seeds (reduced from
+5), one fixed split. **Done** = baseline and improved differ only in text representation +
 structured features; identical class weighting; hyperparameters/threshold/calibrator
 fitted on validation only; test set untouched.
 
 **Stage 6 — Calibration.** Platt or isotonic, chosen on validation. Brier, ECE, reliability
 curve reported. Anything that damages calibration is a cost, not a neutral choice.
 
-**Stage 7 — Explainability.** SHAP/LIME + rule-message summaries. Comprehensiveness,
-sufficiency (deletion/insertion), rule-consistency — computational only, no human
-participants.
+**Stage 7 — Explainability.** SHAP only (LIME dropped, 2026-09-20) + rule-message
+summaries. Comprehensiveness, sufficiency (deletion/insertion), rule-consistency —
+computational only, no human participants.
 
 **Stage 8 — API.** Skeleton done. Remaining work: replace the four stub functions in
 `src/api/main.py` (`preprocess`, `extract_features`, `predict`, `explain`) with real
@@ -191,8 +196,154 @@ Proves the artefact works at all — proves nothing about how well. Never confla
 Stage 9.
 
 **Stage 9 — Evaluation.** Full metric set on the test set, used once. Ablation per
-evidence category. Tier 2 temporal transfer (renamed T1/T2/T3 — see `methodology.md`) with
-confidence intervals. Thresholds agreed with supervisor **before** results are seen.
+evidence category (no rules-only arm — cut). Tier 2 temporal transfer (T1/T2/T3 — see
+`methodology.md`) at reduced scale (~50–100 postings), reported with wide confidence
+intervals given the small sample. Thresholds agreed with supervisor **before** results are
+seen — urgent given the deadline.
+
+---
+
+## 7.5 — LIVE CHECKLIST (update this every time you finish something)
+
+> **How to use this section.** Tick a box the moment you finish that item — not at the next
+> big review. This is the one part of this file that changes constantly; everything else
+> above and below it is refreshed only at real milestones. Copy this whole file, replace it
+> in both the Claude Project and the repo, same as always, whenever you tick something —
+> or keep a local working copy and sync it every few items, your call, as long as it
+> eventually lands in both places.
+
+### Pre-work
+
+- [x] Repository, environment, `.gitignore` set up and verified
+- [x] Data audit run and corrected (3 bugs fixed: missingness, duplicate-count, C1–C6 definition)
+- [x] Dataset strategy stress-tested against 4 external alternatives — rejected, two-tier plan reaffirmed
+- [x] Hardware capability corrected (RTX 3050 + 16GB RAM, not "no GPU")
+- [x] Scope-cut decisions made (rules-only cut, DistilBERT fine-tuned, Tier 2 reduced, 3 seeds, SHAP-only, architecture review skipped)
+- [x] Decision 0.2 resolved (MD5 + title grouping)
+- [x] Tier 2 legitimate-source APIs verified (Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna)
+- [ ] Tier 2 fraud-source access verified
+- [ ] Decision 0.3 resolved (label-conditional statistics in design)
+- [ ] Tier 2 ethics approval status checked
+- [ ] Success thresholds agreed with supervisor
+
+### Stage 1 — Ingestion & preprocessing
+
+- [x] Boolean encoding (t/f → 1/0) with fraud-count assertion
+- [x] Contact/media token extraction before HTML stripping
+- [x] `in_balanced_dataset` dropped
+- [x] `salary_range` "0-0" treated as missing
+- [x] Missingness flagged, never imputed
+- [x] Tests written and passing (9/9), verified on 2 machines
+- [x] Committed to repository
+
+### Stage 2 — Evidence taxonomy + manual audit
+
+- [x] Stratified 200-posting sample built (seed 42, unique normalised descriptions)
+- [x] Worksheet generated (28 columns, mechanical fields pre-filled, judgement fields blank)
+- [x] Coding scheme written in advance (`STAGE2_CODING_INSTRUCTIONS.md`)
+- [x] Reproducibility verified on real machine
+- [x] Committed to repository
+- [ ] **Manual coding of 200 postings — not started (yours to do)**
+- [ ] Per-category observability rate computed
+- [ ] Per-rule agreement rate computed
+- [ ] At least one signal revised/dropped based on audit findings, logged
+- [ ] Results written into `methodology.md`
+
+### Stage 3 — Leakage-controlled partitioning
+
+- [ ] Title-based grouping key added alongside existing description MD5 hashing
+- [ ] Group-aware stratified 70/15/15 split implemented
+- [ ] Zero group overlap proven across train/validation/test
+- [ ] Duplicate counts reported using the resolved grouping method
+- [ ] Vectorisers/scalers/encoders fit on train only
+- [ ] Seeds fixed and recorded (3, one fixed split)
+- [ ] Results written into `methodology.md`
+
+### Stage 4 — Multi-signal evidence extraction
+
+- [ ] E1 features built (text/content cues)
+- [ ] E2 features built (identity & contact cues)
+- [ ] E3 features built (completeness flags + composite)
+- [ ] E4 / C1–C6 real lexicons written (replacing every provisional pattern)
+- [ ] C2 real location-matching logic built (first real attempt — not a backfilled proxy)
+- [ ] Every feature tagged with its category for clean ablation
+- [ ] All C1–C6 evaluable-coverage figures re-measured against real lexicons
+- [ ] Decision 0.3 applied consistently once resolved
+
+### Stage 5 — Model development
+
+- [ ] TF-IDF + Logistic Regression baseline trained
+- [ ] TF-IDF + Random Forest baseline trained
+- [ ] DistilBERT fine-tuned on GPU, fused with E2/E3/E4 vector
+- [ ] Identical class weighting confirmed on both baseline and improved model
+- [ ] Hyperparameters/threshold fitted on validation only
+- [ ] 3-seed repetition completed, mean ± SD reported
+- [ ] Test set touched exactly once
+
+### Stage 6 — Calibration
+
+- [ ] Platt scaling tried
+- [ ] Isotonic regression tried
+- [ ] Calibrator selected on validation performance
+- [ ] Brier score reported (before/after)
+- [ ] ECE reported (before/after)
+- [ ] Reliability curve produced
+- [ ] Risk-band thresholds set
+
+### Stage 7 — Explainability
+
+- [ ] SHAP integrated over the fused feature set
+- [ ] Rule-message summaries generated from C1–C6 flags
+- [ ] Comprehensiveness (deletion test) measured
+- [ ] Sufficiency (insertion test) measured
+- [ ] Rule-consistency check run
+- [ ] Random-attribution control compared against
+
+### Stage 8 — API (real pipeline wiring)
+
+- [x] FastAPI app, `/score` route, JSON schema built and tested (skeleton)
+- [ ] `preprocess()` wired to real Stage 1 code
+- [ ] `extract_features()` wired to real Stage 4 code
+- [ ] `predict()` wired to real Stage 5/6 code
+- [ ] `explain()` wired to real Stage 7 code
+- [ ] End-to-end real request tested (no stubs remaining)
+
+### Stage 8b — Demonstration
+
+- [ ] Clear fraud example run and captured
+- [ ] Clear legitimate example run and captured
+- [ ] Genuinely ambiguous example run and captured (no cherry-picking)
+- [ ] Results written into `methodology.md` — kept separate from Stage 9
+
+### Stage 9 — Evaluation
+
+- [ ] Full metric set computed on test set (used once)
+- [ ] Leave-one-category-out ablation run (E1, E2, E3, E4, `has_company_logo`)
+- [ ] Tier 2 temporal transfer (T1) run, if Tier 2 collection succeeded
+- [ ] Tier 2 signal durability (T2) run, if Tier 2 collection succeeded
+- [ ] Tier 2 domain adaptation (T3) run, if Tier 2 collection succeeded
+- [ ] Source-probe leakage test run and reported regardless of outcome
+- [ ] Results written into `methodology.md`
+
+### Tier 2 collection (parallel track)
+
+- [ ] Company slug list built for Greenhouse/Lever querying
+- [ ] Legitimate postings collected (target 30–50)
+- [ ] Fraud-source access verified
+- [ ] Fraudulent postings collected (target 20–30)
+- [ ] 1-week checkpoint evaluated — reduced collection continues, or qualitative-only fallback invoked
+- [ ] Provenance recorded for every collected posting
+
+### Write-up
+
+- [x] Chapter 1 drafted
+- [x] Chapter 2 drafted
+- [x] Chapter 3 drafted
+- [ ] Chapter 4 (Results) — cannot start until Stage 9 produces real measurements
+- [ ] Chapter 5 drafted
+- [ ] Chapter 6 drafted
+- [ ] AI-use declaration written
+- [ ] Research paper drafted
 
 ---
 
@@ -217,58 +368,73 @@ confidence intervals. Thresholds agreed with supervisor **before** results are s
 ## 9. Environment
 
 Python 3.13.9, FastAPI, pandas 3.0.5, scikit-learn, PyTorch 2.13.0+cpu, Hugging Face
-Transformers, SHAP, LIME, imbalanced-learn. Full pinned list in `requirements.txt`. No paid
-data sources, no dedicated GPU, single developer. Git repository:
+Transformers, SHAP (LIME removed from planned use, 2026-09-20), imbalanced-learn. Full
+pinned list in `requirements.txt`. No paid data sources, single developer. **Hardware
+corrected 2026-09-20:** RTX 3050 GPU + 16GB RAM (gaming laptop) — previously wrongly
+recorded as "no dedicated GPU" throughout the project files since proposal stage; this
+enables fine-tuning DistilBERT rather than using frozen embeddings. Git repository:
 `credibility-scoring-framework` (private), environment and audit committed and verified in
 two independent machines as of 2026-08-27.
 
 ---
 
-## 10. Decision log — status as of 2026-08-27
+## 10. Decision log — status as of 2026-09-20
 
 | Decision | Status | Notes |
 |---|---|---|
 | Class weighting over SMOTE | ✅ Closed | `decisions.md`, 2026-08-07 |
-| Two-tier dataset strategy | ✅ Closed | `decisions.md`, 2026-08-07 |
+| Two-tier dataset strategy | ✅ Closed, reaffirmed | `decisions.md`, 2026-08-07; stress-tested against 4 external alternatives 2026-08-27 |
 | Tier 2 provenance labelling + source-leakage probe | ✅ Closed | `decisions.md`, 2026-08-07 |
 | Drop `in_balanced_dataset` | ✅ Closed | `decisions.md`, 2026-08-07 |
+| `decisions.md` correction (English Teacher Abroad cluster) | ✅ Applied | Corrected as an appended note, 2026-08-27; independently corroborated 2026-08-27 |
 | **0.1** — C1–C6 evaluable-coverage definition | ✅ Closed | 2026-08-27 |
-| **0.2** — near-duplicate grouping method | ❌ Open | Blocks Stage 3 |
-| **0.3** — label-conditional statistics in design | ❌ Open | Relevant at Stage 4 (C6 viability) |
-| **0.4** — Tier 2 field symmetry (can E4 fire on fraud side?) | ❌ Open | Blocks Tier 2 collection |
-| Architecture review (rules-only baseline) | ❌ Open | Blocks Stage 5 |
-| Frozen vs. fine-tuned DistilBERT | ❌ Open | Blocks Stage 5 |
-| "5 seeds" definition | ❌ Open | Blocks Stage 3 |
-| `decisions.md` correction (English Teacher Abroad cluster) | ❌ Not yet applied | Cluster is legitimate, not fraudulent, in current text |
+| **0.2** — near-duplicate grouping method | ✅ Closed | 2026-09-20 — MD5 + title-based secondary grouping key |
+| **0.3** — label-conditional statistics in design | ❌ Open | Relevant at Stage 4 (C6 viability) — the one genuinely unresolved design question left |
+| **0.4** — Tier 2 field symmetry (can E4 fire on fraud side?) | ❌ Open | Blocks full Tier 2 collection; legitimate-side sourcing verified regardless |
+| Hardware constraint correction | ✅ Applied | 2026-09-20 — RTX 3050 + 16GB RAM, not "no GPU" |
+| Rules-only baseline | ✅ Closed — CUT | 2026-09-20 |
+| Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20, enabled by hardware correction |
+| Divergent architecture review | ✅ Closed — skipped, time-driven | 2026-09-20 |
+| "5 seeds" definition + count | ✅ Closed — 3 seeds, fixed split | 2026-09-20 |
+| Explainability method scope | ✅ Closed — SHAP only | 2026-09-20 |
+| Tier 2 collection depth | ✅ Closed — reduced, ~50–100, 1-week checkpoint | 2026-09-20 |
+| Tier 2 legitimate-source API access | ✅ Verified | 2026-09-20 — Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna confirmed; Indeed retirement reconfirmed |
+| Tier 2 fraud-source access | ❌ Not yet checked | Next verification task |
+| Success thresholds per objective | ❌ Open | Must be agreed with supervisor before Stage 9 — urgent |
+| Tier 2 ethics approval status | ❌ Open | Check today |
 
 ---
 
-## 11. Full dependency graph
+## 11. Full dependency graph (updated 2026-09-20 — most blockers now cleared)
 
 ```
 Data audit ✅
     │
 Stage 1 ✅ ── Stage 8 skeleton ✅ (inert, wired in later)
     │
-Stage 2 (NEXT)
+Stage 2 — sampling ✅, manual audit ⬜ (NEXT, yours)
     │
-    ├──► [Decision 0.2, "5 seeds"] ──► Stage 3
-    │                                     │
-    │              [Decision 0.3] ───────►│
-    │                                     ▼
-    │                                 Stage 4
-    │                                     │
-    │        [Architecture review, frozen/fine-tune] ──► Stage 5 ──► Stage 6 ──► Stage 7
-    │                                                                              │
-    │                                                                              ▼
-    │                                                                    Stage 8 (full) ──► Stage 8b
-    │                                                                              │
-[Decision 0.4] ──► Tier 2 collection ═══════════════════════════════════════════► Stage 9 ──► Write-up
+    ▼
+Stage 3 (all blockers resolved — MD5+title grouping, 3-seed fixed split)
+    │
+    │   [Decision 0.3 — the one still-open design question] ──► (feeds into Stage 4)
+    ▼
+Stage 4
+    │
+    ▼
+Stage 5 (all blockers resolved — fine-tuned DistilBERT, no rules-only arm,
+         architecture review skipped by decision) ──► Stage 6 ──► Stage 7 (SHAP only)
+                                                                        │
+                                                                        ▼
+                                                              Stage 8 (full) ──► Stage 8b
+                                                                        │
+Tier 2 [legit sourcing ✅ verified; fraud sourcing ⬜ next;             │
+        Decision 0.4 still open] ═══════════════════════════════════► Stage 9 ──► Write-up
 ```
 
-**Tier 2 should start now, in parallel with Stage 2** — it is the longest-lead task in the
-project and joins the critical path only at Stage 9, but collection itself takes far
-longer than any single stage above it.
+**Tier 2 sourcing should be running now, in parallel with Stage 2's manual audit** — it is
+still the longest-lead task in the project, now scoped down and time-boxed with a 1-week
+checkpoint, and joins the critical path only at Stage 9.
 
 ---
 
