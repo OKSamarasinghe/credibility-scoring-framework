@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-08-26_
+_Last updated: 2026-08-27_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,134 @@ _Last updated: 2026-08-26_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-08-27 — Reject four candidate "second datasets"; reaffirm independently-collected Tier 2
+
+- **Decision:** None of four externally-suggested datasets — a 2026 Kaggle "Fake Job Posting
+  Detection" competition, DIFrauD's "Job Scams" domain, the Internship-Job-Scam-Dataset, and
+  ScamShield — are adopted as Tier 2. The original independently-collected, provenance-labelled
+  contemporary set (decided 2026-08-07, below) stands unchanged.
+
+- **Options considered:**
+  - (A) Adopt the Kaggle 2026 competition as a "primary modern benchmark" (per an external
+    report's recommendation).
+  - (B) Adopt DIFrauD's Job Scams split, since it is a real, peer-reviewed benchmark
+    (Boumber, Qachfar & Verma, LREC-COLING 2024).
+  - (C) Adopt the Internship-Job-Scam-Dataset for its three-level risk framing.
+  - (D) Check each against its primary source before adopting any of them.
+
+- **Why I chose this:** Two unattributed PDF reports (no named authors, no institutional
+  affiliation) recommended these datasets, and one was suggested by my supervisor via a
+  direct DIFrauD link. Rather than accept either at face value, I checked each dataset's own
+  card/page directly. All four trace back to EMSCAD:
+  - The Kaggle competition (kaggle.com/competitions/fake-job-posting) is a Computational
+    Intelligence module assignment at Cardiff Metropolitan University — 12,001 rows, 18
+    columns, 95.1%/4.9% class split (19.4:1, matching EMSCAD almost exactly), and its own
+    reference list cites Vidros et al. (2017), EMSCAD's origin paper.
+  - DIFrauD's dataset card states directly: "The Employment Scam Aegean Dataset, henceforth
+    referred to as the Job Scams dataset..." — it is EMSCAD, cleaned and deduplicated to
+    14,295 records, with every structured field discarded (only `text` and `label` remain).
+  - The Internship-Job-Scam-Dataset's own card states it was "adopted from... the Employment
+    Scam Aegean Dataset (EMSCAD)." Its "suspicious" class is partly built by relabelling
+    existing legitimate EMSCAD text under a new class (`rule_augmented_suspicious_variant`),
+    not new data.
+  - ScamShield sources its job data from EMSCAD, mixed with unrelated SMS spam data and
+    ~255 LLM-generated (Gemini) synthetic examples.
+
+  None of these provide temporally independent 2026-era postings — using any of them as
+  Tier 2 would test an EMSCAD-trained model against EMSCAD again, defeating the entire
+  purpose of the temporal-transfer experiment. DIFrauD and the Internship dataset also
+  strip structured metadata, which would make E2, E3 and E4 — the actual research
+  contribution — impossible to evaluate on them regardless of the temporal question.
+
+- **What I gave up:** A ready-made, no-collection-required Tier 2. None exists that meets
+  both requirements (genuinely independent of EMSCAD, and metadata-rich enough for E2–E4).
+
+- **Bonus finding:** The Internship-Job-Scam-Dataset's row preview independently confirms
+  the correction below — its "English Teacher Abroad" rows carry `original_fraudulent: 0`,
+  corroborating via an unrelated third party that this cluster is legitimate, not a fraud
+  campaign as the original 2026-08-07 entry stated.
+
+- **Revisit if:** A genuinely independent, metadata-preserving, 2026-era recruitment fraud
+  dataset is found and its primary source confirms it is not EMSCAD-derived.
+
+- **Self-check:** *Why does a dataset being real and peer-reviewed (DIFrauD) not automatically
+  make it suitable as my Tier 2 — what two separate requirements does it fail?*
+
+---
+
+## 2026-08-27 — Correction to the 2026-08-07 duplicate-postings decision
+
+- **Correction, not a new decision:** The entry below (2026-08-07, "Group duplicate postings
+  before splitting the data") states the "English Teacher Abroad" cluster is an example of a
+  *fraudulent* campaign repeated with small changes. **This is factually wrong.** Measured
+  on the real CSV: the cluster (715 records under a text-prefix match; the largest
+  exact-normalised group, 417 records) is **100% legitimate, 0% fraudulent.**
+
+- **The decision itself still stands**, on independent grounds: the fraud class is
+  separately measured at 40.3% duplicated (349 of 866 records in a duplicate group of
+  size > 1), which alone justifies group-aware partitioning. Only the illustrative example
+  in the original entry was wrong, not the reasoning.
+
+- **Why this is logged as a correction rather than a silent edit:** the original entry is
+  left exactly as written below, because a mistake caught and corrected is worth more in a
+  viva than a record that was quietly fixed. If asked, the honest answer is "I stated the
+  wrong example when I wrote this in August, found it wrong during the data audit, and
+  corrected it without changing the underlying decision."
+
+- **Self-check:** *What did I originally claim about the "English Teacher Abroad" cluster,
+  what did the measurement actually show, and why didn't the error change the decision?*
+
+---
+
+## 2026-08-27 — Uniform "evaluable coverage" definition for C1–C6; defer C2 to Stage 4
+
+- **Decision:** All six consistency rules now use one consistent definition of "evaluable"
+  (both operands present, so the rule could actually attempt a comparison — not merely that
+  text exists nearby). C1 and C3 get a same-day symmetric pattern fix (bounded vocabulary,
+  same category as each other). C2 is deferred entirely to Stage 4 — its field coverage
+  (88.4%) is reported as an explicit upper bound, with no evaluable figure until then.
+
+- **Options considered:**
+  - (A) Apply the loose definition (field present + text non-empty) to all six rules.
+  - (B) Build a quick regex proxy for every rule, including C2.
+  - (C) Apply the strict definition uniformly, with category-appropriate treatment: fix
+    bounded-vocabulary rules now, defer the one open-vocabulary rule.
+
+- **Why I chose this:** The original audit script measured "evaluable" two different ways —
+  strict for C4–C6, loose for C1–C3 — which understated the true gap between field coverage
+  and real coverage. Applying the loose definition everywhere (A) would have overstated
+  coverage across the board. Building a proxy for C2 (B) was rejected specifically: C2's
+  premise is that a place name in free text disagrees with the structured `location` field —
+  an open-vocabulary problem (any place name on Earth), unlike C1/C3's bounded vocabularies
+  (a fixed set of remote/on-site or employment-arrangement phrases). A quick C2 proxy would
+  become a second, weaker implementation of the rule, guaranteed to disagree with the real
+  Stage 4 location matcher.
+
+  Measured result: C1 field coverage 100.0%, evaluable 10.5%. C2 field coverage 88.4%,
+  evaluable deferred. C3 80.6% / 12.2%. C4 60.6% / 30.2%. C5 54.7% / 27.8%. C6 15.2% / 7.6%.
+  Aggregate: 56.7% of postings evaluable by at least one rule (was falsely 100% under the
+  old mixed definition); mean 0.88 of 6 rules evaluable per posting (was falsely 3.35).
+
+- **What I gave up:** A same-day number for C2, and the comfortable but false impression
+  that E4 covers nearly all postings. The honest picture is that E4's practical reach is
+  much thinner than the original estimate implied — a real finding, not a data-quality
+  failure, and one worth stating plainly in the dissertation rather than letting the
+  original estimate stand uncorrected.
+
+- **Also fixed in the same pass:** a duplicate-count bug (the audit script printed
+  `n − n_unique`, the excess count, not true group-membership — corrected in both the
+  overall and per-class figures; true count is 4,762 records / 26.6% in a duplicate group,
+  not 3,505) and a missingness-calculation bug (every missing value was being counted twice).
+
+- **Revisit if:** Stage 4 builds real lexicons for C1, C3–C6 — every provisional figure above
+  must be re-measured against them, not assumed to hold. Stage 4 also builds C2's first real
+  evaluable-coverage measurement.
+
+- **Self-check:** *Why is C1 fixable with a same-day regex but C2 isn't, when both looked
+  like the same kind of gap at first?*
 
 ---
 
@@ -222,6 +350,11 @@ _Last updated: 2026-08-26_
   duplicates changes the real class balance of the dataset, whereas grouping keeps the data
   intact and only controls where records are allowed to go.
 
+  > ⚠️ **Correction, 2026-08-27:** the "English Teacher Abroad" example above is factually
+  > wrong — measured on the real CSV, that cluster is 100% legitimate, 0% fraudulent. See
+  > the correction entry dated 2026-08-27 above. The decision itself still stands, justified
+  > independently by the fraud class being separately measured at 40.3% duplicated.
+
 - **What I gave up:** Comparability with published EMSCAD results that did not control for
   this. My numbers will probably look lower than theirs. I have decided to treat that as a
   finding worth reporting rather than a problem to hide — if leakage control lowers scores,
@@ -229,6 +362,11 @@ _Last updated: 2026-08-26_
 
 - **Revisit if:** The audit shows duplication is actually negligible. I doubt it, but the
   ~2,700 figure is an estimate from a profiler and I have not measured it myself yet.
+
+  > ⚠️ **Update, 2026-08-27:** now measured. 4,762 records (26.6%) sit in a duplicate group
+  > under exact-normalised hashing; the fraud class is disproportionately duplicated (40.3%
+  > vs 25.9% for legitimate). The near-duplicate grouping *method* itself is still an open
+  > decision — see Decision 0.2 in `PROJECT_PLAN.md` / `workplan.md`.
 
 - **Self-check:** *What exactly goes wrong if I use a plain random split on EMSCAD, and why
   did I group duplicates instead of deleting them?*
@@ -354,12 +492,21 @@ _Last updated: 2026-08-26_
   generalisability result on Tier 2 that, as far as I can see, no paper in my review has
   produced. That turns my dataset's biggest weakness into a contribution.
 
+  > ✅ **Reaffirmed, 2026-08-27** after checking four externally-suggested alternative
+  > "second datasets" against their primary sources — all four turned out to be EMSCAD
+  > derivatives. See the decision entry dated 2026-08-27 above. This decision was not
+  > weakened by that check; if anything it is more clearly correct now.
+
 - **What I gave up:** Time. Tier 2 collection is my slowest task and my main schedule risk,
   especially the fraudulent side. I also have limited statistical power on Tier 2 because
   the sample is small, so I report confidence intervals there.
 
 - **Revisit if:** Collecting the fraudulent side proves impossible in the time I have. My
   fallback is to report Tier 2 qualitatively and state the limitation openly.
+
+  > ⚠️ **Status, 2026-08-27:** deadline confirmed at ~1 month away. Tier 2 collection has
+  > not started. This fallback clause is now live and under active consideration — see
+  > `project.md` open questions.
 
 - **Self-check:** *Why didn't I just replace EMSCAD with modern data, and why can't I merge
   the two tiers?*
@@ -487,6 +634,21 @@ _Last updated: 2026-08-26_
 
 # Pending decisions (not yet made)
 
+> ⚠️ **Urgency update, 2026-08-27:** deadline confirmed at ~1 month away. Every item below
+> now needs a decision this week, not "before Stage 5" in the abstract. A fifth item has
+> been added: the scope-cut decision, which is now the most urgent of all.
+
+## URGENT — Scope-cut decision given the 1-month deadline
+
+- **The question:** Full rigor on all nine stages as originally scoped does not fit in one
+  month for a single developer. Candidate cuts, not yet chosen: Tier 2 → qualitative-only
+  (the pre-planned fallback above); DistilBERT frozen not fine-tuned; fewer than five seeds,
+  stated explicitly; drop the rules-only baseline; narrow explainability to one method
+  tested fully rather than both SHAP and LIME partially.
+- **Why it matters:** Deciding this now, deliberately, is the difference between six fully
+  rigorous stages and nine half-finished ones.
+- **Decide by:** Immediately — this blocks efficient planning of everything else.
+
 ## Should I add a rules-only baseline as a third model?
 
 - **The question:** Should I train a model using only E2, E3 and E4 features — identity,
@@ -496,7 +658,8 @@ _Last updated: 2026-08-26_
   defensible finding about explainable fraud detection, and it supports my
   consistency-verification argument directly. If the transformer wins clearly, that also
   strengthens my case for using it.
-- **Against it:** One more training arm, more ablation rows, more writing.
+- **Against it:** One more training arm, more ablation rows, more writing. **Now a direct
+  candidate for cutting given the 1-month deadline (see above).**
 - **Decide by:** Before Stage 5 starts.
 
 ## Divergent review of my model architecture
@@ -508,6 +671,31 @@ _Last updated: 2026-08-26_
 - **Why it matters:** I committed on day one to the first approach I named. I should at
   least be able to say what else was available and why I still chose this.
 - **Decide by:** Before I write any model code.
+
+## Frozen vs. fine-tuned DistilBERT (no GPU available)
+
+- **The question:** Encode with DistilBERT once and cache embeddings, training only the
+  fusion layer (cheap on CPU) — or fine-tune the full model (likely very slow with no GPU,
+  possibly requiring an external environment like Colab, which raises its own reproducibility
+  question about a seeded experiment running in two different environments).
+- **Why it matters:** Directly affects whether Stage 5 is even feasible within a month.
+- **Decide by:** Before Stage 5 starts — effectively now, given the timeline.
+
+## Near-duplicate grouping method for Stage 3 (Decision 0.2)
+
+- **The question:** Exact-normalised MD5 hashing (measured: 4,762 records / 26.6% in a
+  duplicate group, but fragments a known 715-record legitimate campaign across 15 separate
+  groups) vs. a cheap token-prefix proxy (measured: merges 48.9% of the corpus, likely
+  over-merging unrelated postings) vs. something else.
+- **Why it matters:** Blocks Stage 3 (partitioning) entirely.
+- **Decide by:** Before Stage 3 starts.
+
+## "5 seeds" — one fixed split or five different splits?
+
+- **The question:** Does "repeated across five seeds" mean five model initialisations
+  against one fixed train/validation/test split, or five different splits? Only the first
+  reading is compatible with the guardrail that the test set is used once.
+- **Decide by:** Before Stage 3.
 
 ## Success thresholds for each objective
 

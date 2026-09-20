@@ -24,6 +24,11 @@ independently collected contemporary postings.
 > are not yet confirmed — see `sources.md` #1, #2, #8. Do not cite these from memory in any
 > submitted document.
 
+> ⚠️ **Deadline confirmed 2026-08-27: ~1 month away.** A scope-cut decision is pending and
+> urgent — see `decisions.md`, "Pending decisions." Several items in this file (five-seed
+> repetition, both SHAP and LIME, the rules-only baseline, full Tier 2 collection) are
+> candidates for reduction and may change once that decision is made.
+
 ---
 
 ## How each DSR step is being carried out
@@ -46,13 +51,12 @@ held throughout: no objective states its expected result (see `decisions.md`, 20
 Nine implementation stages (below). Design decisions and their rationale are recorded in
 `decisions.md`, which is the primary evidence for this step.
 
-**Status: data audit complete (2026-08-27). Stage 1 (ingestion) not yet started. No model
-code written.**
+**Status, 2026-08-27:** data audit complete and corrected twice; Stage 1 complete and
+tested; Stage 8 skeleton (API routing/schema, no real pipeline yet) complete and tested;
+Stage 2 partially complete (sampling code done, manual audit not started). Stages 3–9
+otherwise not started.
 
 ### Step 4 — Demonstration
-
-_[ADDED 2026-08-07 — this step was missing from the formal methodology document and must be
-added there.]_
 
 Before formal evaluation, the API will be demonstrated end-to-end on a small set of real
 postings to establish proof of life. The demonstration set will deliberately include:
@@ -76,40 +80,41 @@ Full plan below. Designed to be hard to pass, not easy.
 ### Step 6 — Communication
 
 Dissertation plus research paper. Drafted from `decisions.md` and this file rather than
-from scratch. AI-use declaration to be included — see `project.md` open questions.
+from scratch. Chapters 1–3 already drafted in `Research_Thesis_Draft.md`. AI-use
+declaration to be included — see `project.md` open questions.
 
 ---
 
 ## Implementation stages
 
-| Stage | Activity | Objective | Status |
+| Stage | Activity | Objective | Status (2026-08-27) |
 |---|---|---|---|
-| — | **Data audit** (pre-Stage 1) | grounds Stage 1 | **Complete — 2026-08-27, see Results below** |
-| 1 | Data ingestion & preprocessing | Foundation | Not started |
-| 2 | Evidence taxonomy definition & manual audit | O1 | Not started |
-| 3 | Leakage-controlled data partitioning | O2, O3, O5 | Not started — blocked on Decision 0.2 (near-duplicate grouping method) |
-| 4 | Multi-signal evidence extraction | O1, O3 | Not started |
-| 5 | Model development (baseline & improved) | O2, O3 | Not started — blocked on architecture review + rules-only baseline decision |
-| 6 | Probability calibration & score mapping | O4 | Not started |
-| 7 | Explainability layer & fidelity evaluation | O4 | Not started |
-| 8 | API development | O4 | Not started |
-| **8b** | **Demonstration** _(to add to formal doc)_ | O4 | Not started |
-| 9 | Evaluation, ablation & generalisability | O5 | Not started |
+| — | Data audit | grounds Stage 1 | ✅ Complete, corrected twice, verified in 2 environments |
+| 1 | Data ingestion & preprocessing | Foundation | ✅ Complete, 9/9 tests passing, verified twice |
+| 2 | Evidence taxonomy definition & manual audit | O1 | 🟡 Sampling script + worksheet built and tested; manual coding of 200 postings not started; repo integration not confirmed |
+| 3 | Leakage-controlled data partitioning | O2, O3, O5 | ⬜ Blocked on Decision 0.2 (near-duplicate grouping method) |
+| 4 | Multi-signal evidence extraction | O1, O3 | ⬜ Not started |
+| 5 | Model development (baseline & improved) | O2, O3 | ⬜ Not started — blocked on architecture review, rules-only-baseline decision, frozen-vs-fine-tuned DistilBERT decision |
+| 6 | Probability calibration & score mapping | O4 | ⬜ Not started |
+| 7 | Explainability layer & fidelity evaluation | O4 | ⬜ Not started |
+| 8 | API development | O4 | 🟡 Skeleton complete and tested (routing, schema validation, zero fabricated data); real pipeline wiring pending Stages 4–7 |
+| **8b** | **Demonstration** | O4 | ⬜ Not started |
+| 9 | Evaluation, ablation & generalisability | O5 | ⬜ Not started |
 
 ### Stage 1 critical ordering constraints
 
 1. Map `t`/`f` string literals to integers **on load**; assert fraud count = 866 before
    proceeding. _(Encoding claim VERIFIED — see `sources.md` #4. Confirmed: all five boolean
    columns are `t`/`f`, zero nulls, fraud count exactly 866.)_
-2. Drop `in_balanced_dataset`. _(Confirmed present in the real CSV — must be dropped.)_
+2. Drop `in_balanced_dataset`. _(Confirmed present in the real CSV — dropped in the Stage 1
+   loader.)_
 3. **Extract `#EMAIL_#` / `#PHONE_#` / `#URL_#` tokens, image refs and link counts BEFORE
    stripping HTML.** Reversing this destroys the whole E2 feature group. _(All three token
-   types confirmed present — see Results below.)_
+   types confirmed present — see Results below. Implemented correctly in Stage 1.)_
 4. Treat `salary_range` value `"0-0"` as missing. _(Confirmed: 142 records carry this
-   placeholder.)_
-5. Flag missingness per field; never impute. _(Missingness now measured per field — see
-   Results below. The audit script's original missingness calculation double-counted every
-   missing value — fixed 2026-08-27, see Results.)_
+   placeholder. Implemented in Stage 1.)_
+5. Flag missingness per field; never impute. _(Implemented in Stage 1 — a dtype-handling bug
+   in the missingness check was found and fixed during testing.)_
 
 ---
 
@@ -129,7 +134,7 @@ from scratch. AI-use declaration to be included — see `project.md` open questi
 > some text exists nearby. An earlier version of this audit applied that standard
 > inconsistently (strict for C4–C6, loose for C1–C3), which understated the gap between
 > field coverage and real coverage. All six rules now use one consistent standard. See
-> `sources.md` #3 for full detail and `decisions.md` for the reasoning.
+> `sources.md` #3 and `decisions.md` (Decision 0.1, 2026-08-27) for full detail.
 
 | ID | Rule | Trigger | Field coverage (measured) | Evaluable coverage (measured) | Status |
 |---|---|---|---|---|---|
@@ -166,8 +171,14 @@ for, rather than let the original optimistic estimate stand uncorrected.
 ### Taxonomy validation (O1)
 
 Manual audit of 200 stratified EMSCAD postings (100 fraudulent / 100 legitimate), fixed
-seed. Records per posting: which categories are observable; whether each automated rule
-agrees with manual judgement.
+seed (42), drawn from **unique normalised descriptions only** — added 2026-08-27, to avoid
+near-duplicate campaigns inflating the apparent agreement rate. Records per posting: which
+categories are observable; whether each automated rule agrees with manual judgement.
+
+**Sampling script status:** built and tested (`sample_for_manual_audit.py`), reproducibility
+confirmed (identical output across repeated runs and across two separate environments).
+**Manual coding status:** not started. Coding scheme defined in advance in
+`STAGE2_CODING_INSTRUCTIONS.md`.
 
 **Reported:** per-category observability rate; per-rule agreement rate; catalogue of
 disagreements and causes.
@@ -190,20 +201,24 @@ defined in advance and applied consistently. Stated in limitations.
 | O5 Evaluation | Full metric set + per-category Δ; Tier 2 transfer | EMSCAD + Tier 2 | Text-only model; EMSCAD-only performance | **[TO SET]** |
 
 > **Thresholds must be agreed with supervisor BEFORE results are seen.** A threshold set
-> after seeing results is not a threshold.
+> after seeing results is not a threshold. **Now urgent given the confirmed ~1 month
+> deadline — schedule this conversation immediately.**
 
 ### Strategy (FEDS positioning)
 
 - **Ex post** — the built artefact is evaluated, not the design in advance.
 - **Artificial** — primary evaluation on a benchmark dataset under controlled conditions.
 - **Naturalistic component** — Tier 2 assessment on independently collected contemporary
-  postings.
+  postings. **Status, 2026-08-27: at risk given the confirmed deadline — see `decisions.md`
+  pending scope-cut decision. Pre-planned fallback (report Tier 2 qualitatively) is under
+  live consideration.**
 
 ### Baselines
 
 1. **TF-IDF + Logistic Regression / Random Forest** — the O2 baseline.
 2. **Published EMSCAD results** — external comparison, with the leakage-control caveat.
-3. **Rules-only model** — *pending decision, see `decisions.md`*.
+3. **Rules-only model** — *pending decision, see `decisions.md` — now a candidate for
+   cutting given the deadline.*
 4. **Random-attribution control** — for explanation fidelity.
 
 ### Ablation protocol
@@ -224,6 +239,12 @@ under identical conditions. Δ F1 and Δ PR-AUC reported per category.
 > ⚠️ **Renamed 2026-08-27** to avoid notation collision with the evidence taxonomy (E1–E4
 > above refers to evidence categories; these experiments now use T1–T3).
 
+> ⚠️ **Dataset strategy stress-tested, 2026-08-27:** four externally-suggested alternative
+> "second datasets" were checked against their primary sources and all found to be EMSCAD
+> derivatives, unsuitable as Tier 2. See `decisions.md`, 2026-08-27. The plan below is
+> unchanged in design, but its feasibility within the confirmed 1-month deadline is now the
+> single biggest open risk in the project.
+
 | ID | Experiment | What it tests |
 |---|---|---|
 | T1 | Temporal transfer — EMSCAD-trained model evaluated on Tier 2 | Does an EMSCAD-trained framework still work in 2026? |
@@ -239,13 +260,15 @@ Result reported regardless of outcome.
 > full structured fields (from ATS/feed provenance), then E3 would separate the classes for
 > collection-artefact reasons rather than fraud reasons, and E4 — the actual contribution —
 > could not fire on the fraud side at all. This must be resolved before Tier 2 collection
-> begins, not discovered afterward. Fallback if unresolved: report Tier 2 qualitatively and
-> state the limitation openly.
+> begins, not discovered afterward. Fallback if unresolved, or if collection proves
+> infeasible in the time remaining: report Tier 2 qualitatively and state the limitation
+> openly.
 
 ### Reproducibility
 
 - All seeds fixed and recorded; every experiment repeated across **five seeds**, reported
-  as mean ± SD.
+  as mean ± SD. **Candidate for reduction given the deadline — see `decisions.md` pending
+  scope-cut decision.**
 - **Open question, not yet decided:** does "five seeds" mean five model initialisations
   against one fixed train/validation/test split, or five different splits? These are only
   compatible with the "test set used once" guardrail under the first reading. Must be
@@ -264,13 +287,13 @@ Result reported regardless of outcome.
 | Internal | Duplicate postings spanning train/test | Content-hash group-aware partitioning; duplicate count measured (see Results) — **near-duplicate grouping method still undecided, see Decision 0.2** |
 | Internal | `has_company_logo` may encode dataset construction | Targeted ablation; results with and without |
 | Internal | Tier 2 provenance labelling → model learns source not fraud | Normalisation, source-dependent feature exclusion, reported source probe |
-| Internal | **E4 evaluable on only 56.7% of postings, 0.88 rules/posting on average** _(new, 2026-08-27)_ | State plainly in Results and Limitations; do not let the original field-coverage estimate stand uncorrected anywhere in the dissertation |
-| External | EMSCAD is 2012–2014, predates AI-assisted fraud | Tier 2 temporal assessment, reported as a primary result |
+| Internal | **E4 evaluable on only 56.7% of postings, 0.88 rules/posting on average** | State plainly in Results and Limitations; do not let the original field-coverage estimate stand uncorrected anywhere in the dissertation |
+| External | EMSCAD is 2012–2014, predates AI-assisted fraud | Tier 2 temporal assessment, reported as a primary result — **at risk given the deadline** |
 | External | English-language only | Stated scope boundary; multilingual as future work |
 | External | Anonymisation destroys email domain | Token counts used instead; unavailable feature documented |
 | Construct | Binary labels vs. graded score output | Calibration + Brier, ECE, reliability curve |
 | Construct | Explanations may be plausible but unfaithful | Comprehensiveness/sufficiency + rule-consistency check |
-| Conclusion | Single-split noise (~130 fraud posts in test) | Five-seed repetition, mean ± SD |
+| Conclusion | Single-split noise (~130 fraud posts in test) | Five-seed repetition, mean ± SD — **seed count is a scope-cut candidate** |
 | Conclusion | Single-coder taxonomy audit | Pre-defined coding scheme; limitation acknowledged |
 
 ---
@@ -281,13 +304,13 @@ Result reported regardless of outcome.
 
 _Measured on `DataSet.csv` (the real EMSCAD original, 17,880 rows × 18 columns, no `job_id`
 column — confirmed not the reduced Kaggle derivative). Script: `audit/emscad_audit_fixed.py`.
-Reproduced identically in two independent environments (sandbox pandas, and the project venv
-on pandas 3.0.5 / Python 3.13.9) — same results both times._
+Reproduced identically in two independent environments — sandbox pandas, and the project
+venv on pandas 3.0.5 / Python 3.13.9 — same results both times._
 
 - Total records: **17,880**
 - Fraudulent / legitimate: **866 / 17,014** (4.84% / 95.16%) — matches published figures exactly
 - Boolean encoding confirmed as `t`/`f`: **yes**, all five boolean columns, zero nulls
-- `in_balanced_dataset` present and dropped: **yes, present — to be dropped at Stage 1**
+- `in_balanced_dataset` present and dropped: **yes, present — dropped in Stage 1**
 
 **Missingness per field** (bug fixed 2026-08-27 — original audit script double-counted
 every missing value; figures below are corrected):
@@ -324,11 +347,11 @@ count, not true group membership; corrected in both the overall and per-class fi
 - Legitimate records in a duplicate group: **4,412 of 17,014 (25.9%)**
 - The fraud class is substantially more duplicated than the legitimate class — strong
   independent justification for the group-aware split.
-- **Correction:** the "English Teacher Abroad" cluster previously cited in `decisions.md`
-  as an example of a duplicated *fraudulent* campaign is in fact 100% legitimate (0 of 715
-  records fraudulent, under a looser text-prefix match; the 417-record exact-normalised
-  group is entirely legitimate). `decisions.md` needs correcting — the decision itself
-  still stands on independent grounds.
+- **Correction (see `decisions.md`, 2026-08-27):** the "English Teacher Abroad" cluster
+  previously cited as an example of a duplicated *fraudulent* campaign is in fact 100%
+  legitimate — independently corroborated by a third-party dataset derived from the same
+  source (the Internship-Job-Scam-Dataset row preview). The decision itself still stands on
+  independent grounds.
 - **Open — near-duplicate grouping method (Decision 0.2, not yet made):** exact-normalised
   MD5 hashing fragments genuine campaigns (the "English Teacher Abroad" campaign, 715
   records, splits across 15 separate hash groups). A cheap first-12-token proxy was tested

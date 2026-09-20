@@ -54,7 +54,7 @@ _Last updated: 2026-08-27_
   | C6 Salary | 15.2% | 16% |
 
   **Field coverage is VERIFIED** — directly measured on the real CSV, reproduced
-  identically across two independent environments (see item #4 note on reproduction).
+  identically across two independent environments.
 
 - **Measured evaluable coverage (2026-08-27) — the honest number for the methodology
   table, but NOT yet fully verified:**
@@ -69,9 +69,9 @@ _Last updated: 2026-08-27_
   | C6 | 7.6% | 🟡 PROVISIONAL |
 
   Aggregate: **postings evaluable by at least one rule: 10,145 (56.7%)**; mean rules
-  evaluable per posting: **0.88 of 6**. (An earlier draft of this audit reported 100% and
-  3.35 — those figures used an inconsistent, looser definition of "evaluable" for C1–C3
-  than for C4–C6, and are wrong. Do not use them.)
+  evaluable per posting: **0.88 of 6**. An earlier draft of this audit used an inconsistent
+  definition of "evaluable" (loose for C1–C3, strict for C4–C6) and reported false figures
+  of 100% and 3.35 — corrected 2026-08-27, see `decisions.md` (Decision 0.1).
 
 - **Why "provisional" (C1, C3–C6):** these five figures use the *audit script's own*
   placeholder pattern-matching (regexes for remote/on-site language, employment-arrangement
@@ -96,7 +96,6 @@ _Last updated: 2026-08-27_
 - **Claim:** In the EMSCAD CSV, `telecommuting`, `has_company_logo`, `has_questions`,
   `fraudulent` and `in_balanced_dataset` are strings, not booleans. Stated as fact in
   `Research_Methodology_Final.docx` §2.1.2.
-- **From:** AI model inference from the "Mismatched 100%" rows in the profile I pasted.
 - **Verified:** YES — confirmed directly on the real CSV (`DataSet.csv`, 17,880 × 18), via
   `emscad_audit_fixed.py`, 2026-08-27. All five boolean columns contain only the literals
   `t` and `f`, zero nulls. **Reproduced identically in two independent environments**
@@ -108,7 +107,7 @@ _Last updated: 2026-08-27_
 
 - **Claim:** Roughly 2,700 duplicate/near-duplicate postings; used to justify the
   group-aware split.
-- **Measured (normalised-exact hashing, i.e. HTML/markup stripped, anonymisation tokens
+- **Measured (normalised-exact hashing — HTML/markup stripped, anonymisation tokens
   stripped, lowercased, non-alphanumeric stripped, then MD5 on `description`):**
   - Unique descriptions, exact raw string match: 15,095
   - Unique descriptions, normalised: 14,375
@@ -116,31 +115,28 @@ _Last updated: 2026-08-27_
   - Duplicate groups (size > 1): 1,257; largest group: 417 records
   - Fraudulent records in a duplicate group: **349 of 866 (40.3%)**
   - Legitimate records in a duplicate group: **4,412 of 17,014 (25.9%)**
-- **Correction, logged 2026-08-27:** the audit script originally printed
-  "Records in a duplicate group: 3,505" and used the same flawed arithmetic for the
-  per-class breakdown (254 fraud / 3,250 legit). That figure is `n − n_unique` — the
-  *excess* count, not the number of records actually sitting in a group of size > 1. It
-  undercounts. The script has been corrected; the true group-membership figures above are
-  the ones to use everywhere. The old figures are retained in `audit_results.json` only,
-  explicitly labelled deprecated, for traceability.
-- **Correction, logged 2026-08-27:** `decisions.md`'s justifying example for the
-  group-aware split ("English Teacher Abroad" cluster) was factually wrong — that cluster
-  (715 records under a looser text-prefix match, largest exact-normalised group 417) is
-  **100% legitimate, 0% fraudulent**, not a fraud campaign as originally stated. The
-  decision to group-aware split still stands (justified independently by the fraud class
-  being 40.3% duplicated), but the example sentence in `decisions.md` needs correcting.
+- **Correction, logged 2026-08-27:** the audit script originally printed a figure that was
+  `n − n_unique` — the *excess* count, not the number of records actually sitting in a group
+  of size > 1. Corrected in both the overall and per-class figures; the true group-membership
+  figures above are the ones to use everywhere.
+- **Correction, logged 2026-08-27, independently corroborated 2026-08-27:** `decisions.md`'s
+  justifying example for the group-aware split ("English Teacher Abroad" cluster) was
+  factually wrong — that cluster (715 records under a looser text-prefix match, largest
+  exact-normalised group 417) is **100% legitimate, 0% fraudulent**, not a fraud campaign as
+  originally stated. Independently corroborated by a completely different source: the
+  Internship-Job-Scam-Dataset (Hugging Face), which derives from the same underlying EMSCAD
+  data and shows `original_fraudulent: 0` for the same cluster. The decision to group-aware
+  split still stands (justified independently by the fraud class being 40.3% duplicated),
+  but the example sentence in `decisions.md` has been corrected (as an appended note, not a
+  silent edit — see `decisions.md`, 2026-08-27).
 - **Open — near-duplicate grouping method (Decision 0.2, still pending):** MD5-on-normalised-
   text catches only *exact*-after-normalisation duplicates, not genuine near-duplicates.
   Demonstrated: the "English Teacher Abroad" campaign (715 records sharing a distinctive
-  opening phrase) fragments across 15 separate MD5 groups — a real campaign, split by exact
-  hashing. A cheap proxy (hash of the first 12 normalised tokens) was tested for comparison
-  only, not adopted: it merges 48.9% of the corpus into groups (vs 26.6% for exact-hash),
-  which over-merges unrelated postings sharing a generic opening line. **This decision is
-  not yet made — see `decisions.md` open items.**
+  opening phrase) fragments across 15 separate MD5 groups. A cheap proxy (hash of the first
+  12 normalised tokens) was tested for comparison only, not adopted — merges 48.9% of the
+  corpus, likely over-merging unrelated postings. **This decision is not yet made.**
 - **Verified:** YES for the figures reported above, under the normalised-exact-hash
-  definition, explicitly labelled as such. NOT a verification of "near-duplicate" claims
-  made elsewhere in the docx using the word "near" — that wording needs to be revisited once
-  Decision 0.2 is settled.
+  definition, explicitly labelled as such.
 
 ## 6. ❌ `has_company_logo` may be a dataset artefact rather than a durable fraud signal
 
@@ -164,9 +160,6 @@ _Last updated: 2026-08-27_
     3.4% (ratio 2.72); `#URL_#` 42.4% vs 41.1% (ratio 1.03, i.e. not discriminative).
   - E2 stands as designed. This was the single highest-impact unknown in the whole audit —
     had EMAIL/PHONE tokens been absent, E2 would have needed redesigning.
-- **Correction:** an earlier informal grep (not the audit script) reported PHONE at 725
-  occurrences. That number was wrong — a regex error on my part, not the script's. The
-  script's figure (1,026) is correct; use it.
 - **Action:** none — closed.
 
 ## 8. ❌ Full reference — Venable, Pries-Heje & Baskerville, FEDS framework
@@ -176,6 +169,10 @@ _Last updated: 2026-08-27_
 - **From:** Supervisor's field guide + AI model, 2026-08-07.
 - **Verified:** NO
 - **Action:** Retrieve full reference. Confirm the two axes are named as I have used them.
+  (Note: `Research_Thesis_Draft.md` cites this as Venable, Pries-Heje & Baskerville, 2016,
+  *European Journal of Information Systems*, 25(1), 77–89 — this needs independent
+  confirmation before treating it as settled, since it entered the thesis draft the same way
+  every other unverified claim did.)
 
 ## 9. ✅ EMSCAD composition — 17,880 total; 17,014 legitimate; 866 fraudulent; 2012–2014
 
@@ -184,8 +181,8 @@ _Last updated: 2026-08-27_
   exactly. Confirmed the file is the original EMSCAD structure (no `job_id` column, so not
   the reduced Kaggle `fake_job_postings.csv` derivative).
 - **Action:** none — closed. The 2012–2014 date range itself is not independently
-  re-verified here (taken from EMSCAD documentation / Vidros et al.); low risk, well
-  corroborated across the literature.
+  re-verified here; low risk, well corroborated across the literature and independently
+  corroborated again on 2026-08-27 via the DIFrauD dataset card (see item #19).
 
 ---
 
@@ -196,9 +193,6 @@ _Last updated: 2026-08-27_
 - **From:** AI web search, 2026-08-07. **Secondary reporting** (news/commentary sites), not
   the FTC itself.
 - **Verified:** NO
-- **Action:** Get figures from the **primary source** — FTC Consumer Sentinel Network Data
-  Book. Cite the FTC directly or not at all.
-- **Intended use:** Chapter 1 problem motivation; justification for the Tier 2 dataset.
 - **Status note:** superseded in practice by Part C item C2 (FTC 2025 press release, primary
   source) for the Chapter 1 draft. Retained here for traceability only.
 
@@ -206,7 +200,6 @@ _Last updated: 2026-08-27_
 
 - **From:** AI web search, 2026-08-07. Secondary reporting of a BBB study.
 - **Verified:** NO
-- **Action:** Locate the primary BBB scam study and cite it directly.
 - **Status note:** NOT used in the final Chapter 1 draft. If reintroduced, re-verify.
 
 ## 12. ❌ AI-generated postings have eroded lexical fraud cues (grammar, spelling, generic phrasing)
@@ -231,10 +224,8 @@ _Last updated: 2026-08-27_
 - **From:** AI web search, 2026-08-07.
 - **Verified:** NO
 - **Action:** Verify by **actually accessing each endpoint** and reading its current terms
-  of service. API availability changes without notice and terms govern whether I may use
-  the data at all. Record what I confirm, with the date.
-- **Relevant to:** Tier 2 collection — legitimate-side sourcing. Still needed before
-  collection starts (Decision 0.4 blocks this anyway, so no urgency yet).
+  of service. Now urgent given the confirmed ~1 month deadline and the pending Tier 2
+  scope decision.
 
 ## 15. ❌ SMOTE distorts predicted probabilities / harms calibration
 
@@ -260,8 +251,8 @@ _Last updated: 2026-08-27_
 - **From:** AI model, 2026-08-07, as a **worked example** demonstrating how each component
   behaves. Not derived from any data.
 - **Verified:** NO — and they never will be, because they are not measurements.
-- **Risk:** These numbers now sit inside a document the AI reads every session. Months from
-  now, while drafting a results chapter, one could be picked up as if it were real.
+- **Checked, 2026-08-27:** confirmed these numbers do not appear anywhere in
+  `Research_Thesis_Draft.md`'s Chapters 1–3. Good — the discipline has held so far.
 - **Action:** **Never cite any of them.** Delete this entry only once genuine measured
   values exist and have replaced them.
 
@@ -271,9 +262,37 @@ _Last updated: 2026-08-27_
   Apache 2.0, MIT) given from general/training knowledge.
 - **From:** AI model, 2026-08-26. Not verified against each project's actual current licence.
 - **Verified:** NO
-- **Action:** If licensing terms go anywhere near the dissertation (e.g. a statement about
-  cost/reproducibility constraints), confirm each licence against its own repository, not
-  from memory.
+- **Action:** If licensing terms go anywhere near the dissertation, confirm each licence
+  against its own repository, not from memory.
+
+## 19. ✅ Two unattributed PDF reports recommending "second datasets" — claims checked and found unreliable
+
+- **Claim:** Two PDF reports (no named authors, no institutional affiliation) recommended a
+  "2026 Kaggle Fake Job Posting Detection competition," DIFrauD's Job Scams domain, the
+  Internship-Job-Scam-Dataset, and ScamShield as suitable contemporary "second datasets" for
+  this project. One of these (DIFrauD) was also suggested directly by my supervisor.
+- **From:** Uploaded PDFs, 2026-08-27; supervisor conversation.
+- **Verified:** YES, checked against primary sources, 2026-08-27 — **and found to
+  misrepresent the data.** All four trace back to EMSCAD:
+  - The Kaggle competition page (kaggle.com/competitions/fake-job-posting) and a real
+    submission's GitHub repo confirm it is a Cardiff Metropolitan University Computational
+    Intelligence module assignment — 12,001 rows, 18 columns, 19.4:1 class ratio matching
+    EMSCAD, citing Vidros et al. (2017) directly.
+  - DIFrauD's own dataset card (huggingface.co/datasets/difraud/difraud) states: "The
+    Employment Scam Aegean Dataset, henceforth referred to as the Job Scams dataset..." —
+    it is EMSCAD, cleaned to 14,295 records, with all structured metadata discarded.
+  - The Internship-Job-Scam-Dataset's card states it was "adopted from... EMSCAD." Its
+    "suspicious" class is partly built from relabelled legitimate EMSCAD text.
+  - ScamShield's card lists EMSCAD as its job-data source, mixed with SMS spam data and
+    ~255 LLM-generated synthetic examples.
+  - DIFrauD itself is a genuine, real, peer-reviewed benchmark (Boumber, Qachfar & Verma,
+    LREC-COLING 2024) — the paper is real and citable. Its *Job Scams* component specifically
+    is what fails to serve as an independent Tier 2, not the paper as a whole.
+- **Decision recorded:** `decisions.md`, 2026-08-27 — all four rejected as Tier 2 candidates;
+  original independently-collected Tier 2 plan reaffirmed.
+- **Action:** none — closed, but keep this as a standing example of why secondary reports
+  must be checked against primary sources before being acted on, even when a supervisor
+  forwards them.
 
 ---
 
@@ -292,7 +311,7 @@ _Last updated: 2026-08-27_
 | C3 | Mahbub, Pardede & Kayes (2022). Contextual Features in Australian Job Industries. *IEEE Access*, 10, 82776–82787. | 1 | Scopus Q1 ✅ | [ ] | ❌ | Pre-2023; justified as foundational |
 | C4 | Vo et al. (2021). Class Imbalance in Detection of Fake Job Descriptions. *CMC*, 68(1), 521–535. | 1 | Scopus Q2 ✅ | [ ] | ❌ | Pre-2023 |
 | C5 | Nanath & Olney (2023). Crowdsourcing Methods… ORF. *IJIM Data Insights*, 3(1), 100167. | 1 | Scopus ✅ | [ ] | ❌ | |
-| C6 | Sullivan & Weger (2025). Transparency and Explainability in AI-Assisted Decision Making. SAGE. | 1 | ⚠️ **CONFIRM** | [ ] | ❌ | Ranking not yet verified — do this |
+| C6 | Sullivan & Weger (2025). Transparency and Explainability in AI-Assisted Decision Making. *Proceedings of the HFES Annual Meeting*, 69(1), 1827–1833. | 1 | ⚠️ **CONFIRM** | [ ] | ❌ | Full citation now in `Research_Thesis_Draft.md` references — ranking still not verified |
 | C7 | Kapoor & Narayanan (2023). Leakage and the Reproducibility Crisis… *Patterns*, 4(9), 100804. | 1 | Scopus Q1 ✅ | [ ] | ⚠️ read abstract + leakage taxonomy | Backs leakage-control design; read the taxonomy section |
 | C8 | Tang et al. (2025). Explainable person–job recommendations. *Frontiers in AI*, 8, 1660548. | 1,2 | Scopus ✅ (confirm quartile) | [ ] | ✅ read in full | |
 | C9 | Taneja, Vashishtha & Ratnoo (2025). Fraud-BERT. *Discover Computing*, 28(9). | 2 | Scopus ✅ (confirm quartile) | [ ] | ✅ read in full | Closest competitor; discards metadata — foils my gap |
@@ -344,6 +363,7 @@ cut from the literature review (no dataset, no metrics — viva liability).
 | 2026-08-07 | Item 17 added | Illustrative worked-example figures flagged as never-citable |
 | 2026-08-26 | Part C rebuilt | 13 Ch 1–2 sources logged with ranking + read status; second-hand rule restated; Mohiddin/Ullah/Goud marked not-currently-cited |
 | 2026-08-26 | Item 18 added | Software licence claims logged as unverified |
-| 2026-08-26 | Data audit run #1 | Items #4, #7, #9 VERIFIED; #5 measured but found to contain a duplicate-count bug (excess vs group-membership); #3 measured but found to mix two different "evaluable" definitions across rules |
-| 2026-08-27 | Audit script corrected, re-run | Missingness double-counting bug fixed; C1/C3 given real symmetric evaluable definitions (bounded vocabulary, same treatment as each other); C2 deferred to Stage 4 (open-vocabulary, no honest proxy); duplicate group-membership bug fixed in both the top-level and per-class figures; item #5 now fully VERIFIED; item #3 now PARTIALLY verified — field coverage closed, evaluable coverage provisional/deferred |
-| 2026-08-27 | `decisions.md` correction identified | "English Teacher Abroad" cluster used to justify group-aware split is 100% legitimate, not fraudulent as originally stated — correction needed in `decisions.md`, not yet applied |
+| 2026-08-27 | Data audit run and corrected | Items #4, #7, #9 VERIFIED; #5 measured, corrected (duplicate-count bug), fully VERIFIED; #3 measured, PARTIALLY verified (field coverage closed, evaluable coverage provisional/deferred) |
+| 2026-08-27 | `decisions.md` correction identified and applied | "English Teacher Abroad" cluster is legitimate, not fraudulent — corrected as an appended note, not a silent edit |
+| 2026-08-27 | Item 19 added and closed | Two unattributed PDF reports + a supervisor-suggested dataset (DIFrauD) checked against primary sources; all four recommended "second datasets" found to be EMSCAD derivatives and rejected |
+| 2026-08-27 | Deadline confirmed | ~1 month remaining — several Part B items (esp. #14, Tier 2 API access) now urgent rather than background tasks |
