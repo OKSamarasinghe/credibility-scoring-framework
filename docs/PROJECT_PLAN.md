@@ -1,14 +1,218 @@
 # PROJECT_PLAN.md — Full Project Plan (Start to End)
 
 _Compiled 2026-08-27, refreshed 2026-09-20 (scope-cut decisions, hardware correction,
-checklist added). This is a DATED SNAPSHOT for the narrative and the guardrails, but
-**Section 7.5 below is a live checklist — update it every time you finish something,
-right when you finish it, not at the next big refresh.** `decisions.md`, `methodology.md`,
-`sources.md` remain the detailed logs and are authoritative over this file on any specific
-number. If a fact here conflicts with one of those three, or with `SKILL.md`'s standing
-rules, THEY win — the narrative sections of this file are a convenience summary, never a
-primary source. (`workplan.md` was retired 2026-09-20 in favour of this file, so there is
-only one planning document now, not two.)_
+checklist added), **re-compressed into a 5-day sprint on 2026-10-06.** The "~1 month from
+2026-08-27" deadline referenced throughout the older sections of this file and in
+`project.md` has elapsed. **The operative deadline, as of 2026-10-06, is 5 days from today —
+submission around 2026-10-11/12, pending confirmation with the programme office.**
+Section 0 below is the live sprint plan and takes priority over every other section for
+*sequencing*. Sections 1–14 remain the narrative/reference record and are still correct on
+facts that haven't changed. `decisions.md`, `methodology.md`, `sources.md` remain the
+detailed logs and are authoritative over this file on any specific number — if a fact here
+conflicts with one of those three, THEY win._
+
+---
+
+## 0. FIVE-DAY SPRINT PLAN (2026-10-06 compression) — READ THIS SECTION FIRST
+
+### 0.1 What is already done — do not redo this
+
+- **Data audit** — run on the real EMSCAD CSV, corrected twice (missingness double-count,
+  duplicate mislabel, inconsistent C1–C6 "evaluable" definition), verified in two
+  independent environments. ✅ Closed.
+- **Stage 1 (ingestion)** — built, 9/9 tests passing, verified on two machines, committed.
+  ✅ Closed.
+- **Stage 2 sampling** — stratified 200-posting worksheet + manifest built, tested,
+  reproduced, committed. **The manual coding of those 200 postings is NOT done** — that's
+  Day 1–2 below, and it's the only part of Stage 2 that's actually yours to do.
+- **Stage 8 skeleton** — FastAPI app, `/score` route, full JSON contract built and tested.
+  Every pipeline stage honestly returns "not yet built" (HTTP 501). Zero fabricated data.
+  ✅ Closed (skeleton only — real wiring is Day 4).
+- **Docs sync (2026-09-20)** — `project.md`, `decisions.md`, `methodology.md`, `sources.md`,
+  `PROJECT_PLAN.md` consistent across Claude Project, GitHub repo, and reality, as of that
+  date. `workplan.md` retired.
+- **Scope-cut decisions (2026-09-20)** — rules-only baseline cut; DistilBERT fine-tuned, not
+  frozen; Tier 2 reduced to ~50–100 postings; 3 seeds (one fixed split, N initialisations);
+  explainability narrowed to SHAP only; divergent architecture review skipped, time-driven.
+  Decision 0.2 resolved (MD5 + title-based grouping for near-duplicates).
+- **Dataset strategy** — four external "second dataset" suggestions checked against primary
+  sources and rejected (all are EMSCAD derivatives); two-tier EMSCAD + independently-collected
+  Tier 2 plan reaffirmed.
+
+**Not done, and now compressed into 5 days:** Stage 2 manual audit, Stages 3–9 in full,
+Tier 2 collection (zero postings so far), Chapters 4–6, AI-use declaration, research paper.
+
+### 0.2 What changed today (2026-10-06) — log these in `decisions.md` (done below; see the
+new entry dated 2026-10-06)
+
+1. **Deadline corrected.** 5 days remaining, not "~1 month from 2026-08-27." That older date
+   has already passed. If the actual programme-office date differs from "2026-10-11/12",
+   this entire schedule shifts — confirm it the moment you can, but don't let confirming it
+   block starting tonight.
+2. **Tier 2 is time-boxed to Day 1 only**, compressed from the 1-week checkpoint decided on
+   2026-09-20. Same fallback rule, just a much shorter fuse: if fewer than ~20 verified
+   fraudulent postings are secured by the end of Day 1, the qualitative-only fallback is
+   invoked and Tier 2 does not get a second day.
+3. **Ablation seed count is now conditional**, decided empirically on Day 3 by timing one
+   real DistilBERT fine-tuning run, not guessed in advance.
+4. **A triage order is fixed now, in advance** — see §0.4 — so that if the week slips, you
+   are not making those calls live, under pressure, on Day 4 night.
+5. **The 200-posting manual audit stays at 200.** You were explicit that quality here is not
+   negotiable, and this file holds that line.
+6. **Explicitly accepted, disclosed risk:** chasing down formal institutional ethics sign-off
+   for Tier 2 primary data collection is not a gating step before collection starts, given the
+   timeline. This is not being hidden — it stays logged as an open item in `project.md` and
+   belongs in the dissertation's limitations section, stated plainly, not silently dropped.
+
+### 0.3 Hard risk items — resolve these FIRST, before the day-by-day plan matters at all
+
+- **CUDA, tonight (Day 0).** `requirements.txt` currently pins `torch==2.13.0+cpu` — the
+  CPU-only build. Fine-tuning DistilBERT on Day 3 needs a CUDA build. Run, in your venv:
+
+  ```powershell
+  python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+  nvidia-smi
+  ```
+
+  If `cuda.is_available()` is `False`: reinstall torch using the CUDA index matching your
+  driver (`nvidia-smi` shows the CUDA version your driver supports), e.g.:
+
+  ```powershell
+  pip uninstall torch
+  pip install torch --index-url https://download.pytorch.org/whl/cu121
+  ```
+
+  **Real risk to flag now, not discover on Day 3:** Python 3.13 is very new, and PyTorch's
+  official CUDA wheels sometimes lag behind the newest Python versions. If pip can't find a
+  matching CUDA wheel for Python 3.13 on Windows, don't burn Day 3 fighting it — fall back
+  immediately to one of: (a) a separate Python 3.11/3.12 venv used only for Stage 5
+  training, or (b) frozen DistilBERT embeddings + a classifier head instead of full
+  fine-tuning. Either is a logged decision, not a silent reversal of the 2026-09-20 choice —
+  tell me which happened and I'll log it in `decisions.md` the same day.
+
+- **Tier 2 fraud-side sourcing is unverified.** Day 1 is the only day budgeted for it. If it
+  fails, the fallback is already decided (§0.2.2) — don't improvise a new plan on the day.
+
+### 0.4 Triage order if the week slips — decided now, not live under pressure
+
+1. **First cut: the research paper.** It slips past Day 5, finished in whatever slack exists
+   right after, if any. The dissertation and the working artefact come first.
+2. **Second cut: ablation seed count.** Reduce the leave-one-category-out ablation arms
+   (E1, E2, E3, E4, `has_company_logo`) from 3 seeds to 1 each. The main baseline-vs-improved
+   comparison keeps 3 seeds regardless — that comparison is the headline result.
+3. **Third cut: Tier 2 depth.** Already time-boxed (§0.2.2); if it fails, it falls back to
+   qualitative-only and that's the end of it — not a second attempt.
+4. **Never cut:** leakage-controlled partitioning, calibration, the test-set-used-once rule,
+   the 200-posting manual audit, and the honest stub-vs-real distinction in the API. If the
+   week runs out before these are solid, the paper and Tier 2 are what's missing from the
+   final submission — not these.
+
+### 0.5 Day-by-day schedule
+
+**Tonight — 2026-10-06 (before you sleep, ~1 hour)**
+- [ ] Run the CUDA check in §0.3. If it fails, start the fallback install tonight so Day 3
+  isn't a surprise.
+- [ ] Read `STAGE2_CODING_INSTRUCTIONS.md` once tonight so Day 1 morning starts coding
+  immediately instead of re-reading the scheme cold.
+- [ ] Nothing else. Sleep — you need the next 5 days functioning.
+
+**Day 1 — 2026-10-07**
+*Goal: Decisions 0.3/0.4 resolved; Stage 3 built and tested; manual audit started; Tier 2
+push happens and is checkpointed by end of day.*
+
+| When | Task | Who |
+|---|---|---|
+| Morning | Resolve Decision 0.3 (does label-conditional statistics influence design — C6 viability) in a short CONVERGENT session with me, before Stage 4 design locks in | You + me |
+| Morning | Resolve Decision 0.4 (Tier 2 field symmetry — can E4 fire on the fraud side if fraud postings arrive text-only) — this decides how Tier 2 sourcing proceeds today | You + me |
+| Morning–afternoon | Build Stage 3: group-aware stratified 70/15/15 split using the MD5+title grouping from Decision 0.2; fit vectorisers/scalers on train only; prove zero group overlap; report duplicate counts under the real grouping method | Me (code), you run/verify |
+| All day, parallel | **Start the Stage 2 manual audit** — 200 postings, `STAGE2_CODING_INSTRUCTIONS.md`. This does not block Stage 3/4 engineering; it only needs to be done before Stage 4's lexicon-revision step lands, so start now and don't let it slip past Day 2 | You, alone |
+| All day, parallel | **Tier 2 push.** Build the Greenhouse/Lever company-slug list, pull 30–50 legitimate postings; attempt fraud-side sourcing from documented scam repositories/advisories, recording provenance for every posting | You + me |
+| End of day | **Tier 2 checkpoint.** Count verified fraudulent postings. <20 → invoke qualitative-only fallback now, don't carry this into Day 2 | You |
+| End of day | Commit Stage 3 code + tests. Log the Decision 0.3/0.4 resolutions in `decisions.md`. Tick the relevant boxes in §7.5 below | You |
+
+**Day 2 — 2026-10-08**
+*Goal: Stage 4 built — the actual research contribution (E4). Manual audit finished.*
+
+- [ ] **Finish the Stage 2 manual audit** if any of the 200 postings remain — this cannot run
+  later than today, Stage 4's lexicon work needs its findings.
+- [ ] Build Stage 4: E1 (text/content cues), E2 (identity & contact cues — reuse the token
+  logic from Stage 1), E3 (completeness flags + composite), and the real E4 lexicons for
+  C1, C3–C6 (replacing every provisional regex from the August audit), plus the **first real
+  attempt** at C2 location-matching (not a backfilled proxy).
+- [ ] Every feature tagged with its evidence category, for clean leave-one-category-out
+  ablation later.
+- [ ] Re-measure C1,C3–C6 evaluable coverage against the real lexicons and update
+  `sources.md` #3 — these figures are currently provisional; today they become real.
+- [ ] Apply whatever the Decision 0.3 resolution requires, consistently.
+- [ ] Apply whatever at least one Stage 2 audit finding revises or drops — this is Stage 2's
+  actual payoff, not a formality. Log it.
+- [ ] Commit. Tick §7.5 boxes.
+
+**Day 3 — 2026-10-09**
+*Goal: baseline + improved models trained and calibrated. The ablation-seed decision gets
+made today, with real numbers, not a guess.*
+
+- [ ] Confirm the CUDA fallback from Day 0 actually works before touching the real training
+  run.
+- [ ] Train the baseline: TF-IDF + Logistic Regression, TF-IDF + Random Forest. Quick, CPU
+  is fine for this.
+- [ ] Run **one** DistilBERT fine-tuning pass (1 seed) fused with the E2/E3/E4 vector, and
+  time it. Use that real number to decide, right then, whether 3 seeds × 5 ablation arms fits
+  what's left of the week. If not, apply the Day-0-agreed cut: ablation arms go to 1 seed,
+  main comparison stays at 3. **Log whichever way it goes, same day, in `decisions.md`.**
+- [ ] Confirm identical class weighting across baseline and improved models.
+- [ ] Fit hyperparameters, decision threshold and calibrator on validation only — never on
+  test.
+- [ ] Build Stage 6: Platt vs. isotonic, chosen on validation; Brier, ECE, reliability curve.
+- [ ] Commit. Tick §7.5 boxes.
+
+**Day 4 — 2026-10-10**
+*Goal: the heaviest day. Explainability, real API wiring, demonstration, and the one-time
+test-set evaluation with ablation. Flagged now: this is the most likely day to run over —
+if it does, it spills into Day 5 morning, and that's Day 5's writing time it eats, not an
+excuse to touch the test set twice.*
+
+- [ ] Build Stage 7: SHAP over the fused feature set (consider sub-sampling the test set for
+  the fidelity tests specifically, if SHAP's compute cost threatens the day — log this as a
+  decision if you do it, don't let it happen silently), rule-message summaries from the
+  C1–C6 flags, comprehensiveness/sufficiency (deletion/insertion) and rule-consistency
+  checks, compared against a random-attribution control.
+- [ ] Wire Stage 8: replace the four stub functions in `src/api/main.py`
+  (`preprocess`, `extract_features`, `predict`, `explain`) with the real Stage 1/4/5-6/7
+  code, one function at a time, without touching the route handler. Run one real end-to-end
+  request with no stubs left.
+- [ ] Run Stage 8b: 3 real postings through the live API — clear fraud, clear legit, one
+  genuinely ambiguous. No cherry-picking. Write results straight into `methodology.md`, kept
+  separate from Stage 9.
+- [ ] Run Stage 9: full metric set on the test set, **used exactly once**; leave-one-category-
+  out ablation at whatever seed count Day 3 settled on; Tier 2 temporal transfer (T1/T2/T3)
+  if Tier 2 collection succeeded on Day 1, otherwise the qualitative write-up instead;
+  source-probe leakage test, reported regardless of outcome.
+- [ ] Commit. Tick §7.5 boxes. Write the raw numbers into `methodology.md` immediately —
+  don't let them live only in a notebook.
+
+**Day 5 — 2026-10-11**
+*Goal: Chapter 4 through 6, AI-use declaration, final sync. The paper is a stretch goal, not
+a commitment — see §0.4.*
+
+- [ ] Write **Chapter 4 (Results)** directly from the Day 3/4 measured numbers. This is the
+  first day it's even possible to write this chapter — do not draft it from anything but
+  real measurements, and mark any figure you're unsure of before it goes further.
+- [ ] Write **Chapter 5 (Discussion)** — what the numbers mean against each RQ, including
+  any that don't confirm what was hoped. A null or negative result on O3 is a complete
+  answer, not a failure to hide.
+- [ ] Write **Chapter 6 (Conclusion)** — contributions, limitations (name the Tier 2
+  shortcut and the skipped ethics sign-off here, plainly), future work.
+- [ ] Write the **AI-use declaration** — required by the programme; state what AI assisted
+  with (planning, code scaffolding, docs structuring) versus what's yours (the contribution,
+  the words, the judgement calls).
+- [ ] Final sync: update "Where I am right now" in `project.md`; finalise `decisions.md` and
+  `sources.md`; tick every remaining §7.5 box that's true; copy all five `.md` files into
+  the repo `docs/` folder and the Claude Project, replacing the old copies in both places so
+  only one copy exists anywhere.
+- [ ] **If, and only if, everything above is done with time left:** condense the dissertation
+  into the research paper. If there's no time left, this is the one deliverable that moves
+  past the 5-day window — named now, not discovered as a surprise on the last day.
 
 ---
 
@@ -26,8 +230,7 @@ as **ex post** (the built system is evaluated, not the design in advance) and pr
 **artificial** (benchmark dataset, controlled conditions), with a **naturalistic** component
 in the Tier 2 assessment.
 
-**Deadline confirmed 2026-08-27: ~1 month from that date.** Exact date still to be confirmed
-with the programme office, but pacing is now real, not open-ended.
+**Deadline: 5 days from 2026-10-06 (see Section 0).**
 
 ---
 
@@ -82,10 +285,11 @@ A backend REST API (**FastAPI**) exposing a **`/score`** endpoint.
 
 The score is a **calibrated probability mapped to 0–100** — never a raw model output.
 
-**Current build status:** the FastAPI app, `/score` route, and the exact request/response
-schema above are built and tested (`src/api/main.py`, `src/api/schemas.py`). Every pipeline
-stage is an honest stub — raises a clear "not yet built" error rather than inventing a
-result. Zero fabricated data anywhere in the running system.
+**Current build status (2026-10-06):** the FastAPI app, `/score` route, and the exact
+request/response schema above are built and tested (`src/api/main.py`, `src/api/schemas.py`).
+Every pipeline stage is an honest stub — raises a clear "not yet built" error rather than
+inventing a result. Zero fabricated data anywhere in the running system. Real wiring is
+Day 4 of the sprint.
 
 ---
 
@@ -101,20 +305,19 @@ result. Zero fabricated data anywhere in the running system.
 The external company-presence check is **API-only, qualitative, and explicitly not a fifth
 measured category** — excluded from ablation and all quantitative evaluation.
 
-### Consistency rules C1–C6, with current measured status (2026-08-27)
+### Consistency rules C1–C6, measured status as of 2026-08-27 (provisional; Day 2 re-measures)
 
 | Rule | Compares | Field cov. (verified) | Evaluable cov. | Status |
 |---|---|---|---|---|
-| C1 | telecommuting vs description | 100.0% | 10.5% | 🟡 Provisional pattern |
-| C2 | location vs description | 88.4% | not measured | ❌ Deferred to Stage 4 |
-| C3 | employment_type vs description | 80.6% | 12.2% | 🟡 Provisional pattern |
-| C4 | required_experience vs description | 60.6% | 30.2% | 🟡 Provisional pattern |
-| C5 | required_education vs description | 54.7% | 27.8% | 🟡 Provisional pattern |
-| C6 | salary_range vs description | 15.2% | 7.6% | 🟡 Provisional pattern |
+| C1 | telecommuting vs description | 100.0% | 10.5% | 🟡 Provisional pattern — Day 2 re-measures |
+| C2 | location vs description | 88.4% | not measured | ❌ Deferred — Day 2 builds the real matcher |
+| C3 | employment_type vs description | 80.6% | 12.2% | 🟡 Provisional pattern — Day 2 re-measures |
+| C4 | required_experience vs description | 60.6% | 30.2% | 🟡 Provisional pattern — Day 2 re-measures |
+| C5 | required_education vs description | 54.7% | 27.8% | 🟡 Provisional pattern — Day 2 re-measures |
+| C6 | salary_range vs description | 15.2% | 7.6% | 🟡 Provisional pattern — Day 2 re-measures |
 
 **Aggregate:** 56.7% of postings evaluable by at least one rule; mean 0.88 of 6 rules
-evaluable per posting. All "evaluable" figures use placeholder patterns and must be
-re-measured once Stage 4 writes the real lexicons. Full detail: `sources.md` #3.
+evaluable per posting. Full detail: `sources.md` #3.
 
 ---
 
@@ -123,227 +326,144 @@ re-measured once Stage 4 writes the real lexicons. Full detail: `sources.md` #3.
 | Tier | Dataset | Size | Role | Status |
 |---|---|---|---|---|
 | 1 | EMSCAD (Vidros et al., 2017) | 17,880 (866 fraud / 4.84%) | ALL training, tuning, calibration, ablation | ✅ Audited, ingestion built and tested |
-| 2 | Independently collected contemporary postings | ~50–100 target (reduced 2026-09-20; 20–30 fraud / 30–50 legit), ~1-week checkpoint | Held-out temporal validation ONLY | 🟡 Legitimate-side sourcing verified and ready (Greenhouse/Lever/Arbeitnow/Adzuna, all confirmed free and accessible 2026-09-20); fraud-side sourcing not yet verified; zero postings collected |
+| 2 | Independently collected contemporary postings | ~50–100 target (20–30 fraud / 30–50 legit) | Held-out temporal validation ONLY | 🟡 **Time-boxed to Day 1 of the sprint** (compressed from the 1-week checkpoint); legitimate-side sourcing verified and ready (Greenhouse/Lever/Arbeitnow/Adzuna); fraud-side sourcing unverified — Day 1's main open question |
 
-Tier 2 is never used for training; the tiers are never merged. **Open problem (Decision
-0.4, still unresolved):** if fraudulent Tier 2 postings arrive text-only (scam repositories)
-while legitimate ones carry full structured fields (ATS/feed provenance), E3 would
-separate the classes for collection-artefact reasons, not fraud reasons — and E4, the
-actual contribution, might not fire on the fraud side at all. Must be resolved before
-collection starts — this is exactly why fraud-side sourcing needs checking next, not just
-legitimate-side.
+Tier 2 is never used for training; the tiers are never merged. **Decision 0.4 (Tier 2 field
+symmetry)** — if fraudulent Tier 2 postings arrive text-only while legitimate ones carry full
+structured fields, E3 would separate the classes for collection-artefact reasons, not fraud
+reasons, and E4 might not fire on the fraud side at all. **Resolved on Day 1 morning, before
+sourcing starts** (see §0.5).
 
 ---
 
-## 7. Full methodology — all nine stages plus 8b
+## 7. Full methodology — all nine stages plus 8b, with sprint-day targets
 
-| Stage | Activity | Objective | Status | Entry condition |
+| Stage | Activity | Objective | Status (2026-10-06) | Sprint day |
 |---|---|---|---|---|
-| — | Data audit | grounds Stage 1 | ✅ Done, corrected twice, verified 2 environments | — |
-| 1 | Ingestion & preprocessing | Foundation | ✅ Done, 9/9 tests, verified 2 machines | — |
-| 2 | Evidence taxonomy + manual audit (200 postings) | O1 | 🟡 Sampling script + worksheet built and tested; manual coding of 200 postings not yet done | Stage 1 done |
-| 3 | Leakage-controlled partitioning (70/15/15) | O2,O3,O5 | ⬜ Blocked | Decision 0.2 |
-| 4 | Multi-signal evidence extraction (E1–E4) | O1,O3 | ⬜ Not started | Stages 2+3 done; Decision 0.3 |
-| 5 | Model development (baseline + improved) | O2,O3 | ⬜ Not started | Stage 4 done; architecture review + rules-only-baseline decision |
-| 6 | Probability calibration + score mapping | O4 | ⬜ Not started | Stage 5 done |
-| 7 | Explainability layer + fidelity testing | O4 | ⬜ Not started | Stage 6 done |
-| 8 | API build (FastAPI `/score`) | O4 | 🟡 Skeleton built and tested; real wiring pending | Stage 7 for full completion |
-| 8b | Demonstration (3 postings, one ambiguous) | O4 | ⬜ Not started | Stage 8 complete |
-| 9 | Evaluation, ablation, temporal transfer | O5 | ⬜ Not started | Stages 1–8b done; thresholds agreed with supervisor first |
+| — | Data audit | grounds Stage 1 | ✅ Done | — |
+| 1 | Ingestion & preprocessing | Foundation | ✅ Done, 9/9 tests | — |
+| 2 | Evidence taxonomy + manual audit (200 postings) | O1 | 🟡 Sampling done; manual coding not done | **Day 1–2** |
+| 3 | Leakage-controlled partitioning (70/15/15) | O2,O3,O5 | ⬜ Not started | **Day 1** |
+| 4 | Multi-signal evidence extraction (E1–E4) | O1,O3 | ⬜ Not started | **Day 2** |
+| 5 | Model development (baseline + improved) | O2,O3 | ⬜ Not started | **Day 3** |
+| 6 | Probability calibration + score mapping | O4 | ⬜ Not started | **Day 3** |
+| 7 | Explainability layer + fidelity testing | O4 | ⬜ Not started | **Day 4** |
+| 8 | API build (FastAPI `/score`) | O4 | 🟡 Skeleton built; real wiring pending | **Day 4** |
+| 8b | Demonstration (3 postings, one ambiguous) | O4 | ⬜ Not started | **Day 4** |
+| 9 | Evaluation, ablation, temporal transfer | O5 | ⬜ Not started | **Day 4** |
+| — | Chapters 4–6, AI declaration | — | ⬜ Not started | **Day 5** |
+| — | Research paper | — | ⬜ Not started | **Stretch — may slip past Day 5, see §0.4** |
 
-### Stage-by-stage detail
-
-**Stage 2 — Evidence taxonomy + manual audit.** Stratified 200-posting sample (100
-fraud/100 legit), fixed seed, drawn from unique normalised descriptions (avoids
-duplicate-campaign inflation of agreement rates). Per posting: which categories are
-observable; does each automated rule agree with manual judgement. **Done** = a completed
-audit sheet, and at least one signal revised or dropped because the audit contradicted an
-assumption.
-
-**Stage 3 — Partitioning.** Group-aware, stratified, 70/15/15. All variants of one posting
-on one side. Vectorisers/scalers/encoders fit on train only. **Done** = zero group overlap
-proven, duplicate counts reported, seeds fixed, and the "5 seeds = 5 inits on 1 split, or 5
-splits?" question (currently open) resolved.
-
-**Stage 4 — Evidence extraction.** E1–E4 built, every feature tagged with its category for
-clean leave-one-category-out ablation. Real C1–C6 lexicons written here — replacing every
-provisional pattern in the table above, and building genuine location-matching logic for
-C2 (deferred, not yet attempted at all). **Done** = every evaluable-coverage figure
-re-measured against real lexicons, not assumed to match the provisional numbers.
-
-**Stage 5 — Models.** Baseline: TF-IDF + Logistic Regression / Random Forest. Improved:
-DistilBERT (**fine-tuned**, decided 2026-09-20 — hardware is an RTX 3050 + 16GB RAM, not
-"no GPU" as previously assumed) fused with the E2/E3/E4 structured vector. Rules-only
-baseline **cut** (2026-09-20). Divergent architecture review **formally skipped**,
-time-driven (2026-09-20) — committing to the original design as-is. 3 seeds (reduced from
-5), one fixed split. **Done** = baseline and improved differ only in text representation +
-structured features; identical class weighting; hyperparameters/threshold/calibrator
-fitted on validation only; test set untouched.
-
-**Stage 6 — Calibration.** Platt or isotonic, chosen on validation. Brier, ECE, reliability
-curve reported. Anything that damages calibration is a cost, not a neutral choice.
-
-**Stage 7 — Explainability.** SHAP only (LIME dropped, 2026-09-20) + rule-message
-summaries. Comprehensiveness, sufficiency (deletion/insertion), rule-consistency —
-computational only, no human participants.
-
-**Stage 8 — API.** Skeleton done. Remaining work: replace the four stub functions in
-`src/api/main.py` (`preprocess`, `extract_features`, `predict`, `explain`) with real
-Stage 1/4/5-6/7 code, one at a time, without touching the route handler.
-
-**Stage 8b — Demonstration.** 3 real postings, one genuinely ambiguous, no cherry-picking.
-Proves the artefact works at all — proves nothing about how well. Never conflated with
-Stage 9.
-
-**Stage 9 — Evaluation.** Full metric set on the test set, used once. Ablation per
-evidence category (no rules-only arm — cut). Tier 2 temporal transfer (T1/T2/T3 — see
-`methodology.md`) at reduced scale (~50–100 postings), reported with wide confidence
-intervals given the small sample. Thresholds agreed with supervisor **before** results are
-seen — urgent given the deadline.
+For the detailed "definition of done" per stage, see Section 0.5's day-by-day task lists —
+they now carry the operational detail that used to live here. The twelve guardrails in
+Section 8 below still apply unchanged to every stage.
 
 ---
 
-## 7.5 — LIVE CHECKLIST (update this every time you finish something)
-
-> **How to use this section.** Tick a box the moment you finish that item — not at the next
-> big review. This is the one part of this file that changes constantly; everything else
-> above and below it is refreshed only at real milestones. Copy this whole file, replace it
-> in both the Claude Project and the repo, same as always, whenever you tick something —
-> or keep a local working copy and sync it every few items, your call, as long as it
-> eventually lands in both places.
+## 7.5 — LIVE CHECKLIST (tick the moment you finish something, not at the next review)
 
 ### Pre-work
 
 - [x] Repository, environment, `.gitignore` set up and verified
-- [x] Data audit run and corrected (3 bugs fixed: missingness, duplicate-count, C1–C6 definition)
-- [x] Dataset strategy stress-tested against 4 external alternatives — rejected, two-tier plan reaffirmed
-- [x] Hardware capability corrected (RTX 3050 + 16GB RAM, not "no GPU")
-- [x] Scope-cut decisions made (rules-only cut, DistilBERT fine-tuned, Tier 2 reduced, 3 seeds, SHAP-only, architecture review skipped)
+- [x] Data audit run and corrected
+- [x] Dataset strategy stress-tested against 4 external alternatives — rejected, reaffirmed
+- [x] Hardware capability corrected (RTX 3050 + 16GB RAM)
+- [x] Scope-cut decisions made (2026-09-20 round)
 - [x] Decision 0.2 resolved (MD5 + title grouping)
-- [x] Tier 2 legitimate-source APIs verified (Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna)
-- [ ] Tier 2 fraud-source access verified
-- [ ] Decision 0.3 resolved (label-conditional statistics in design)
-- [ ] Tier 2 ethics approval status checked
-- [ ] Success thresholds agreed with supervisor
+- [x] Tier 2 legitimate-source APIs verified
+- [ ] CUDA-enabled torch confirmed working (**Day 0 — tonight**)
+- [ ] Decision 0.3 resolved (**Day 1**)
+- [ ] Decision 0.4 resolved (**Day 1**)
+- [ ] Tier 2 fraud-source access verified (**Day 1**)
 
 ### Stage 1 — Ingestion & preprocessing
 
-- [x] Boolean encoding (t/f → 1/0) with fraud-count assertion
-- [x] Contact/media token extraction before HTML stripping
-- [x] `in_balanced_dataset` dropped
-- [x] `salary_range` "0-0" treated as missing
-- [x] Missingness flagged, never imputed
-- [x] Tests written and passing (9/9), verified on 2 machines
-- [x] Committed to repository
+- [x] All items complete, tested, committed.
 
 ### Stage 2 — Evidence taxonomy + manual audit
 
-- [x] Stratified 200-posting sample built (seed 42, unique normalised descriptions)
-- [x] Worksheet generated (28 columns, mechanical fields pre-filled, judgement fields blank)
-- [x] Coding scheme written in advance (`STAGE2_CODING_INSTRUCTIONS.md`)
-- [x] Reproducibility verified on real machine
-- [x] Committed to repository
-- [ ] **Manual coding of 200 postings — not started (yours to do)**
-- [ ] Per-category observability rate computed
-- [ ] Per-rule agreement rate computed
-- [ ] At least one signal revised/dropped based on audit findings, logged
-- [ ] Results written into `methodology.md`
+- [x] Sample, worksheet, coding scheme built and committed
+- [ ] **Manual coding of 200 postings (Day 1–2 — yours alone)**
+- [ ] Per-category observability rate computed (Day 2)
+- [ ] Per-rule agreement rate computed (Day 2)
+- [ ] At least one signal revised/dropped based on audit findings, logged (Day 2)
+- [ ] Results written into `methodology.md` (Day 2)
 
-### Stage 3 — Leakage-controlled partitioning
+### Stage 3 — Leakage-controlled partitioning (Day 1)
 
-- [ ] Title-based grouping key added alongside existing description MD5 hashing
 - [ ] Group-aware stratified 70/15/15 split implemented
 - [ ] Zero group overlap proven across train/validation/test
 - [ ] Duplicate counts reported using the resolved grouping method
 - [ ] Vectorisers/scalers/encoders fit on train only
-- [ ] Seeds fixed and recorded (3, one fixed split)
 - [ ] Results written into `methodology.md`
 
-### Stage 4 — Multi-signal evidence extraction
+### Stage 4 — Multi-signal evidence extraction (Day 2)
 
-- [ ] E1 features built (text/content cues)
-- [ ] E2 features built (identity & contact cues)
-- [ ] E3 features built (completeness flags + composite)
-- [ ] E4 / C1–C6 real lexicons written (replacing every provisional pattern)
-- [ ] C2 real location-matching logic built (first real attempt — not a backfilled proxy)
+- [ ] E1, E2, E3 features built
+- [ ] E4 / C1–C6 real lexicons written, replacing every provisional pattern
+- [ ] C2 real location-matching logic built (first real attempt)
 - [ ] Every feature tagged with its category for clean ablation
 - [ ] All C1–C6 evaluable-coverage figures re-measured against real lexicons
-- [ ] Decision 0.3 applied consistently once resolved
+- [ ] Decision 0.3 applied consistently
 
-### Stage 5 — Model development
+### Stage 5 — Model development (Day 3)
 
 - [ ] TF-IDF + Logistic Regression baseline trained
 - [ ] TF-IDF + Random Forest baseline trained
-- [ ] DistilBERT fine-tuned on GPU, fused with E2/E3/E4 vector
-- [ ] Identical class weighting confirmed on both baseline and improved model
+- [ ] One DistilBERT fine-tuning run timed; ablation seed count decided and logged
+- [ ] Identical class weighting confirmed on both models
 - [ ] Hyperparameters/threshold fitted on validation only
-- [ ] 3-seed repetition completed, mean ± SD reported
-- [ ] Test set touched exactly once
+- [ ] 3-seed repetition completed on the main comparison, mean ± SD reported
+- [ ] Test set not yet touched
 
-### Stage 6 — Calibration
+### Stage 6 — Calibration (Day 3)
 
-- [ ] Platt scaling tried
-- [ ] Isotonic regression tried
-- [ ] Calibrator selected on validation performance
-- [ ] Brier score reported (before/after)
-- [ ] ECE reported (before/after)
-- [ ] Reliability curve produced
+- [ ] Platt and isotonic both tried, selected on validation
+- [ ] Brier score, ECE, reliability curve reported
 - [ ] Risk-band thresholds set
 
-### Stage 7 — Explainability
+### Stage 7 — Explainability (Day 4)
 
 - [ ] SHAP integrated over the fused feature set
 - [ ] Rule-message summaries generated from C1–C6 flags
-- [ ] Comprehensiveness (deletion test) measured
-- [ ] Sufficiency (insertion test) measured
-- [ ] Rule-consistency check run
+- [ ] Comprehensiveness, sufficiency, rule-consistency measured
 - [ ] Random-attribution control compared against
 
-### Stage 8 — API (real pipeline wiring)
+### Stage 8 — API, real pipeline wiring (Day 4)
 
-- [x] FastAPI app, `/score` route, JSON schema built and tested (skeleton)
-- [ ] `preprocess()` wired to real Stage 1 code
-- [ ] `extract_features()` wired to real Stage 4 code
-- [ ] `predict()` wired to real Stage 5/6 code
-- [ ] `explain()` wired to real Stage 7 code
-- [ ] End-to-end real request tested (no stubs remaining)
+- [x] Skeleton built and tested
+- [ ] All four stub functions wired to real code
+- [ ] End-to-end real request tested, no stubs remaining
 
-### Stage 8b — Demonstration
+### Stage 8b — Demonstration (Day 4)
 
-- [ ] Clear fraud example run and captured
-- [ ] Clear legitimate example run and captured
-- [ ] Genuinely ambiguous example run and captured (no cherry-picking)
-- [ ] Results written into `methodology.md` — kept separate from Stage 9
+- [ ] Fraud, legitimate, and ambiguous examples run and captured
+- [ ] Results written into `methodology.md`, kept separate from Stage 9
 
-### Stage 9 — Evaluation
+### Stage 9 — Evaluation (Day 4)
 
-- [ ] Full metric set computed on test set (used once)
-- [ ] Leave-one-category-out ablation run (E1, E2, E3, E4, `has_company_logo`)
-- [ ] Tier 2 temporal transfer (T1) run, if Tier 2 collection succeeded
-- [ ] Tier 2 signal durability (T2) run, if Tier 2 collection succeeded
-- [ ] Tier 2 domain adaptation (T3) run, if Tier 2 collection succeeded
+- [ ] Full metric set computed on test set, used once
+- [ ] Ablation run at whatever seed count Day 3 settled on
+- [ ] Tier 2 transfer run if Tier 2 succeeded, else qualitative write-up
 - [ ] Source-probe leakage test run and reported regardless of outcome
 - [ ] Results written into `methodology.md`
 
-### Tier 2 collection (parallel track)
+### Tier 2 collection (Day 1 only)
 
-- [ ] Company slug list built for Greenhouse/Lever querying
+- [ ] Company slug list built
 - [ ] Legitimate postings collected (target 30–50)
 - [ ] Fraud-source access verified
-- [ ] Fraudulent postings collected (target 20–30)
-- [ ] 1-week checkpoint evaluated — reduced collection continues, or qualitative-only fallback invoked
+- [ ] Fraudulent postings collected (target 20–30) or fallback invoked
 - [ ] Provenance recorded for every collected posting
 
-### Write-up
+### Write-up (Day 5)
 
-- [x] Chapter 1 drafted
-- [x] Chapter 2 drafted
-- [x] Chapter 3 drafted
-- [ ] Chapter 4 (Results) — cannot start until Stage 9 produces real measurements
-- [ ] Chapter 5 drafted
-- [ ] Chapter 6 drafted
+- [x] Chapters 1–3 drafted
+- [ ] Chapter 4 (Results)
+- [ ] Chapter 5 (Discussion)
+- [ ] Chapter 6 (Conclusion)
 - [ ] AI-use declaration written
-- [ ] Research paper drafted
+- [ ] Research paper drafted (stretch — may slip past the sprint)
 
 ---
 
@@ -367,74 +487,58 @@ seen — urgent given the deadline.
 
 ## 9. Environment
 
-Python 3.13.9, FastAPI, pandas 3.0.5, scikit-learn, PyTorch 2.13.0+cpu, Hugging Face
-Transformers, SHAP (LIME removed from planned use, 2026-09-20), imbalanced-learn. Full
-pinned list in `requirements.txt`. No paid data sources, single developer. **Hardware
-corrected 2026-09-20:** RTX 3050 GPU + 16GB RAM (gaming laptop) — previously wrongly
-recorded as "no dedicated GPU" throughout the project files since proposal stage; this
-enables fine-tuning DistilBERT rather than using frozen embeddings. Git repository:
-`credibility-scoring-framework` (private), environment and audit committed and verified in
-two independent machines as of 2026-08-27.
+Python 3.13.9, FastAPI, pandas 3.0.5, scikit-learn, PyTorch 2.13.0 (**CPU build currently
+installed — fixing this is Day 0's first task**), Hugging Face Transformers, SHAP,
+imbalanced-learn. Full pinned list in `requirements.txt`. No paid data sources, single
+developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
+`credibility-scoring-framework` (private).
 
 ---
 
-## 10. Decision log — status as of 2026-09-20
+## 10. Decision log — status as of 2026-10-06
 
 | Decision | Status | Notes |
 |---|---|---|
 | Class weighting over SMOTE | ✅ Closed | `decisions.md`, 2026-08-07 |
-| Two-tier dataset strategy | ✅ Closed, reaffirmed | `decisions.md`, 2026-08-07; stress-tested against 4 external alternatives 2026-08-27 |
-| Tier 2 provenance labelling + source-leakage probe | ✅ Closed | `decisions.md`, 2026-08-07 |
-| Drop `in_balanced_dataset` | ✅ Closed | `decisions.md`, 2026-08-07 |
-| `decisions.md` correction (English Teacher Abroad cluster) | ✅ Applied | Corrected as an appended note, 2026-08-27; independently corroborated 2026-08-27 |
+| Two-tier dataset strategy | ✅ Closed, reaffirmed | 2026-08-07; stress-tested 2026-08-27 |
+| Drop `in_balanced_dataset` | ✅ Closed | 2026-08-07 |
 | **0.1** — C1–C6 evaluable-coverage definition | ✅ Closed | 2026-08-27 |
-| **0.2** — near-duplicate grouping method | ✅ Closed | 2026-09-20 — MD5 + title-based secondary grouping key |
-| **0.3** — label-conditional statistics in design | ❌ Open | Relevant at Stage 4 (C6 viability) — the one genuinely unresolved design question left |
-| **0.4** — Tier 2 field symmetry (can E4 fire on fraud side?) | ❌ Open | Blocks full Tier 2 collection; legitimate-side sourcing verified regardless |
-| Hardware constraint correction | ✅ Applied | 2026-09-20 — RTX 3050 + 16GB RAM, not "no GPU" |
+| **0.2** — near-duplicate grouping method | ✅ Closed | 2026-09-20 |
+| Hardware constraint correction | ✅ Applied | 2026-09-20 |
 | Rules-only baseline | ✅ Closed — CUT | 2026-09-20 |
-| Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20, enabled by hardware correction |
-| Divergent architecture review | ✅ Closed — skipped, time-driven | 2026-09-20 |
+| Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20 (**Day 0 CUDA check may force a fallback — see §0.3**) |
+| Divergent architecture review | ✅ Closed — skipped | 2026-09-20 |
 | "5 seeds" definition + count | ✅ Closed — 3 seeds, fixed split | 2026-09-20 |
 | Explainability method scope | ✅ Closed — SHAP only | 2026-09-20 |
-| Tier 2 collection depth | ✅ Closed — reduced, ~50–100, 1-week checkpoint | 2026-09-20 |
-| Tier 2 legitimate-source API access | ✅ Verified | 2026-09-20 — Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna confirmed; Indeed retirement reconfirmed |
-| Tier 2 fraud-source access | ❌ Not yet checked | Next verification task |
-| Success thresholds per objective | ❌ Open | Must be agreed with supervisor before Stage 9 — urgent |
-| Tier 2 ethics approval status | ❌ Open | Check today |
+| Tier 2 legitimate-source API access | ✅ Verified | 2026-09-20 |
+| **0.3** — label-conditional statistics in design | ⬜ Open | **Resolve Day 1 morning** |
+| **0.4** — Tier 2 field symmetry | ⬜ Open | **Resolve Day 1 morning** |
+| **Deadline correction** | ✅ Applied | 2026-10-06 — 5 days remaining, not ~1 month |
+| **Tier 2 time-boxing to Day 1** | ✅ Closed | 2026-10-06 — see `decisions.md` |
+| **Ablation seed count** | 🟡 Conditional | 2026-10-06 — decided empirically Day 3 |
+| **Sprint triage order** | ✅ Closed | 2026-10-06 — fixed in advance, §0.4 |
+| Success thresholds per objective | ⬜ Open | Agree with supervisor if any contact window exists this week; otherwise state as a limitation |
+| Tier 2 ethics approval status | ⬜ Open, explicitly accepted risk | Not gating collection this week — see §0.2.6 |
 
 ---
 
-## 11. Full dependency graph (updated 2026-09-20 — most blockers now cleared)
+## 11. Dependency graph — 5-day compression
 
 ```
-Data audit ✅
+Tonight: CUDA check + fallback plan
     │
-Stage 1 ✅ ── Stage 8 skeleton ✅ (inert, wired in later)
+Day 1: Decision 0.3, 0.4 ──► Stage 3 (build) ║ Manual audit starts ║ Tier 2 push → checkpoint
     │
-Stage 2 — sampling ✅, manual audit ⬜ (NEXT, yours)
+Day 2: Manual audit finishes ──► Stage 4 (E1-E4, real lexicons, re-measured coverage)
     │
-    ▼
-Stage 3 (all blockers resolved — MD5+title grouping, 3-seed fixed split)
+Day 3: Stage 5 (baseline + 1 timed DistilBERT run → seed decision) ──► Stage 6 (calibration)
     │
-    │   [Decision 0.3 — the one still-open design question] ──► (feeds into Stage 4)
-    ▼
-Stage 4
+Day 4: Stage 7 (SHAP) ──► Stage 8 (real wiring) ──► Stage 8b (demo) ──► Stage 9 (evaluation, once)
     │
-    ▼
-Stage 5 (all blockers resolved — fine-tuned DistilBERT, no rules-only arm,
-         architecture review skipped by decision) ──► Stage 6 ──► Stage 7 (SHAP only)
-                                                                        │
-                                                                        ▼
-                                                              Stage 8 (full) ──► Stage 8b
-                                                                        │
-Tier 2 [legit sourcing ✅ verified; fraud sourcing ⬜ next;             │
-        Decision 0.4 still open] ═══════════════════════════════════► Stage 9 ──► Write-up
+Day 5: Chapter 4 ──► Chapter 5 ──► Chapter 6 ──► AI declaration ──► final sync
+    │
+(stretch, may slip): research paper
 ```
-
-**Tier 2 sourcing should be running now, in parallel with Stage 2's manual audit** — it is
-still the longest-lead task in the project, now scoped down and time-boxed with a 1-week
-checkpoint, and joins the critical path only at Stage 9.
 
 ---
 
@@ -448,25 +552,33 @@ checkpoint, and joins the critical path only at Stage 9.
 | O4 | Comprehensiveness, sufficiency, rule-consistency, Brier, ECE | **[TO SET]** |
 | O5 | Full metric set + per-category Δ; Tier 2 transfer | **[TO SET]** |
 
-All thresholds agreed with supervisor before Stage 9 results are seen.
+Thresholds should still be agreed with the supervisor if any contact window exists this
+week; if not, Chapter 5 must state plainly that thresholds were self-set under time
+pressure, which is a limitation to disclose, not a result to present as rigorous.
 
 ---
 
-## 13. Write-up
+## 13. Write-up — Day 5
 
-Chapters 1, 2, 3, 5 draftable progressively from `decisions.md` and this file. **Chapter 4
-(Results) cannot be drafted until Stage 9 produces real measurements.** AI-use declaration
-required at write-up — reminder standing per project rules.
+Chapters 1–3 already drafted. **Chapter 4 (Results) cannot be drafted until Stage 9 produces
+real measurements on Day 4** — do not start it earlier from assumed or illustrative numbers.
+Chapter 5 (Discussion) and Chapter 6 (Conclusion) follow the same day. AI-use declaration
+required by the programme — write it Day 5, not at the very last minute. The research paper
+is explicitly a stretch goal (§0.4) — condensed from the finished dissertation, only once
+Chapters 4–6 and the declaration are done.
 
 ---
 
-## 14. What "done" looks like, end to end
+## 14. What "done" looks like, end of Day 5
 
-- All nine stages + 8b complete, each meeting its own stated definition of done.
-- Every open decision in Section 10 closed and logged.
-- Tier 2 collected, Decision 0.4's field-symmetry problem resolved one way or the other.
+- Stages 1–9 and 8b each meeting its own stated definition of done, at whatever seed/Tier 2
+  depth Day 1 and Day 3's conditional decisions actually landed on.
+- Decisions 0.3 and 0.4 closed and logged.
+- Tier 2 either collected and transferred-tested, or honestly reported as qualitative-only —
+  either way, Decision 0.4's field-symmetry question answered one way or the other.
 - `/score` runs the full real pipeline on a real request — no stubs remaining in
   `src/api/main.py`.
 - Every RQ has a measured answer in Chapter 4, including any that don't confirm what was
-  hoped — a rigorous negative or null result is a complete answer, a favourable guess is not.
-- Dissertation, research paper, and AI-use declaration submitted.
+  hoped.
+- Dissertation and AI-use declaration finished. Research paper finished if time allowed,
+  named honestly as outstanding if not.

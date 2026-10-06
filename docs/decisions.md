@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-09-20_
+_Last updated: 2026-10-06_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,64 @@ _Last updated: 2026-09-20_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-06 — Five-day sprint compression: deadline, Tier 2 time-boxing, ablation contingency, triage order
+
+- **Context:** the actual deadline is 5 days from today (2026-10-06), not "~1 month from
+  2026-08-27" as every project file has stated — that earlier date has already passed. This
+  entry supersedes the old deadline wherever it appears, until the exact programme-office
+  date is confirmed and logged in its place.
+
+### 1. Tier 2 collection is time-boxed to Day 1 only
+
+- **Options considered:** (A) keep the 1-week checkpoint decided 2026-09-20; (B) compress
+  the checkpoint to a single day with the same fallback rule; (C) drop quantitative Tier 2
+  entirely, right now, with no attempt.
+- **Why B:** with 5 days total and Stages 3–9 plus three dissertation chapters, a paper, and
+  a declaration still ahead, a week-long checkpoint no longer exists — the whole sprint is a
+  week. Option C gives up the one finding no reviewed EMSCAD paper has produced (does a model
+  survive contact with contemporary fraud) before even trying. Option B keeps that chance
+  alive for exactly one day and refuses to let it spend a second one if it fails.
+- **Explicitly accepted risk, stated directly by me:** I am not chasing down formal
+  institutional ethics sign-off for Tier 2 primary data collection before collection starts
+  this week, given the timeline. This stays logged as an open item (see `project.md`) and
+  must appear as a stated limitation in Chapter 6 — not something I quietly skip and never
+  mention.
+- **What I gave up:** the chance that fraud-side sourcing just needed 2–3 days, not 1.
+- **Self-check:** *Why does compressing the checkpoint from a week to a day not change the
+  fallback rule itself, only when it fires?*
+
+### 2. Ablation seed count is conditional, decided on Day 3 from a real timing, not guessed now
+
+- **Decision:** the main baseline-vs-improved comparison keeps 3 seeds (closed 2026-09-20,
+  unchanged). The leave-one-category-out ablation arms (E1, E2, E3, E4, `has_company_logo` —
+  5 arms) may drop to 1 seed each if 3×5 does not fit the compute budget measured by timing
+  one real DistilBERT fine-tuning run on Day 3.
+- **Why conditional rather than decided now:** I don't yet have a real per-run time to reason
+  from — guessing now risks either wasting Day 3 on an avoidable cut or discovering too late
+  that it was necessary. One timed run on Day 3 settles it with evidence instead of a guess.
+- **What I gave up:** certainty about the shape of Day 3's schedule, in exchange for not
+  pre-committing to a cut I might not need.
+- **Self-check:** *Why is it defensible for the main comparison and the ablation arms to end
+  up using a different seed count, when both measure performance?*
+
+### 3. Triage order, fixed in advance
+
+- **Decision, in order:** (1) the research paper is cut first — it may finish after the
+  5-day window if there's slack, named now as the most likely casualty, not discovered on
+  the last day; (2) ablation seed count reduces per Decision 2 above; (3) Tier 2 depth
+  reduces further or falls back to qualitative-only (already time-boxed per Decision 1);
+  (4) never cut: leakage-controlled partitioning, calibration, the test-set-used-once rule,
+  the 200-posting manual audit, and the honest stub-vs-real distinction in the API.
+- **Why fix this now:** deciding what to cut while exhausted on Day 4 night produces worse
+  decisions than deciding it now, calmly, with the whole week still ahead. I was explicit
+  that I do not want the manual audit or the core pipeline's correctness touched for any
+  reason — this order protects exactly that.
+- **What I gave up:** flexibility to reorder this under pressure. That's deliberate.
+- **Self-check:** *Why is the manual audit protected ahead of the research paper, when the
+  paper is also a formal deliverable?*
 
 ---
 
@@ -37,6 +95,11 @@ _Last updated: 2026-09-20_
   question). Recording that it was wrong, and why it wasn't caught earlier, is worth more in
   a viva than quietly updating `project.md`'s hardware line with no trace.
 
+  > ⚠️ **Update, 2026-10-06:** the installed `torch` is still the CPU build
+  > (`2.13.0+cpu` in `requirements.txt`). The GPU was never actually exercised by code.
+  > Fixing this is the first task of the 5-day sprint (§0.3 of `PROJECT_PLAN.md`), with an
+  > explicit fallback if a CUDA wheel isn't available for Python 3.13 on Windows.
+
 - **Self-check:** *Why was "no GPU" assumed for months without being checked, and what
   single fact changed once it was?*
 
@@ -49,6 +112,11 @@ _Last updated: 2026-09-20_
   scoped does not fit that timeline for a single developer. Five related decisions were
   made together, deliberately, in one CONVERGENT session, rather than left to erode
   piecemeal under time pressure later.
+
+  > ⚠️ **Superseded, 2026-10-06:** the "~1 month" deadline this section refers to has
+  > elapsed. The decisions below (rules-only cut, fine-tuned DistilBERT, reduced Tier 2,
+  > 3 seeds, SHAP-only, architecture review skipped) all still stand — they were not
+  > reopened — but the deadline context is the 5-day sprint recorded above, not this entry.
 
 ### 1. Rules-only baseline (E2+E3+E4, no text model): CUT
 
@@ -74,14 +142,12 @@ _Last updated: 2026-09-20_
   worse than one with a modest, honestly-scoped Tier 2. A reduced set, reported with wide
   confidence intervals and explicitly labelled as time-constrained, is a legitimate,
   disclosed limitation rather than a hidden shortcut.
-- **Concrete plan:** start sourcing immediately, in parallel with the Stage 2 manual audit,
-  not queued up after it. Target: at least 20–30 verified fraudulent postings and 30–50
-  legitimate.
-- **Checkpoint, not open-ended:** if fewer than 20 verified fraudulent postings are secured
-  within roughly one week of starting, the qualitative-only fallback is invoked instead of
-  letting collection drag on unbounded.
 - **What I gave up:** statistical power. A 50–100 posting Tier 2 will have wide confidence
   intervals; this must be stated plainly, not minimised.
+
+  > ⚠️ **Update, 2026-10-06:** the 1-week checkpoint below is now a 1-day checkpoint — see
+  > the 2026-10-06 entry above. The reduced target (20–30 fraud / 30–50 legit) is unchanged.
+
 - **Self-check:** *Why is a small, honestly-reported Tier 2 more defensible than either
   collecting the full 300–600 or abandoning quantitative Tier 2 entirely?*
 
@@ -94,6 +160,11 @@ _Last updated: 2026-09-20_
   means N *model initialisations* run against **one fixed train/validation/test split** —
   not N different splits. This is the only reading compatible with the existing guardrail
   that the test set is used once; N different splits would mean N different test sets.
+
+  > ⚠️ **Update, 2026-10-06:** whether the ablation arms specifically keep 3 seeds or drop
+  > to 1 is now conditional on a Day 3 timing measurement — see the 2026-10-06 entry above.
+  > The main comparison's 3 seeds are unaffected.
+
 - **What I gave up:** some robustness in the noise estimate on the test set (~130 fraud
   postings), compared to 5 seeds.
 - **Self-check:** *Why is "5 different splits" incompatible with "test set used once," and
@@ -518,7 +589,7 @@ _Last updated: 2026-09-20_
   > ⚠️ **Update, 2026-08-27:** now measured. 4,762 records (26.6%) sit in a duplicate group
   > under exact-normalised hashing; the fraud class is disproportionately duplicated (40.3%
   > vs 25.9% for legitimate). The near-duplicate grouping *method* itself is still an open
-  > decision — see Decision 0.2 in `PROJECT_PLAN.md` / `workplan.md`.
+  > decision — see Decision 0.2, resolved 2026-09-20.
 
 - **Self-check:** *What exactly goes wrong if I use a plain random split on EMSCAD, and why
   did I group duplicates instead of deleting them?*
@@ -548,7 +619,7 @@ _Last updated: 2026-09-20_
 - **What I gave up:** Some training data, and some robustness compared with nested CV.
 
 - **Revisit if:** The fraud class in my test partition turns out too small for stable
-  estimates even across five seeds.
+  estimates even across three seeds.
 
 - **Self-check:** *Name the three things I fit on the validation set, and explain why none
   of them can be fitted on the test set.*
@@ -656,9 +727,8 @@ _Last updated: 2026-09-20_
 - **Revisit if:** Collecting the fraudulent side proves impossible in the time I have. My
   fallback is to report Tier 2 qualitatively and state the limitation openly.
 
-  > ⚠️ **Status, 2026-08-27:** deadline confirmed at ~1 month away. Tier 2 collection has
-  > not started. This fallback clause is now live and under active consideration — see
-  > `project.md` open questions.
+  > ⚠️ **Status, 2026-10-06:** the fallback clause is now time-boxed to a single day — see
+  > the 2026-10-06 entry at the top of this file.
 
 - **Self-check:** *Why didn't I just replace EMSCAD with modern data, and why can't I merge
   the two tiers?*
@@ -786,25 +856,29 @@ _Last updated: 2026-09-20_
 
 # Pending decisions (not yet made)
 
-> ✅ **Resolved, 2026-09-20:** the scope-cut decision, the rules-only baseline question, the
-> frozen-vs-fine-tuned DistilBERT question, the "5 seeds" definition question, and the
-> near-duplicate grouping method (Decision 0.2) are all now resolved — see the entries dated
-> 2026-09-20 above. Only two items remain genuinely open below.
+> ✅ **Resolved:** the 2026-09-20 scope-cut round, Decision 0.2, and the 2026-10-06 sprint
+> compression (deadline, Tier 2 time-boxing, ablation contingency, triage order) are all
+> closed. Two items remain genuinely open:
+
+## Decision 0.3 — label-conditional statistics in design (C6 viability)
+
+- **Resolve:** Day 1 of the 5-day sprint, before Stage 4 design locks in.
+
+## Decision 0.4 — Tier 2 field symmetry (can E4 fire on the fraud side?)
+
+- **Resolve:** Day 1 of the 5-day sprint, before Tier 2 sourcing starts.
 
 ## Success thresholds for each objective
 
-- **The question:** What actually counts as success for each objective? These are still
-  unset in `methodology.md`.
-- **Constraint:** I must agree these with my supervisor **before** I see any results.
-  A threshold set after seeing results is not a threshold.
-- **Decide by:** Before Stage 9. **Now urgent** given the confirmed ~1 month deadline —
-  schedule this conversation with my supervisor immediately, in parallel with Stage 2/3
-  work, not queued up later.
+- **The question:** What actually counts as success for each objective? Still unset in
+  `methodology.md`.
+- **Constraint:** Agree with supervisor before results are seen, if any contact window
+  exists this week. If not, state in Chapter 5 that thresholds were self-set under time
+  pressure.
 
 ## Tier 2 ethics approval status
 
 - **The question:** Has the institutional ethics application for Tier 2 primary data
-  collection actually been submitted? What is the NIBM/Coventry process and timeline?
-- **Why it matters:** Tier 2 collection is starting now (see the reduced-collection
-  decision, 2026-09-20, above) — this can no longer sit as a background open question.
-- **Decide by:** Immediately — check status today.
+  collection actually been submitted?
+- **Status, 2026-10-06:** explicitly not gating collection this week (see the 2026-10-06
+  entry above). This remains open and must be named as a limitation in Chapter 6.
