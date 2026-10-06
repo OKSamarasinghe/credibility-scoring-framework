@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-06, 23:50_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,97 @@ _Last updated: 2026-10-06_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-06, 23:59 — Correction: Decision 0.2's title-hash grouping over-merges; reverted to description-hash only
+
+- **What happened:** Stage 3's partitioning code was built tonight implementing Decision
+  0.2 exactly as logged — MD5-on-normalised-description UNION MD5-on-normalised-title. It
+  ran, passed all 9 tests, and produced a plausible-looking top-line number (56.68% of the
+  corpus in a duplicate group). Before committing, a diagnostic was run on the 15 largest
+  groups rather than trusting that number — this is exactly the kind of check the project's
+  own continuity protocol calls for, and it caught a real bug.
+- **What the diagnostic showed:** only the known "English Teacher Abroad" group (714
+  records, 7 titles, 28 descriptions) looks like a genuine repost campaign. Every other
+  large group is a false merge — e.g. "Software Engineer" (572 records, **118 distinct
+  titles, 501 distinct descriptions**), "Customer Service Associate" (396 records, 48
+  titles, 304 descriptions). These are hundreds of genuinely unrelated postings from
+  different companies, chained together because they happen to share a common, generic job
+  title. Because grouping is transitive, one coincidental title or description match can
+  snowball into merging hundreds of otherwise-unrelated records.
+- **Why this matters:** this is a worse version of the exact failure mode Decision 0.2
+  already rejected a cheaper method for in September (the 12-token-prefix proxy, rejected
+  for merging 48.9% of the corpus). Tonight's title-hash union merged 56.68% — higher than
+  the method already rejected for over-merging. Shipping this would have corrupted the
+  train/validation/test split (forcing genuinely distinct postings into the same partition
+  for no real reason) and reported a false "duplication rate" in the methodology chapter.
+- **Decision:** revert to description-hash-only grouping (Decision 0.2's Option A, already
+  considered and logged in September). This reproduces the already-measured, already-
+  verified figures from the original August audit (4,762 records / 26.6%, largest group
+  417) rather than a new, broken number. The known cost — the "English Teacher Abroad"
+  campaign fragmenting across several groups under description-only hashing — is accepted
+  as a disclosed limitation, exactly as Option A always represented it in the original
+  Decision 0.2 analysis.
+- **What I gave up:** the specific benefit Decision 0.2 was designed to provide (catching a
+  campaign's stragglers that vary body text but reuse a title). Tested in practice, it
+  doesn't work at corpus scale — generic titles are far more common than distinctive ones,
+  and there's no cheap way tonight to tell them apart. A real fix (e.g. requiring title
+  match AND some minimum description similarity, or proper near-duplicate clustering) is
+  future work, same as Decision 0.2 already said about MinHash/shingling.
+- **Self-check:** *Why did a method designed around one specific, validated example
+  (English Teacher Abroad) fail so badly elsewhere, and what would have happened if the
+  15-largest-group diagnostic hadn't been run before committing?*
+
+---
+
+## 2026-10-06, 23:50 — Decisions 0.3 and 0.4 resolved (delegated authority)
+
+- **Context:** both decisions were scheduled for Day 1 morning, but Decision 0.3's original
+  framing could not be recovered from the project files — only a one-line pointer existed.
+  The student explicitly delegated authority to resolve both now rather than lose Day 1
+  morning time rediscovering lost context. Logged honestly: 0.3 below is a reconstruction,
+  not recovered original reasoning, and is flagged as such.
+
+### Decision 0.3 — label-conditional statistics in design (C6 viability)
+
+- **Reconstructed problem statement (not recovered from the original record):** C6 compares
+  a salary figure mentioned in posting text against the structured `salary_range` field.
+  Unlike C1 (a clean binary contradiction — remote vs on-site language), "mismatch" for a
+  salary comparison could require a numeric deviation threshold, and setting that threshold
+  by checking which deviations correlate with the fraud label would be a quiet form of
+  leakage into rule *design* — not test-set leakage in the usual sense, but the same
+  underlying problem as the existing guardrail "a threshold set after seeing results is not
+  a threshold."
+- **Decision:** C6 is defined as a presence/structure check wherever possible — e.g. "the
+  text names a specific dollar figure while `salary_range` is absent entirely" — which needs
+  no numeric threshold and therefore no label-conditioned statistics at all. Only if Stage 4
+  finds this insufficient to produce a usable signal does a numeric-deviation version get
+  considered, and if so its threshold must be set from training-fold descriptive statistics
+  that do not condition on the label.
+- **What I gave up:** a richer C6 that captures "salary number present but implausibly high
+  or low," not just "salary number present but field missing." Given C6 already has the
+  lowest evaluable coverage of all six rules (7.6% provisional), this is a small loss.
+- **Self-check:** *Why would setting a numeric mismatch threshold by looking at which
+  deviations correlate with the fraud label count as leakage, even though it never touches
+  the test set?*
+
+### Decision 0.4 — Tier 2 field symmetry (can E4 fire on the fraud side?)
+
+- **Decision:** (1) during Day 1 sourcing, prefer fraud sources that document some
+  structured fields over pure text dumps, reducing the asymmetry at the source rather than
+  only measuring it afterward; (2) E1/E2 remain Tier 2's primary evidence, since both depend
+  on posting text rather than how much structured metadata a given source happened to
+  capture; (3) Tier 2's E3/E4 ablation results are reported with the asymmetry disclosed as
+  a named limitation, not dropped from the experiment — E4 is the project's actual
+  contribution, and discarding it from Tier 2 to dodge the confound would be a worse choice
+  than measuring and disclosing it; (4) the source-probe leakage test already decided
+  2026-08-07 is run specifically flagging E3/E4 feature importance, so the size of the
+  confound is measured, not guessed.
+- **What I gave up:** a clean, confound-free Tier 2 E4 result. What's gained instead is an
+  honest, measured one.
+- **Self-check:** *Why is dropping E3/E4 from Tier 2 entirely a worse choice than measuring
+  and disclosing the asymmetry, given E4 is the project's actual contribution?*
 
 ---
 
@@ -858,17 +949,10 @@ _Last updated: 2026-10-06_
 
 # Pending decisions (not yet made)
 
-> ✅ **Resolved:** the 2026-09-20 scope-cut round, Decision 0.2, and the 2026-10-06 sprint
-> compression (deadline, Tier 2 time-boxing, ablation contingency, triage order) are all
-> closed. Two items remain genuinely open:
-
-## Decision 0.3 — label-conditional statistics in design (C6 viability)
-
-- **Resolve:** Day 1 of the 5-day sprint, before Stage 4 design locks in.
-
-## Decision 0.4 — Tier 2 field symmetry (can E4 fire on the fraud side?)
-
-- **Resolve:** Day 1 of the 5-day sprint, before Tier 2 sourcing starts.
+> ✅ **Resolved:** the 2026-09-20 scope-cut round, Decision 0.2, the 2026-10-06 sprint
+> compression (deadline, Tier 2 time-boxing, ablation contingency, triage order), and now
+> Decisions 0.3 and 0.4 (resolved 2026-10-06, 23:50 — see above) are all closed. Two items
+> remain genuinely open:
 
 ## Success thresholds for each objective
 

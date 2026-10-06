@@ -1,0 +1,43 @@
+{
+  "seed": 42,
+  "target_fractions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "grouping": {
+    "n_rows": 17880,
+    "n_groups": 14375,
+    "n_groups_size_gt1": 1257,
+    "records_in_duplicate_group": 4762,
+    "records_in_duplicate_group_pct": 26.63,
+    "impure_groups": 1,
+    "largest_group_size": 417
+  },
+  "verification": {
+    "zero_group_overlap": true,
+    "n_crossing_groups": 0,
+    "row_counts": {
+      "train": 12516,
+      "val": 2682,
+      "test": 2682
+    },
+    "row_fractions": {
+      "train": 0.7,
+      "val": 0.15,
+      "test": 0.15
+    },
+    "fraud_counts": {
+      "train": 606,
+      "val": 130,
+      "test": 130
+    },
+    "fraud_pct": {
+      "train": 4.84,
+      "val": 4.85,
+      "test": 4.85
+    },
+    "fraud_total_conserved": true,
+    "all_rows_assigned": true
+  }
+}

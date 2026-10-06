@@ -325,7 +325,7 @@ sourcing starts** (see §0.5).
 | — | Data audit | grounds Stage 1 | ✅ Done | — |
 | 1 | Ingestion & preprocessing | Foundation | ✅ Done, 9/9 tests | — |
 | 2 | Evidence taxonomy + manual audit (200 postings) | O1 | 🟡 Sampling done; manual coding not done | **Day 1–2** |
-| 3 | Leakage-controlled partitioning (70/15/15) | O2,O3,O5 | ⬜ Not started | **Day 1** |
+| 3 | Leakage-controlled partitioning (70/15/15) | O2,O3,O5 | ✅ Done, verified 2026-10-06/07 | **Day 1** |
 | 4 | Multi-signal evidence extraction (E1–E4) | O1,O3 | ⬜ Not started | **Day 2** |
 | 5 | Model development (baseline + improved) | O2,O3 | ⬜ Not started | **Day 3** |
 | 6 | Probability calibration + score mapping | O4 | ⬜ Not started | **Day 3** |
@@ -354,8 +354,8 @@ Section 8 below still apply unchanged to every stage.
 - [x] Decision 0.2 resolved (MD5 + title grouping)
 - [x] Tier 2 legitimate-source APIs verified
 - [x] CUDA-enabled torch confirmed working (`2.6.0+cu124`, 2026-10-06 22:56)
-- [ ] Decision 0.3 resolved (**Day 1**)
-- [ ] Decision 0.4 resolved (**Day 1**)
+- [x] Decision 0.3 resolved (2026-10-06, 23:50 — see `decisions.md`)
+- [x] Decision 0.4 resolved (2026-10-06, 23:50 — see `decisions.md`)
 - [ ] Tier 2 fraud-source access verified (**Day 1**)
 
 ### Stage 1 — Ingestion & preprocessing
@@ -373,10 +373,12 @@ Section 8 below still apply unchanged to every stage.
 
 ### Stage 3 — Leakage-controlled partitioning (Day 1)
 
-- [ ] Group-aware stratified 70/15/15 split implemented
-- [ ] Zero group overlap proven across train/validation/test
-- [ ] Duplicate counts reported using the resolved grouping method
-- [ ] Vectorisers/scalers/encoders fit on train only
+- [x] Group-aware stratified 70/15/15 split implemented (description-hash grouping;
+  title-hash union tried, found to over-merge, reverted same night — see `decisions.md`)
+- [x] Zero group overlap proven across train/validation/test
+- [x] Duplicate counts reported using the resolved grouping method (4,762 / 26.63%,
+  matches the August audit exactly)
+- [ ] Vectorisers/scalers/encoders fit on train only — Stage 5's task, not Stage 3's
 - [ ] Results written into `methodology.md`
 
 ### Stage 4 — Multi-signal evidence extraction (Day 2)
@@ -485,7 +487,7 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 | Two-tier dataset strategy | ✅ Closed, reaffirmed | 2026-08-07; stress-tested 2026-08-27 |
 | Drop `in_balanced_dataset` | ✅ Closed | 2026-08-07 |
 | **0.1** — C1–C6 evaluable-coverage definition | ✅ Closed | 2026-08-27 |
-| **0.2** — near-duplicate grouping method | ✅ Closed | 2026-09-20 |
+| **0.2** — near-duplicate grouping method | ✅ Closed, then CORRECTED | 2026-09-20 decision, reverted to description-only 2026-10-06 23:59 after the title-hash union was found to over-merge in practice (56.68% vs the 48.9% it was meant to improve on) — see `decisions.md` |
 | Hardware constraint correction | ✅ Applied | 2026-09-20 |
 | Rules-only baseline | ✅ Closed — CUT | 2026-09-20 |
 | Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20, CUDA confirmed working 2026-10-06, no fallback needed |
@@ -493,8 +495,8 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 | "5 seeds" definition + count | ✅ Closed — 3 seeds, fixed split | 2026-09-20 |
 | Explainability method scope | ✅ Closed — SHAP only | 2026-09-20 |
 | Tier 2 legitimate-source API access | ✅ Verified | 2026-09-20 |
-| **0.3** — label-conditional statistics in design | ⬜ Open | **Resolve Day 1 morning** |
-| **0.4** — Tier 2 field symmetry | ⬜ Open | **Resolve Day 1 morning** |
+| **0.3** — label-conditional statistics in design | ✅ Closed | 2026-10-06, 23:50 — see `decisions.md` |
+| **0.4** — Tier 2 field symmetry | ✅ Closed | 2026-10-06, 23:50 — see `decisions.md` |
 | **Deadline correction** | ✅ Applied | 2026-10-06 — 5 days remaining, not ~1 month |
 | **Tier 2 time-boxing to Day 1** | ✅ Closed | 2026-10-06 — see `decisions.md` |
 | **Ablation seed count** | 🟡 Conditional | 2026-10-06 — decided empirically Day 3 |
