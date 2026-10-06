@@ -95,10 +95,12 @@ _Last updated: 2026-10-06_
   question). Recording that it was wrong, and why it wasn't caught earlier, is worth more in
   a viva than quietly updating `project.md`'s hardware line with no trace.
 
-  > ⚠️ **Update, 2026-10-06:** the installed `torch` is still the CPU build
-  > (`2.13.0+cpu` in `requirements.txt`). The GPU was never actually exercised by code.
-  > Fixing this is the first task of the 5-day sprint (§0.3 of `PROJECT_PLAN.md`), with an
-  > explicit fallback if a CUDA wheel isn't available for Python 3.13 on Windows.
+  > ✅ **Resolved, 2026-10-06, 22:56:** the CPU-only `torch` build was replaced with the
+  > CUDA 12.4 build (`torch==2.6.0+cu124`) on the first try — a matching wheel existed for
+  > Python 3.13 on Windows, so the Python-3.13-wheel-lag risk flagged earlier did not
+  > materialise. `torch.cuda.is_available()` confirmed `True` against the RTX 3050. No
+  > fallback (separate venv, frozen embeddings) was needed. `requirements.txt` needs
+  > regenerating to reflect this.
 
 - **Self-check:** *Why was "no GPU" assumed for months without being checked, and what
   single fact changed once it was?*

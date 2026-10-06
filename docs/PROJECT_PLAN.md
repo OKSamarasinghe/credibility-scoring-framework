@@ -66,29 +66,11 @@ new entry dated 2026-10-06)
 
 ### 0.3 Hard risk items — resolve these FIRST, before the day-by-day plan matters at all
 
-- **CUDA, tonight (Day 0).** `requirements.txt` currently pins `torch==2.13.0+cpu` — the
-  CPU-only build. Fine-tuning DistilBERT on Day 3 needs a CUDA build. Run, in your venv:
-
-  ```powershell
-  python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-  nvidia-smi
-  ```
-
-  If `cuda.is_available()` is `False`: reinstall torch using the CUDA index matching your
-  driver (`nvidia-smi` shows the CUDA version your driver supports), e.g.:
-
-  ```powershell
-  pip uninstall torch
-  pip install torch --index-url https://download.pytorch.org/whl/cu121
-  ```
-
-  **Real risk to flag now, not discover on Day 3:** Python 3.13 is very new, and PyTorch's
-  official CUDA wheels sometimes lag behind the newest Python versions. If pip can't find a
-  matching CUDA wheel for Python 3.13 on Windows, don't burn Day 3 fighting it — fall back
-  immediately to one of: (a) a separate Python 3.11/3.12 venv used only for Stage 5
-  training, or (b) frozen DistilBERT embeddings + a classifier head instead of full
-  fine-tuning. Either is a logged decision, not a silent reversal of the 2026-09-20 choice —
-  tell me which happened and I'll log it in `decisions.md` the same day.
+- **CUDA — ✅ RESOLVED, 2026-10-06, 22:56.** `torch` reinstalled as `2.6.0+cu124`;
+  `torch.cuda.is_available()` confirmed `True` against the RTX 3050 on the first attempt
+  (`cu124` wheel). The Python-3.13-wheel-lag risk flagged here did not materialise — no
+  fallback needed. `requirements.txt` still needs regenerating (`pip freeze > requirements.txt`,
+  commit) to reflect the new pin before Day 3.
 
 - **Tier 2 fraud-side sourcing is unverified.** Day 1 is the only day budgeted for it. If it
   fails, the fallback is already decided (§0.2.2) — don't improvise a new plan on the day.
@@ -371,7 +353,7 @@ Section 8 below still apply unchanged to every stage.
 - [x] Scope-cut decisions made (2026-09-20 round)
 - [x] Decision 0.2 resolved (MD5 + title grouping)
 - [x] Tier 2 legitimate-source APIs verified
-- [ ] CUDA-enabled torch confirmed working (**Day 0 — tonight**)
+- [x] CUDA-enabled torch confirmed working (`2.6.0+cu124`, 2026-10-06 22:56)
 - [ ] Decision 0.3 resolved (**Day 1**)
 - [ ] Decision 0.4 resolved (**Day 1**)
 - [ ] Tier 2 fraud-source access verified (**Day 1**)
@@ -487,8 +469,8 @@ Section 8 below still apply unchanged to every stage.
 
 ## 9. Environment
 
-Python 3.13.9, FastAPI, pandas 3.0.5, scikit-learn, PyTorch 2.13.0 (**CPU build currently
-installed — fixing this is Day 0's first task**), Hugging Face Transformers, SHAP,
+Python 3.13.9, FastAPI, pandas 3.0.5, scikit-learn, PyTorch 2.6.0+cu124 (**CUDA build
+confirmed working 2026-10-06**), Hugging Face Transformers, SHAP,
 imbalanced-learn. Full pinned list in `requirements.txt`. No paid data sources, single
 developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 `credibility-scoring-framework` (private).
@@ -506,7 +488,7 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 | **0.2** — near-duplicate grouping method | ✅ Closed | 2026-09-20 |
 | Hardware constraint correction | ✅ Applied | 2026-09-20 |
 | Rules-only baseline | ✅ Closed — CUT | 2026-09-20 |
-| Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20 (**Day 0 CUDA check may force a fallback — see §0.3**) |
+| Frozen vs. fine-tuned DistilBERT | ✅ Closed — fine-tuned | 2026-09-20, CUDA confirmed working 2026-10-06, no fallback needed |
 | Divergent architecture review | ✅ Closed — skipped | 2026-09-20 |
 | "5 seeds" definition + count | ✅ Closed — 3 seeds, fixed split | 2026-09-20 |
 | Explainability method scope | ✅ Closed — SHAP only | 2026-09-20 |
