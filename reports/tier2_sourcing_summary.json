@@ -1,0 +1,311 @@
+{
+  "run_at": "2026-10-06T18:56:57.532504+00:00",
+  "total_candidates_tried": 60,
+  "slugs_that_responded": 29,
+  "total_postings_collected": 130,
+  "target_total": 50,
+  "target_met": true,
+  "per_company_cap": 5,
+  "per_slug_status": {
+    "greenhouse:airbnb": {
+      "status": "ok",
+      "available": 155,
+      "kept": 5
+    },
+    "greenhouse:doordash": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:robinhood": {
+      "status": "ok",
+      "available": 160,
+      "kept": 5
+    },
+    "greenhouse:coinbase": {
+      "status": "ok",
+      "available": 225,
+      "kept": 5
+    },
+    "greenhouse:stripe": {
+      "status": "ok",
+      "available": 725,
+      "kept": 5
+    },
+    "greenhouse:figma": {
+      "status": "ok",
+      "available": 159,
+      "kept": 5
+    },
+    "greenhouse:asana": {
+      "status": "ok",
+      "available": 101,
+      "kept": 5
+    },
+    "greenhouse:webflow": {
+      "status": "ok",
+      "available": 24,
+      "kept": 5
+    },
+    "greenhouse:canva": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:brex": {
+      "status": "ok",
+      "available": 283,
+      "kept": 5
+    },
+    "greenhouse:plaid": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:rippling": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:vercel": {
+      "status": "ok",
+      "available": 83,
+      "kept": 5
+    },
+    "greenhouse:discord": {
+      "status": "ok",
+      "available": 50,
+      "kept": 5
+    },
+    "greenhouse:pinterest": {
+      "status": "ok",
+      "available": 174,
+      "kept": 5
+    },
+    "greenhouse:lyft": {
+      "status": "ok",
+      "available": 192,
+      "kept": 5
+    },
+    "greenhouse:reddit": {
+      "status": "ok",
+      "available": 150,
+      "kept": 5
+    },
+    "greenhouse:squarespace": {
+      "status": "ok",
+      "available": 33,
+      "kept": 5
+    },
+    "greenhouse:gitlab": {
+      "status": "ok",
+      "available": 211,
+      "kept": 5
+    },
+    "greenhouse:docker": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:elastic": {
+      "status": "ok",
+      "available": 408,
+      "kept": 5
+    },
+    "greenhouse:mongodb": {
+      "status": "ok",
+      "available": 395,
+      "kept": 5
+    },
+    "greenhouse:twilio": {
+      "status": "ok",
+      "available": 131,
+      "kept": 5
+    },
+    "greenhouse:okta": {
+      "status": "ok",
+      "available": 377,
+      "kept": 5
+    },
+    "greenhouse:datadog": {
+      "status": "ok",
+      "available": 432,
+      "kept": 5
+    },
+    "greenhouse:cloudflare": {
+      "status": "ok",
+      "available": 418,
+      "kept": 5
+    },
+    "greenhouse:snowflake": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "greenhouse:affirm": {
+      "status": "ok",
+      "available": 185,
+      "kept": 5
+    },
+    "greenhouse:chime": {
+      "status": "ok",
+      "available": 65,
+      "kept": 5
+    },
+    "greenhouse:flexport": {
+      "status": "ok",
+      "available": 197,
+      "kept": 5
+    },
+    "lever:netflix": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:box": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:eventbrite": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:shopify": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:yelp": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:attentive": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:carta": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:chime": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:ro": {
+      "status": "ok",
+      "available": 56,
+      "kept": 5
+    },
+    "lever:ironclad": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:ethos": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:github": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:zocdoc": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:lever": {
+      "status": "ok",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:palantir": {
+      "status": "ok",
+      "available": 314,
+      "kept": 5
+    },
+    "lever:lyft": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:zillow": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:scaleai": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:scale": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:glossier": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:instacart": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:postmates": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:patreon": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:wish": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:betterup": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:whoop": {
+      "status": "ok",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:ramp": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:mercury": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:deel": {
+      "status": "not_found",
+      "available": 0,
+      "kept": 0
+    },
+    "lever:clari": {
+      "status": "ok",
+      "available": 0,
+      "kept": 0
+    }
+  }
+}
