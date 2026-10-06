@@ -1,6 +1,6 @@
 # project.md — An Explainable Credibility Scoring Framework for Online Recruitment Posts
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-07, 00:45_
 
 > **How to use this file.** Paste it at the start of every AI working session, before doing
 > any work. Keep it current — update "Where I am right now" at the end of each session,
@@ -159,8 +159,26 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
     also drafted in full.
   - **Environment and repository:** GitHub repo set up, Python 3.13.9 venv with full
     dependency stack installed and verified. **Hardware corrected 2026-09-20:** RTX 3050 +
-    16GB RAM, not "no GPU". **Still open as of 2026-10-06: the installed torch is the CPU
-    build** — fixing this is the sprint's first task.
+    16GB RAM, not "no GPU". **Resolved 2026-10-06, 22:56:** `torch` reinstalled as the CUDA
+    build (`2.6.0+cu124`); `torch.cuda.is_available()` confirmed `True` against the RTX
+    3050 on the first attempt — no fallback needed.
+  - **Decisions 0.3 and 0.4 resolved (2026-10-06, 23:50):** C6 defined as a presence/
+    structure check requiring no label-conditioned threshold; Tier 2 field-symmetry handled
+    by sourcing preference + disclosed-limitation reporting + the existing source-probe
+    leakage test. Full reasoning in `decisions.md`.
+  - **Stage 3 (leakage-controlled partitioning) — built, bug found and fixed, verified,
+    committed (2026-10-06/07):** group-aware stratified 70/15/15 split. Implementing
+    Decision 0.2 exactly as logged (description-hash UNION title-hash) produced a badly
+    over-merged result (56.68% of the corpus in a duplicate group, caught by a 15-largest-
+    group diagnostic before committing); reverted to description-hash-only grouping the same
+    night, which exactly reproduces the already-verified August audit figures (4,762
+    duplicate records / 26.63%, zero train/val/test group overlap, fraud rate preserved
+    across all three splits). Logged as a correction in `decisions.md`, not a silent fix.
+    9/9 tests passing. Committed (`b5a45aa`).
+  - **Tier 2 legitimate-side sourcing — built, run, verified, committed (2026-10-07):**
+    self-validating script against the public Greenhouse/Lever APIs collected 130 postings
+    from 26 real companies (24 Greenhouse, 2 Lever), well above the 30–50 target. Kept in
+    full — see `decisions.md`. Committed (`5545d37`).
   - **Data audit:** run on the real EMSCAD CSV, then corrected twice — a missingness
     double-counting bug, a duplicate-count mislabeling bug (in both the overall and
     per-class figures), and an inconsistent "evaluable coverage" definition across the C1–C6
@@ -187,8 +205,9 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
     to a single day; ablation seed count made conditional on a Day 3 timing measurement;
     triage order fixed in advance; manual audit explicitly protected at 200 postings. Full
     reasoning in `decisions.md`, 2026-10-06; full schedule in `PROJECT_PLAN.md` §0.
-- **Not yet started:** the Stage 2 manual audit. Tier 2 collection (zero postings). Stages
-  3–9 in full. Chapters 4–6 of the dissertation (Chapter 4 cannot be drafted until Stage 9
+- **Not yet started:** the Stage 2 manual audit (200 postings). Tier 2 **fraud-side**
+  sourcing (zero postings — see "Open questions" below; legitimate-side is done). Stages
+  4–9 in full. Chapters 4–6 of the dissertation (Chapter 4 cannot be drafted until Stage 9
   produces real measurements — now scheduled for Day 4–5 of the sprint).
 
 ### Known state of documents
@@ -209,9 +228,12 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 
 See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 
-1. **Tonight:** confirm CUDA works, or start the fallback install.
-2. **Day 1:** resolve Decisions 0.3 and 0.4; build Stage 3; start the manual audit; push on
-   Tier 2 with an end-of-day checkpoint.
+1. **Done overnight 2026-10-06/07:** CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built,
+   bug found and fixed, verified, committed; Tier 2 legitimate-side sourced (130 postings)
+   and committed.
+2. **Day 1, remaining:** Tier 2 **fraud-side** sourcing (deferred to daylight — see "Open
+   questions"; hard-capped attempt, fallback triggers if short of ~20 by end of day); start
+   the 200-posting manual audit.
 3. **Day 2:** finish the manual audit; build Stage 4 (real E1–E4, real lexicons, real C2).
 4. **Day 3:** train baseline + improved models; decide the ablation seed count from a real
    timing; build Stage 6 (calibration).
@@ -225,9 +247,14 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 
 - **Tier 2 collection is time-boxed to Day 1 of the sprint** (compressed from the 1-week
   checkpoint decided 2026-09-20) — see `decisions.md`, 2026-10-06.
-- **Which specific Tier 2 sources can I actually access?** Greenhouse/Lever endpoints
-  verified; USAJOBS, Arbeitnow, Adzuna free tier verified (2026-09-20). Fraud-side sourcing
-  is Day 1's main open question.
+- **Which specific Tier 2 sources can I actually access?** Greenhouse/Lever confirmed
+  working and productive (130 legitimate postings collected 2026-10-07). **Fraud-side
+  sourcing confirmed NOT reachable via fetchable web tools** (general search, direct page
+  fetch) as of 2026-10-07, 00:40 — scam report text lives in individual human reports
+  (BBB Scam Tracker, Reddit), not any bulk/API-exposed form. Remaining options: link the
+  development machine for real interactive browser access, or manual curation — both
+  deferred to daylight, hard time-boxed, fallback already defined if unmet. See
+  `decisions.md`, 2026-10-07.
 - **What are my success thresholds?** Still unset in `methodology.md`. Agree with
   supervisor if any contact window exists this week; otherwise state as a self-set
   limitation in Chapter 5.
@@ -271,3 +298,4 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 | 2026-09-20 | Hardware constraint corrected | "No GPU" was wrong — RTX 3050 + 16GB RAM. Resolves the frozen-vs-fine-tuned DistilBERT question. |
 | 2026-09-20 | Scope-cut decisions made | Rules-only baseline cut; DistilBERT fine-tuned; Tier 2 reduced to ~50–100 postings with a 1-week checkpoint; seeds reduced to 3 with the definition settled; explainability narrowed to SHAP only; architecture review formally skipped. Decision 0.2 resolved (MD5 + title grouping). Full reasoning in `decisions.md`. |
 | 2026-10-06 | Deadline corrected; 5-day sprint plan written | The ~1 month deadline had elapsed with no updated date logged. Student confirmed 5 days remain. `PROJECT_PLAN.md` rewritten with a full Day 0–5 schedule; `decisions.md` logs the compression decisions (Tier 2 time-boxed to Day 1, ablation seed count made conditional, triage order fixed in advance, manual audit explicitly protected at 200 postings). |
+| 2026-10-06/07 (overnight) | CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built and fixed; Tier 2 legit-side sourced | `torch` reinstalled as CUDA build, confirmed working. Decisions 0.3 (C6 presence-only, no label-conditioned threshold) and 0.4 (Tier 2 field symmetry) resolved. Stage 3 partitioning built, found to over-merge under Decision 0.2's exact logged method, caught by diagnostic before committing, reverted to description-hash-only, reproduced the original August audit exactly, committed (`b5a45aa`). Tier 2 legitimate-side sourced via self-validating Greenhouse/Lever script — 130 postings from 26 companies, well above target, committed (`5545d37`). Tier 2 **fraud-side** sourcing attempted via web search/fetch, confirmed a structural dead end (no bulk-fetchable source exists), deferred to daylight with a time-boxed, browser-assisted plan. Stopped for the night with fraud-side sourcing and the manual audit as the next judgment-heavy tasks, deliberately left for fresh attention. |

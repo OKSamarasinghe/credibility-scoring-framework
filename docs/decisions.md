@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-06, 23:50_
+_Last updated: 2026-10-07, 00:40_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,74 @@ _Last updated: 2026-10-06, 23:50_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-07, 00:40 — Tier 2 fraud-side sourcing: fetchable web tools confirmed a dead end tonight; deferred to daylight with a time-boxed browser-assisted plan
+
+- **What was tried:** three real attempts, not a guess that it wouldn't work. (1) General
+  web search for scam job postings with reproducible full text — returned only news
+  coverage and BBB aggregate-study articles *describing* scam patterns, never quoting a
+  real posting's actual text. (2) Direct fetch of BBB's Scam Tracker — its search is
+  JavaScript-driven; a static fetch only sees the empty shell, not individual reports. (3)
+  Direct fetch of Reddit r/scams — blocked outright (declined for legal reasons, same as
+  any site this tool declines; not worked around with another method). (4) Direct fetch of
+  two specific DOJ/FTC documents likely to quote evidence — both describe schemes in their
+  own summary language ("promising job seekers... $6,000 in guaranteed monthly profit")
+  rather than reproducing the actual posting text verbatim.
+- **Why this matters:** unlike the legitimate side (Greenhouse/Lever expose a public,
+  structured, machine-readable API because job boards want to be found), scam reporting has
+  no equivalent. The primary artefact — the actual posting text — lives inside individual
+  human reports (BBB Scam Tracker entries, Reddit threads, screenshots), not in any
+  bulk-fetchable or API-exposed form. This is a genuine structural difference between the
+  two sourcing problems, not a tooling shortfall on one side.
+- **Decision:** do not invoke the pre-planned qualitative-only fallback yet — that is a real
+  decision with Chapter 6 limitations consequences and deserves one focused, real attempt
+  first, not a call made because fetch-only tools hit a wall at 1am. Instead: defer to
+  daylight hours of Day 1, with two concrete options kept open — (a) link the development
+  machine to the AI session via the desktop app, giving genuine interactive browser access
+  (can search, click, scroll through BBB/Reddit), run for a hard-capped ~90 minutes; or (b)
+  manual browsing and curation, done with a fresh, attentive read rather than at 1am. If
+  neither reaches ~20 verified fraudulent postings by end of Day 1, the fallback decided
+  2026-10-06 triggers exactly as already planned — that outcome was anticipated, not a
+  surprise.
+- **What I gave up:** a few hours tonight that could have gone toward fraud-side sourcing,
+  in exchange for not producing low-quality, badly-documented provenance records from a
+  tired, rushed attempt. Given this data becomes part of a held-out validation set whose
+  entire value rests on trustworthy labels, a smaller number of carefully-verified postings
+  is worth more than a larger number collected carelessly.
+- **Self-check:** *Why does the legitimate side of Tier 2 have a clean public API while the
+  fraud side doesn't — what's structurally different about who wants a scam report to be
+  easy to find by machine?*
+
+---
+
+## 2026-10-07, 00:40 — Tier 2 legitimate-side target exceeded (130 vs. 30–50 planned); kept in full
+
+- **What happened:** the Greenhouse/Lever sourcing script (60 candidate company slugs,
+  self-validating — tries each, keeps only what responds) returned 130 postings from 26
+  real companies (24 Greenhouse, 2 Lever), capped at 5 postings/company for diversity. This
+  is well above the 30–50 figure in the sprint plan and in `decisions.md`'s 2026-09-20
+  Tier 2 scope-cut entry.
+- **Options considered:** (A) subsample down to ~50 to match the original target exactly;
+  (B) keep all 130.
+- **Why B:** Tier 2 is held-out validation only — never trained on, never used to fit
+  anything — so extra legitimate-side volume doesn't risk anything a training set would
+  (no risk of the model fitting to Tier 2 noise, no risk to the leakage-controlled
+  train/val/test boundary, which is Tier 1 only). More postings only makes the temporal-
+  transfer evaluation's legitimate-side estimate more stable, and diversity across 26
+  companies (vs. fewer companies at higher volume) better represents real-world variety in
+  job-board formatting and writing style. There is no stated reason in any existing decision
+  to prefer exactly 30–50 over "however many clean, diverse postings are available" — the
+  30–50 figure was a planning estimate for what seemed achievable, not a methodological
+  requirement.
+- **What I gave up:** nothing substantive. The one thing to watch: this leaves Tier 2
+  asymmetric in volume (130 legitimate vs. a fraud-side target of only 20–30, assuming that
+  target is even met) — this asymmetry must be reported plainly in `methodology.md`
+  alongside the fraud-side numbers once both are known, not presented as if the two sides
+  were collected at comparable scale.
+- **Self-check:** *Why is extra Tier 2 legitimate-side volume safe to keep, when extra
+  Tier 1 training data in the wrong place would not be?*
 
 ---
 
