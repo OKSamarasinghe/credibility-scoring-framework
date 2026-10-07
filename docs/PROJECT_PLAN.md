@@ -98,19 +98,17 @@ new entry dated 2026-10-06)
 - **Tier 2 fraud-side sourcing — ✅ RESOLVED, 2026-10-07.** 24 postings collected from BBB
   Scam Tracker via Claude in Chrome. See `decisions.md`.
 
-- **Git commit attribution — 🟡 FIXED LOCALLY, 2026-10-07 evening; student push still
-  needed.** Three commits (`b5a45aa`, `5545d37`, `6e391b4`) carried a
-  `Co-Authored-By: Claude` / `Claude-Session:` trailer the student did not want showing up
-  in GitHub's contributor graph. Fix applied: backed up the old history as
-  `backup-pre-attribution-fix`, cherry-picked all three onto a fresh branch from their
-  shared parent, amended each message to drop the trailer lines only (author, email,
-  commit/author dates all preserved), verified each new commit's tree is byte-identical to
-  the old one (`git diff <old> <new>` empty) and that no trailer remains anywhere in the
-  rewritten range. `main` reset to the rewritten tip locally. **Could not push from this
-  session** — the linked machine's isolated remote shell has no stored GitHub credentials
-  (separate sandbox from the Windows host's own credential manager). The student must run,
-  from their own terminal: `git push --force-with-lease origin main`. Do **not** `git pull`
-  first (that would re-merge the old trailer-carrying commits back in).
+- **Git commit attribution — ✅ RESOLVED, 2026-10-07, 23:31.** Three commits (`b5a45aa`,
+  `5545d37`, `6e391b4`) carried a `Co-Authored-By: Claude` / `Claude-Session:` trailer the
+  student did not want showing up in GitHub's contributor graph. Fix applied: backed up the
+  old history as `backup-pre-attribution-fix`, cherry-picked all three onto a fresh branch
+  from their shared parent, amended each message to drop the trailer lines only (author,
+  email, commit/author dates all preserved), verified each new commit's tree is
+  byte-identical to the old one (`git diff <old> <new>` empty) and that no trailer remains
+  anywhere in the rewritten range. The student ran `git push --force-with-lease origin main`
+  from their own terminal (this session's sandboxed remote shell has no GitHub credentials
+  to push directly); GitHub confirmed `6e391b4...09bece3 main -> main (forced update)`.
+  `origin/main`'s tip is now the clean history.
 
 ### 0.4 Triage order if the week slips — decided now, not live under pressure
 
@@ -542,7 +540,7 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 | **Sprint triage order** | ✅ Closed | 2026-10-06 — fixed in advance, §0.4 |
 | Success thresholds per objective | ⬜ Open | Agree with supervisor if any contact window exists this week; otherwise state as a limitation |
 | Tier 2 ethics approval status | ⬜ Open, explicitly accepted risk | Not gating collection this week — see §0.2.6 |
-| Git commit attribution (3 commits) | 🟡 Fixed locally 2026-10-07 evening | Rewritten on `attribution-fix`, trees verified identical, trailers gone, `main` reset locally; student runs `git push --force-with-lease origin main` — see §0.3 |
+| Git commit attribution (3 commits) | ✅ Closed, 2026-10-07 23:31 | Rewritten on `attribution-fix`, trees verified identical, trailers gone, pushed by student (`git push --force-with-lease origin main`), GitHub confirmed forced update — see §0.3 |
 
 ---
 

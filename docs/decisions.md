@@ -80,6 +80,12 @@ _Last updated: 2026-10-07, 18:10_
   else has pushed to `origin/main` since I last fetched it — a guard against silently
   clobbering work I don't know about.
 
+  > ✅ **Resolved, 2026-10-07, 23:31:** pushed `git push --force-with-lease origin main`
+  > from my own terminal (VS Code's integrated PowerShell, venv active). GitHub accepted it
+  > cleanly: `6e391b4...09bece3 main -> main (forced update)`. `origin/main`'s tip is now
+  > the trailer-free history. `backup-pre-attribution-fix` stays as a local-only branch
+  > holding the old history, never pushed, costs nothing to keep.
+
 ---
 
 ## 2026-10-07, 17:30 — Tier 2 fraud-side sourcing resolved: 24 verified postings, BBB Scam Tracker, via Claude in Chrome

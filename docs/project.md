@@ -209,15 +209,12 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
     and new commit's tree is empty (identical content, message only changed), and a trailer
     scan across the rewritten range (`af25cb5..a39f441`) returns nothing. A safety branch
     (`backup-pre-attribution-fix`) was created pointing at the old history before rewriting,
-    in case of need to revert. `main` was reset to the rewritten tip (`a39f441`) locally.
-    **Not yet pushed** — the linked machine's isolated Linux shell (`device_bash`) has no
-    stored GitHub credentials (it's a separate sandboxed VM from the Windows host's own
-    credential manager), so `git push --force-with-lease origin main` must be run by the
-    student from their own terminal on the actual machine. Exact command and what it will
-    do are in `decisions.md`. **Local `main` now sits 4 commits ahead / 3 behind
-    `origin/main`** (3 rewritten + 1 new docs-sync commit, vs. the 3 old trailer-carrying
-    commits still on the remote) — this is expected for a history rewrite and is exactly
-    what the force-push resolves.
+    in case of need to revert. **Pushed and confirmed, 2026-10-07 23:31** — the linked
+    machine's isolated Linux shell (`device_bash`) has no stored GitHub credentials (it's a
+    separate sandboxed VM from the Windows host's own credential manager), so the student
+    ran `git push --force-with-lease origin main` from their own terminal; GitHub accepted
+    it: `6e391b4...09bece3 main -> main (forced update)`. The remote `main` tip is now the
+    clean, trailer-free history. Full write-up in `decisions.md`.
   - **Data audit:** run on the real EMSCAD CSV, then corrected twice — a missingness
     double-counting bug, a duplicate-count mislabeling bug (in both the overall and
     per-class figures), and an inconsistent "evaluable coverage" definition across the C1–C6
@@ -247,9 +244,8 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 - **Not yet started:** the Stage 2 manual audit (200 postings) — **this is now the single
   biggest open Day 1–2 task, and it is mine alone to do, not something to hand off.**
   Stages 4–9 in full. Chapters 4–6 of the dissertation (Chapter 4 cannot be drafted until
-  Stage 9 produces real measurements — now scheduled for Day 4–5 of the sprint). **Student
-  action required:** run the force-push for the git-attribution fix (rewritten locally,
-  not yet pushed — see "Where I am right now" above and "Open questions").
+  Stage 9 produces real measurements — now scheduled for Day 4–5 of the sprint). The git
+  commit-attribution fix is fully closed (pushed, confirmed on GitHub) — nothing left there.
 
 ### Known state of documents
 
@@ -276,9 +272,9 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
    provenance-verified) — Tier 2 collection is now fully closed, both sides.
 3. **Day 1, remaining — the critical path now:** start (and push hard on) the 200-posting
    manual audit — it has not started at all yet and nothing in Stage 4 can be finalised
-   without it. The git commit-attribution fix is rewritten locally and just needs the
-   student to run one force-push command (see "Open questions"); today's doc sync is
-   committed (`data/raw/` stays gitignored by existing policy, nothing pending there).
+   without it. Everything else on Day 1 is closed: the git commit-attribution fix is pushed
+   and confirmed on GitHub; today's doc sync is committed (`data/raw/` stays gitignored by
+   existing policy, nothing pending there).
 4. **Day 2:** finish the manual audit; build Stage 4 (real E1–E4, real lexicons, real C2).
 5. **Day 3:** train baseline + improved models; decide the ablation seed count from a real
    timing; build Stage 6 (calibration).
@@ -300,16 +296,14 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 - **Ethics form for Tier 2 primary data collection** — status unconfirmed. **Explicitly not
   gating collection this week** (student's direct instruction, 2026-10-06) — this must still
   be named as a disclosed limitation in Chapter 6, not silently omitted.
-- **Git commit attribution — 🟡 rewritten locally, student must push.** The three commits
-  (`b5a45aa`, `5545d37`, `6e391b4`) have been replayed on branch `attribution-fix` with the
-  `Co-Authored-By: Claude` / `Claude-Session:` trailers stripped (author, email, and dates
-  all preserved; tree contents verified identical to the originals). `main` is reset to the
-  rewritten tip locally. **This still needs YOU to run, from your own terminal (not this
-  session — the linked machine's sandboxed shell has no GitHub credentials):**
-  `git push --force-with-lease origin main`. A safety branch `backup-pre-attribution-fix`
-  (pointing at the old, trailer-carrying history) was left in place first, in case you want
-  to compare or revert. Because this force-pushes rewritten history, do not run `git pull`
-  first — that would re-merge the old commits back in.
+- **Git commit attribution — ✅ CLOSED, 2026-10-07 23:31.** The three commits (`b5a45aa`,
+  `5545d37`, `6e391b4`) were replayed with the `Co-Authored-By: Claude` / `Claude-Session:`
+  trailers stripped (author, email, and dates preserved; tree contents verified identical
+  to the originals). Student ran `git push --force-with-lease origin main` from their own
+  terminal; GitHub confirmed `6e391b4...09bece3 main -> main (forced update)` — the remote
+  `main` tip is now the clean history. A safety branch `backup-pre-attribution-fix`
+  (pointing at the old, trailer-carrying history, local-only, never pushed) remains in the
+  repo in case of need to compare or revert later; it costs nothing to leave in place.
 - **AI-use declaration** — what wording does my programme require, and where does it go?
   Write Day 5.
 - **Chapter 1 explainability wording** — confirm Chapter 1 says explanations are "rarely
