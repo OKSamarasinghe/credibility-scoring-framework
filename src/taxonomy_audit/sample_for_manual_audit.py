@@ -90,6 +90,30 @@ YEARS = re.compile(r"\b\d{1,2}\s*\+?\s*(?:or more\s*)?year")
 EDU = re.compile(r"\b(?:degree|diploma|bachelor|master|phd|graduate|qualification|certificat)\b")
 MONEY = re.compile(r"(?:\$|usd|eur|gbp|salary|per month|per year|per annum|monthly|annually)")
 
+def _field_str(row, key):
+    """NaN-safe field access.
+
+    pandas can store a genuinely blank cell as a float NaN even when the
+    CSV is loaded with dtype=str and na_values=[""] -- the column still
+    exists, so row.get(key, "") returns that NaN itself rather than the
+    default ("" is only used when the KEY is missing). str(NaN) is then the
+    non-empty string "nan", which silently defeats a `!= ""` presence
+    check and makes a genuinely blank field read as "present". Discovered
+    2026-10-07 when the Stage 2 coding tool asked the student to judge
+    C3/C4/C5 contradictions on postings where those fields were actually
+    blank (decisions.md). Route every field-presence check through this
+    helper instead of `str(row.get(key, "") or "").strip()`.
+    """
+    v = row.get(key)
+    if v is None:
+        return ""
+    try:
+        if pd.isna(v):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(v).strip()
+
 
 def build_sample(csv_path: str, seed: int = RANDOM_SEED, n_per_class: int = SAMPLE_SIZE_PER_CLASS):
     df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, na_values=[""])
@@ -157,32 +181,32 @@ def build_worksheet(sample: pd.DataFrame) -> pd.DataFrame:
         row["C1_manual_contradiction_MANUAL"] = ""  # Y / N / NA
 
         # --- C2: location vs location named in description ---
-        loc = str(r.get("location", "") or "")
+        loc = _field_str(r, "location")
         has_city = len(loc.split(",")) >= 3 and loc.split(",")[2].strip() != ""
-        row["C2_field_present"] = "Y" if (loc.strip() != "" and has_city) else "N"
+        row["C2_field_present"] = "Y" if (loc != "" and has_city) else "N"
         row["C2_pattern_evaluable_REFERENCE_ONLY"] = "NOT MEASURED (deferred, see decisions.md)"
         row["C2_manual_contradiction_MANUAL"] = ""
 
         # --- C3: employment_type vs arrangement language ---
-        et = str(r.get("employment_type", "") or "").strip()
+        et = _field_str(r, "employment_type")
         row["C3_field_present"] = "Y" if et != "" else "N"
         row["C3_pattern_evaluable_REFERENCE_ONLY"] = "Y" if bool(re.search(PARTTIME, body_norm.iloc[i])) else "N"
         row["C3_manual_contradiction_MANUAL"] = ""
 
         # --- C4: required_experience vs "N years" ---
-        re_exp = str(r.get("required_experience", "") or "").strip()
+        re_exp = _field_str(r, "required_experience")
         row["C4_field_present"] = "Y" if re_exp != "" else "N"
         row["C4_pattern_evaluable_REFERENCE_ONLY"] = "Y" if bool(re.search(YEARS, body_norm.iloc[i])) else "N"
         row["C4_manual_contradiction_MANUAL"] = ""
 
         # --- C5: required_education vs qualification words ---
-        re_edu = str(r.get("required_education", "") or "").strip()
+        re_edu = _field_str(r, "required_education")
         row["C5_field_present"] = "Y" if re_edu != "" else "N"
         row["C5_pattern_evaluable_REFERENCE_ONLY"] = "Y" if bool(re.search(EDU, body_norm.iloc[i])) else "N"
         row["C5_manual_contradiction_MANUAL"] = ""
 
         # --- C6: salary_range vs money figures ---
-        sr = str(r.get("salary_range", "") or "").strip()
+        sr = _field_str(r, "salary_range")
         sr_usable = bool(re.match(r"^\s*\d+\s*-\s*\d+\s*$", sr)) and sr != "0-0"
         row["C6_field_present"] = "Y" if sr_usable else "N"
         row["C6_pattern_evaluable_REFERENCE_ONLY"] = "Y" if bool(re.search(MONEY, body_norm.iloc[i])) else "N"

@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-07, 18:10_
+_Last updated: 2026-10-07, 23:55_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,75 @@ _Last updated: 2026-10-07, 18:10_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-07, 23:55 — Bug found and fixed: Stage 2 worksheet pre-fill wrongly marked blank employment_type/required_experience/required_education as "present" for 41/86/92 of 200 postings
+
+- **What happened:** while coding S001 (the first posting), I noticed the coding tool's
+  `--full-text` printout showed `employment_type=(blank)`, `required_experience=(blank)`,
+  `required_education=(blank)` for that posting, yet the worksheet had still asked me to
+  judge C3/C4/C5 contradictions on it — which should be impossible if those fields are
+  genuinely blank (per `STAGE2_CODING_INSTRUCTIONS.md`, a contradiction judgement is only
+  asked when `{rule}_field_present == 'Y'`). I asked whether my answers were wrong; checking
+  this directly was more useful than guessing, so the underlying pre-fill script was read
+  and the raw CSV cross-checked row by row.
+- **Root cause:** `src/taxonomy_audit/sample_for_manual_audit.py`'s field-presence checks for
+  C3, C4 and C5 used the pattern `str(r.get("field", "") or "").strip()`. `df` is loaded with
+  `dtype=str, keep_default_na=False, na_values=[""]`, which still converts a blank cell to a
+  float `NaN` (the column exists, so `.get()` returns that `NaN` itself, not the `""`
+  default). `NaN or ""` evaluates to `NaN` because `bool(float('nan'))` is `True` in Python,
+  and `str(NaN)` is the non-empty string `"nan"` — which passes a `!= ""` presence check.
+  Net effect: any row where `employment_type`, `required_experience` or `required_education`
+  is genuinely blank was pre-filled as `field_present = "Y"`, wrongly soliciting a manual
+  contradiction judgement on a field that doesn't exist.
+- **How widespread:** cross-checked all 200 rows of `reports/stage2_manual_audit_worksheet.csv`
+  against `data/raw/DataSet.csv` directly (comparing `field_present` to whether the raw field
+  is actually `NaN`/blank at that row's `original_csv_index`). **C3 (employment_type) wrong
+  on 41/200 rows; C4 (required_experience) wrong on 86/200; C5 (required_education) wrong on
+  92/200.** C2 (location) and C6 (salary_range) use the same buggy access pattern but turned
+  out unaffected in practice — C2's `has_city` check requires splitting on commas into ≥3
+  parts, and C6's regex requires a `\d+-\d+` shape, so the literal string `"nan"` fails both
+  checks anyway and happens to land on the correct `"N"` by coincidence, not by correct
+  handling. Confirmed this with the same full-dataset cross-check: 0/200 mismatches for both.
+- **Fix:** added a `_field_str(row, key)` helper to `sample_for_manual_audit.py` that checks
+  `pd.isna(v)` before falling back to `""`, and routed every field-presence check (C2, C3,
+  C4, C5, C6) through it instead of the `or ""` pattern — including C2 and C6, which weren't
+  actually wrong, so the same latent bug can't resurface there later by accident.
+- **How the live worksheet was corrected (not regenerated from scratch):** re-sampling from
+  scratch was rejected — it would reshuffle which 200 postings are even in the sample (the
+  `RANDOM_SEED = 42` sampling is deterministic given the same input, but rebuilding the whole
+  worksheet risked clobbering every `_MANUAL` answer already entered, for the sake of fixing
+  three columns). Instead, a one-off correction script recomputed only the five
+  `{rule}_field_present` columns against the raw CSV using the fixed logic, row by row, in
+  place. Where a `field_present` flag flipped from the old (wrong) `"Y"` to the corrected
+  `"N"`, the matching `{rule}_manual_contradiction_MANUAL` cell was reset to `"NA"` (the only
+  valid value once the field doesn't exist) — but only if it had actually been answered;
+  rows not yet reached were left untouched. Every `E1-E4_observable_MANUAL`,
+  `C1_manual_contradiction_MANUAL`, and `notes_MANUAL` entry already filled in was verified
+  byte-for-byte unchanged afterward.
+- **Concrete effect on real data:** only S001 had been coded at the time this was found. Its
+  `C3/C4/C5_field_present` flipped `Y → N` and its `C3/C4/C5_manual_contradiction_MANUAL`
+  (which I had answered `Y/Y/Y`, because the tool asked) were reset to `NA`. This is a
+  mechanical correction, not a re-judgement of my answer — those three fields genuinely do
+  not exist on that posting, so `NA` is the only correct value, and I was never actually
+  capable of answering that question correctly as it was originally asked. My E1-E4 and C1
+  answers for S001 stand exactly as I gave them.
+- **Verified:** re-ran the full 200-row cross-check after the fix; 0/200 mismatches remain
+  for all five rules (C2, C3, C4, C5, C6).
+- **Why this belongs in the dissertation, not just this file:** `STAGE2_CODING_INSTRUCTIONS.md`
+  already asks the audit write-up to name at least one thing the audit itself made me revise
+  or drop — this is that thing, and it's a stronger one than a borderline judgement call: the
+  manual audit caught a real, previously undetected defect in the project's own tooling,
+  on the very first posting coded. That's worth stating plainly in the O1 write-up in
+  `methodology.md` once the full 200 rows are done, as evidence the human-in-the-loop step is
+  doing real work, not rubber-stamping.
+- **What I gave up:** nothing recoverable — no manual judgement was thrown away that was ever
+  valid. The only cost was the few minutes spent answering three questions that should never
+  have been asked.
+- **Self-check:** *why does the exact same buggy access pattern produce a wrong answer for
+  C3/C4/C5 but, by coincidence, a right one for C2/C6 — and why was "fix all five anyway"
+  the correct response rather than "only fix the three that were actually wrong"?*
 
 ---
 
