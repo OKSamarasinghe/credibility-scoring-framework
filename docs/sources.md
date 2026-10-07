@@ -1,6 +1,6 @@
 # sources.md — Verified Claims & References
 
-_Last updated: 2026-09-20_
+_Last updated: 2026-10-07_
 
 > **The rule:** every claim, definition, statistic or method that came from an AI model goes
 > here until I have checked it against a **primary** source. Anything still marked
@@ -218,6 +218,11 @@ _Last updated: 2026-09-20_
 - **From:** AI web search, 2026-08-07 (security-vendor report + BBB commentary).
 - **Verified:** NO
 - **Action:** Verify against primary reporting before including in the taxonomy extension.
+  **Note, 2026-10-07:** the Tier 2 fraud-side BBB collection (item #20 below) independently
+  surfaces several genuine task-based scam reports (e.g. Scam IDs 1160023, 808306) during
+  sourcing, which may be useful primary-ish supporting evidence that this typology exists in
+  current reports — but a BBB consumer report is still not a peer-reviewed source; treat as
+  illustrative, not as the needed verification.
 
 ## 14. ✅ Free job-board API availability (Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna free tier); Indeed Publisher API retired 2023
 
@@ -315,6 +320,41 @@ _Last updated: 2026-09-20_
   must be checked against primary sources before being acted on, even when a supervisor
   forwards them.
 
+## 20. ✅ Tier 2 fraud-side postings — 24 collected from BBB Scam Tracker, provenance verified, 2026-10-07
+
+- **Claim:** 24 fraud-side Tier 2 records in `data/raw/tier2/tier2_fraud_raw.jsonl`, each
+  one a BBB Scam Tracker consumer report containing genuinely reproduced posting-adjacent
+  text (a quoted scammer email, SMS, or chat message naming a role, pay, duties, or an
+  application step).
+- **From:** Direct reading of BBB Scam Tracker's "employment" search (bbb.org/scamtracker),
+  pages 1–8 (`from=0` to `from=70`), via Claude in Chrome driving a real, signed-in Chrome
+  session, 2026-10-07.
+- **Verified:** YES, in the specific sense that matters for provenance labelling — each
+  record's `source_url` (`https://www.bbb.org/scamtracker/lookupscam/<id>`) was confirmed by
+  reading the live page's own DOM attributes (`aria-labelledby="result-<id>-title"` linking
+  each result's anchor to its title), not guessed or constructed from a pattern. The
+  underlying *narrative* each report tells is **NOT independently fact-checked** — per the
+  2026-08-07 "label by provenance" decision, these are labelled **fraudulent by report**
+  (BBB received and published them as scam reports), not fraudulent-and-independently-
+  confirmed. This is the same epistemic status EMSCAD's own fraud labels have (self-reported/
+  platform-flagged, not court-adjudicated), so it is not a new or unusual weakness.
+- **What was explicitly rejected during collection, and why (methodological filter, not an
+  arbitrary cut):** reports with no quoted posting/ad text at all (pure narrative, e.g. "they
+  called and asked if I could hear them") — these don't contain a posting-equivalent
+  artefact to score; one report whose message text was obfuscated with stray `?` characters
+  past the point of being legible as English.
+- **Data-quality finding (log this in Chapter 6 limitations, not just here):** the identical
+  "David Smith / Sheriff Gossling" check-fraud narrative appears verbatim under at least
+  three distinct BBB Scam IDs (442452, 442451, and one seen on an earlier page but not
+  captured) — BBB's database contains genuine near-duplicate/re-filed reports. This report
+  was excluded from the 24 regardless (no quoted ad text), but the pattern means any BBB
+  aggregate statistic I might later quote would need deduplication first; I am not computing
+  or citing any such aggregate, so this doesn't block anything, but it belongs in the
+  limitations section as a property of the source.
+- **Action:** none remaining for the collection step itself — closed. Still open: this data
+  has not yet been run through Stage 4 (E1–E4 extraction) or the source-probe leakage test
+  (2026-08-07 decision) — that happens on Day 2+, same as the legitimate-side data.
+
 ---
 
 # PART C — Sources cited in Chapters 1 and 2 (verification ledger)
@@ -389,3 +429,4 @@ cut from the literature review (no dataset, no metrics — viva liability).
 | 2026-08-27 | Item 19 added and closed | Two unattributed PDF reports + a supervisor-suggested dataset (DIFrauD) checked against primary sources; all four recommended "second datasets" found to be EMSCAD derivatives and rejected |
 | 2026-08-27 | Deadline confirmed | ~1 month remaining — several Part B items (esp. #14, Tier 2 API access) now urgent rather than background tasks |
 | 2026-09-20 | Item 14 verified and closed | Greenhouse, Lever, USAJOBS, Arbeitnow, Adzuna all confirmed genuinely free and accessible against their own current documentation; Indeed's 2023 retirement reconfirmed. Fraudulent-side sourcing (scam repositories/advisories) still unverified — next to check. |
+| 2026-10-07 | Item 20 added and closed | 24 Tier 2 fraud-side postings collected from BBB Scam Tracker via Claude in Chrome, provenance (unique permalink per report) verified against the live page's own DOM. Labelled "fraudulent by report," consistent with the 2026-08-07 provenance-labelling decision. A source-side near-duplicate pattern (the same report filed under 3+ distinct Scam IDs) was found and logged as a Chapter 6 limitation candidate. |

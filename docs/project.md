@@ -1,6 +1,6 @@
 # project.md — An Explainable Credibility Scoring Framework for Online Recruitment Posts
 
-_Last updated: 2026-10-07, 00:45_
+_Last updated: 2026-10-07, 18:10_
 
 > **How to use this file.** Paste it at the start of every AI working session, before doing
 > any work. Keep it current — update "Where I am right now" at the end of each session,
@@ -67,7 +67,7 @@ recruitment posts using multi-signal evidence and consistency verification.
 | O2 | Baseline Model | Develop and benchmark a TF-IDF baseline with classical classifiers on a leakage-controlled, duplicate-aware split | Must-have |
 | O3 | Multi-Signal Model | Combine transformer text representation with structured evidence and consistency-contradiction flags; quantify the change under matched conditions | Must-have |
 | O4 | Explainable Decision Module | Deliver a backend API converting calibrated probabilities into a 0–100 credibility score with verified explanations | Must-have |
-| O5 | Evaluation & Generalisability | Evaluate with full metric set, ablation per evidence category, and temporal generalisability on contemporary postings | Must-have (Tier 2 portion now time-boxed to a single day — see the 5-day sprint plan) |
+| O5 | Evaluation & Generalisability | Evaluate with full metric set, ablation per evidence category, and temporal generalisability on contemporary postings | Must-have (Tier 2 collection now closed for both sides — see "Where I am right now") |
 
 Full statements: see `Research_Objectives_and_Questions_Final.docx`.
 
@@ -95,9 +95,7 @@ the *extent of change*, not an improvement. A negative finding still completes t
 - **Hard constraints:** single developer; no paid data sources; English-language postings
   only. Hardware: gaming laptop with an RTX 3050 GPU and 16GB RAM (corrected 2026-09-20;
   previously wrongly assumed to have no GPU). DistilBERT will be fine-tuned, not frozen, as
-  a result — **but the installed `torch` is still the CPU build as of 2026-10-06; fixing
-  this is the first task of the 5-day sprint, with a logged fallback if it can't be fixed
-  quickly.** See `decisions.md`.
+  a result. CUDA build confirmed working 2026-10-06. See `decisions.md`.
 
 ## Evidence taxonomy (four categories)
 
@@ -116,13 +114,19 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 | Tier | Dataset | Size | Role |
 |---|---|---|---|
 | Tier 1 | EMSCAD (original file, not the reduced Kaggle derivative; Vidros et al., 2017) | 17,880 (17,014 legit / 866 fraud) | All training, tuning, calibration, ablation |
-| Tier 2 | Independently collected contemporary postings | 50–100 target | Held-out temporal validation only. **Never used for training.** Collection is now time-boxed to a single day of the 5-day sprint — see `PROJECT_PLAN.md` §0 and `decisions.md`, 2026-10-06. |
+| Tier 2 | Independently collected contemporary postings | **130 legitimate (Greenhouse/Lever) + 24 fraudulent (BBB Scam Tracker) = 154 total, both sides collected 2026-10-07** | Held-out temporal validation only. **Never used for training.** Collection is now closed — see `decisions.md`, 2026-10-07. |
 
 > **Confirmed 2026-08-27:** four externally-suggested "second datasets" (a Kaggle 2026
 > competition, DIFrauD's Job Scams split, the Internship-Job-Scam-Dataset, ScamShield) were
 > checked against their primary sources and found to all be EMSCAD derivatives — none
 > provide independent, contemporary, metadata-rich data. See `decisions.md`, 2026-08-27.
-> Tier 2 must still be actively collected; no shortcut exists.
+
+> **Tier 2 asymmetry, stated plainly:** 130 legitimate vs. 24 fraudulent (5.4:1) is a
+> different ratio from EMSCAD's own 19.6:1 legitimate:fraud split, and the two sides were
+> collected from structurally different sources (a public API vs. a consumer-complaint
+> database), so Tier 2's structured-field richness is asymmetric by source, not by fraud
+> status — see Decision 0.4 in `decisions.md`. This must be stated plainly wherever Tier 2
+> results are reported, not smoothed over.
 
 ## Scope
 
@@ -147,9 +151,9 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 
 - **DSR step:** 3 (Design & Build) — genuinely into implementation, with real, tested,
   committed code — not just at the transition.
-- **Phase:** 5-day sprint to completion, started 2026-10-06. **See `PROJECT_PLAN.md` §0 for
-  the full day-by-day plan** — it is now the live operational document; this section stays
-  as the narrative summary.
+- **Phase:** 5-day sprint to completion, started 2026-10-06, now in Day 1 afternoon.
+  **See `PROJECT_PLAN.md` §0 for the full day-by-day plan** — it is now the live operational
+  document; this section stays as the narrative summary.
 - **Completed:**
   - Proposal accepted; objectives finalised; research questions finalised; methodology
     finalised (9 stages + Stage 8b); dataset strategy decided and stress-tested against four
@@ -179,6 +183,38 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
     self-validating script against the public Greenhouse/Lever APIs collected 130 postings
     from 26 real companies (24 Greenhouse, 2 Lever), well above the 30–50 target. Kept in
     full — see `decisions.md`. Committed (`5545d37`).
+  - **Tier 2 fraud-side sourcing — collected and provenance-verified, 2026-10-07:** 24
+    postings from BBB Scam Tracker's "employment" search, read via Claude in Chrome after
+    the development machine was linked and the extension installed. Each record carries a
+    verified unique permalink (BBB's own `aria-labelledby` DOM attribute confirms the
+    report-ID-to-URL mapping, not an assumption). Written to
+    `data/raw/tier2/tier2_fraud_raw.jsonl` — EMSCAD-shaped structured fields left `null`
+    (per Decision 0.4's outcome: BBB documents almost no structured fields), BBB-specific
+    provenance kept in separate `bbb_*` fields. A source-side near-duplicate pattern (one
+    report filed under 3+ distinct Scam IDs) was found and logged as a limitation. Full
+    detail in `decisions.md` and `sources.md` item #20. **Tier 2 collection is now fully
+    closed — both sides met or exceeded target within the Day 1 time-box.** **Correction,
+    2026-10-07 evening:** this file is NOT pending a commit — `data/raw/` is gitignored
+    wholesale (confirmed via `git check-ignore`), and the legitimate-side file
+    (`tier2_legit_raw.jsonl`) was never committed either, for the same reason. Raw postings
+    stay local-only by existing repo policy; only the derived summaries/scripts
+    (`reports/tier2_sourcing_summary.json`, `src/ingestion/tier2_sourcing.py`) are tracked.
+    An earlier session log wrongly treated this as an open commit item — corrected here,
+    not silently.
+  - **Git commit-attribution fix — ✅ RESOLVED, 2026-10-07 evening:** the three commits
+    (`b5a45aa`, `5545d37`, `6e391b4`) were rewritten on a new branch (`attribution-fix`)
+    built from their shared parent — cherry-picked in order, each amended to strip the
+    `Co-Authored-By: Claude` / `Claude-Session:` trailer lines while keeping the original
+    author, email, and commit/author dates unchanged. Verified: `git diff` between each old
+    and new commit's tree is empty (identical content, message only changed), and a trailer
+    scan across the rewritten range (`af25cb5..a39f441`) returns nothing. A safety branch
+    (`backup-pre-attribution-fix`) was created pointing at the old history before rewriting,
+    in case of need to revert. `main` was reset to the rewritten tip (`a39f441`) locally.
+    **Not yet pushed** — the linked machine's isolated Linux shell (`device_bash`) has no
+    stored GitHub credentials (it's a separate sandboxed VM from the Windows host's own
+    credential manager), so `git push --force-with-lease origin main` must be run by the
+    student from their own terminal on the actual machine. Exact command and what it will
+    do are in `decisions.md`.
   - **Data audit:** run on the real EMSCAD CSV, then corrected twice — a missingness
     double-counting bug, a duplicate-count mislabeling bug (in both the overall and
     per-class figures), and an inconsistent "evaluable coverage" definition across the C1–C6
@@ -191,11 +227,11 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
   - **Stage 2 sampling — complete and confirmed committed (2026-09-20):** stratified
     200-posting sample (seed 42, drawn from unique normalised descriptions) built, tested,
     reproduced fresh on the real machine, and pushed to the repository. **The manual coding
-    of the 200 postings has not started — that's Day 1–2 of the sprint, and it stays at
-    200 postings; the student was explicit this is not to be cut for time.**
-  - **Docs sync (2026-09-20):** `project.md`, `decisions.md`, `methodology.md`, `sources.md`
-    and `PROJECT_PLAN.md` are now consistent across the Claude Project, the GitHub repo, and
-    reality. `workplan.md` retired in favour of `PROJECT_PLAN.md`.
+    of the 200 postings has not started — this is now the single most time-critical
+    unstarted task (see "Next actions").**
+  - **Docs sync (2026-10-07):** `project.md`, `decisions.md`, `sources.md` updated to
+    reflect today's Tier 2 fraud-side close-out; synced to both the Claude Project and the
+    GitHub repo `docs/` folder in the same pass (no stale duplicate left in either place).
   - **Scope-cut decisions made (2026-09-20):** rules-only baseline cut; DistilBERT will be
     fine-tuned (enabled by the hardware correction); Tier 2 reduced to ~50–100 postings;
     seeds reduced to 3; explainability narrowed to SHAP only; divergent architecture review
@@ -205,10 +241,12 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
     to a single day; ablation seed count made conditional on a Day 3 timing measurement;
     triage order fixed in advance; manual audit explicitly protected at 200 postings. Full
     reasoning in `decisions.md`, 2026-10-06; full schedule in `PROJECT_PLAN.md` §0.
-- **Not yet started:** the Stage 2 manual audit (200 postings). Tier 2 **fraud-side**
-  sourcing (zero postings — see "Open questions" below; legitimate-side is done). Stages
-  4–9 in full. Chapters 4–6 of the dissertation (Chapter 4 cannot be drafted until Stage 9
-  produces real measurements — now scheduled for Day 4–5 of the sprint).
+- **Not yet started:** the Stage 2 manual audit (200 postings) — **this is now the single
+  biggest open Day 1–2 task, and it is mine alone to do, not something to hand off.**
+  Stages 4–9 in full. Chapters 4–6 of the dissertation (Chapter 4 cannot be drafted until
+  Stage 9 produces real measurements — now scheduled for Day 4–5 of the sprint). **Student
+  action required:** run the force-push for the git-attribution fix (rewritten locally,
+  not yet pushed — see "Where I am right now" above and "Open questions").
 
 ### Known state of documents
 
@@ -231,38 +269,44 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 1. **Done overnight 2026-10-06/07:** CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built,
    bug found and fixed, verified, committed; Tier 2 legitimate-side sourced (130 postings)
    and committed.
-2. **Day 1, remaining:** Tier 2 **fraud-side** sourcing (deferred to daylight — see "Open
-   questions"; hard-capped attempt, fallback triggers if short of ~20 by end of day); start
-   the 200-posting manual audit.
-3. **Day 2:** finish the manual audit; build Stage 4 (real E1–E4, real lexicons, real C2).
-4. **Day 3:** train baseline + improved models; decide the ablation seed count from a real
+2. **Done Day 1 daytime (2026-10-07):** Tier 2 fraud-side sourced (24 postings,
+   provenance-verified) — Tier 2 collection is now fully closed, both sides.
+3. **Day 1, remaining — the critical path now:** start (and push hard on) the 200-posting
+   manual audit — it has not started at all yet and nothing in Stage 4 can be finalised
+   without it. The git commit-attribution fix is rewritten locally and just needs the
+   student to run one force-push command (see "Open questions"); today's doc sync is
+   committed (`data/raw/` stays gitignored by existing policy, nothing pending there).
+4. **Day 2:** finish the manual audit; build Stage 4 (real E1–E4, real lexicons, real C2).
+5. **Day 3:** train baseline + improved models; decide the ablation seed count from a real
    timing; build Stage 6 (calibration).
-5. **Day 4:** build Stage 7 (SHAP); wire Stage 8 for real; run Stage 8b and Stage 9 once.
-6. **Day 5:** write Chapters 4–6, the AI-use declaration, and sync every `.md` file; the
+6. **Day 4:** build Stage 7 (SHAP); wire Stage 8 for real; run Stage 8b and Stage 9 once.
+7. **Day 5:** write Chapters 4–6, the AI-use declaration, and sync every `.md` file; the
    research paper only if time remains.
 
 ---
 
 ## Open questions
 
-- **Tier 2 collection is time-boxed to Day 1 of the sprint** (compressed from the 1-week
-  checkpoint decided 2026-09-20) — see `decisions.md`, 2026-10-06.
-- **Which specific Tier 2 sources can I actually access?** Greenhouse/Lever confirmed
-  working and productive (130 legitimate postings collected 2026-10-07). **Fraud-side
-  sourcing confirmed NOT reachable via fetchable web tools** (general search, direct page
-  fetch) as of 2026-10-07, 00:40 — scam report text lives in individual human reports
-  (BBB Scam Tracker, Reddit), not any bulk/API-exposed form. Remaining options: link the
-  development machine for real interactive browser access, or manual curation — both
-  deferred to daylight, hard time-boxed, fallback already defined if unmet. See
-  `decisions.md`, 2026-10-07.
+- **Tier 2 collection — ✅ CLOSED, 2026-10-07.** Both sides met or exceeded target within
+  the Day 1 time-box: 130 legitimate (Greenhouse/Lever), 24 fraudulent (BBB Scam Tracker,
+  via Claude in Chrome once the development machine was linked). See `decisions.md`,
+  2026-10-07.
 - **What are my success thresholds?** Still unset in `methodology.md`. Agree with
   supervisor if any contact window exists this week; otherwise state as a self-set
   limitation in Chapter 5.
 - **Ethics form for Tier 2 primary data collection** — status unconfirmed. **Explicitly not
   gating collection this week** (student's direct instruction, 2026-10-06) — this must still
   be named as a disclosed limitation in Chapter 6, not silently omitted.
-- **Decisions 0.3 and 0.4** — both resolve Day 1 morning of the sprint, before Stage 4 design
-  and Tier 2 sourcing proceed.
+- **Git commit attribution — 🟡 rewritten locally, student must push.** The three commits
+  (`b5a45aa`, `5545d37`, `6e391b4`) have been replayed on branch `attribution-fix` with the
+  `Co-Authored-By: Claude` / `Claude-Session:` trailers stripped (author, email, and dates
+  all preserved; tree contents verified identical to the originals). `main` is reset to the
+  rewritten tip locally. **This still needs YOU to run, from your own terminal (not this
+  session — the linked machine's sandboxed shell has no GitHub credentials):**
+  `git push --force-with-lease origin main`. A safety branch `backup-pre-attribution-fix`
+  (pointing at the old, trailer-carrying history) was left in place first, in case you want
+  to compare or revert. Because this force-pushes rewritten history, do not run `git pull`
+  first — that would re-merge the old commits back in.
 - **AI-use declaration** — what wording does my programme require, and where does it go?
   Write Day 5.
 - **Chapter 1 explainability wording** — confirm Chapter 1 says explanations are "rarely
@@ -299,3 +343,5 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 | 2026-09-20 | Scope-cut decisions made | Rules-only baseline cut; DistilBERT fine-tuned; Tier 2 reduced to ~50–100 postings with a 1-week checkpoint; seeds reduced to 3 with the definition settled; explainability narrowed to SHAP only; architecture review formally skipped. Decision 0.2 resolved (MD5 + title grouping). Full reasoning in `decisions.md`. |
 | 2026-10-06 | Deadline corrected; 5-day sprint plan written | The ~1 month deadline had elapsed with no updated date logged. Student confirmed 5 days remain. `PROJECT_PLAN.md` rewritten with a full Day 0–5 schedule; `decisions.md` logs the compression decisions (Tier 2 time-boxed to Day 1, ablation seed count made conditional, triage order fixed in advance, manual audit explicitly protected at 200 postings). |
 | 2026-10-06/07 (overnight) | CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built and fixed; Tier 2 legit-side sourced | `torch` reinstalled as CUDA build, confirmed working. Decisions 0.3 (C6 presence-only, no label-conditioned threshold) and 0.4 (Tier 2 field symmetry) resolved. Stage 3 partitioning built, found to over-merge under Decision 0.2's exact logged method, caught by diagnostic before committing, reverted to description-hash-only, reproduced the original August audit exactly, committed (`b5a45aa`). Tier 2 legitimate-side sourced via self-validating Greenhouse/Lever script — 130 postings from 26 companies, well above target, committed (`5545d37`). Tier 2 **fraud-side** sourcing attempted via web search/fetch, confirmed a structural dead end (no bulk-fetchable source exists), deferred to daylight with a time-boxed, browser-assisted plan. Stopped for the night with fraud-side sourcing and the manual audit as the next judgment-heavy tasks, deliberately left for fresh attention. |
+| 2026-10-07 (Day 1 daytime) | Tier 2 fraud-side sourcing closed out | Linked the development machine; installed and used Claude in Chrome, which successfully loaded BBB Scam Tracker where the sandboxed browser pane and WebFetch had both been stopped by a Cloudflare challenge (handled by waiting, never bypassing). Read 8 pages of BBB's "employment" search results (~80 reports), filtered to 24 containing genuinely reproduced posting-adjacent text, resolved the provenance question (each report has a unique permalink, confirmed via the page's own DOM), and wrote the result to `data/raw/tier2/tier2_fraud_raw.jsonl` with BBB-specific provenance fields kept separate from the (mostly null) EMSCAD-shaped fields. Found and logged a source-side near-duplicate pattern (one report filed under 3+ Scam IDs) as a disclosed limitation. Tier 2 collection is now fully closed. `decisions.md` and `sources.md` updated and synced; git commit for commit-attribution fix still pending (remote shell was still provisioning). |
+| 2026-10-07 (Day 1 evening) | Git commit-attribution fix resolved; docs re-synced | Remote shell came online. Backed up old history (`backup-pre-attribution-fix`), replayed `b5a45aa`/`5545d37`/`6e391b4` on a fresh branch with `Co-Authored-By`/`Claude-Session` trailers stripped (author/dates preserved, tree contents verified byte-identical to originals), reset `main` to the rewritten tip. Push itself deferred to the student (this session's sandboxed remote shell has no GitHub credentials). Also corrected a standing error: the Tier 2 fraud-side JSONL was never "pending a commit" — `data/raw/` is gitignored wholesale, same as the pre-existing legit-side file; nothing was missing. Committed today's four-file docs sync (`decisions.md`, `sources.md`, `project.md`, `PROJECT_PLAN.md`) with a clean message, no AI trailer. |

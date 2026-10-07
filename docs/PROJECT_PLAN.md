@@ -1,10 +1,12 @@
 # PROJECT_PLAN.md — Full Project Plan (Start to End)
 
 _Compiled 2026-08-27, refreshed 2026-09-20 (scope-cut decisions, hardware correction,
-checklist added), **re-compressed into a 5-day sprint on 2026-10-06.** The "~1 month from
-2026-08-27" deadline referenced throughout the older sections of this file and in
-`project.md` has elapsed. **The operative deadline, as of 2026-10-06, is 5 days from today —
-submission around 2026-10-11/12, pending confirmation with the programme office.**
+checklist added), **re-compressed into a 5-day sprint on 2026-10-06**, **Tier 2 collection
+checklist closed out 2026-10-07, git commit-attribution fix applied locally 2026-10-07
+evening (student push still required).** The "~1 month from 2026-08-27" deadline referenced
+throughout the older sections of this file and in `project.md` has elapsed. **The operative
+deadline, as of 2026-10-06, is 5 days from today — submission around 2026-10-11/12, pending
+confirmation with the programme office.**
 Section 0 below is the live sprint plan and takes priority over every other section for
 *sequencing*. Sections 1–14 remain the narrative/reference record and are still correct on
 facts that haven't changed. `decisions.md`, `methodology.md`, `sources.md` remain the
@@ -24,13 +26,28 @@ conflicts with one of those three, THEY win._
   ✅ Closed.
 - **Stage 2 sampling** — stratified 200-posting worksheet + manifest built, tested,
   reproduced, committed. **The manual coding of those 200 postings is NOT done** — that's
-  Day 1–2 below, and it's the only part of Stage 2 that's actually yours to do.
+  Day 1–2 below, and it's the only part of Stage 2 that's actually yours to do. **This is
+  now the single most time-critical unstarted task on the whole plan (2026-10-07).**
+- **Stage 3 (leakage-controlled partitioning)** — group-aware 70/15/15 split built, a
+  genuine over-merging bug caught and fixed before committing, verified, committed
+  (`b5a45aa`). ✅ Closed.
 - **Stage 8 skeleton** — FastAPI app, `/score` route, full JSON contract built and tested.
   Every pipeline stage honestly returns "not yet built" (HTTP 501). Zero fabricated data.
   ✅ Closed (skeleton only — real wiring is Day 4).
-- **Docs sync (2026-09-20)** — `project.md`, `decisions.md`, `methodology.md`, `sources.md`,
-  `PROJECT_PLAN.md` consistent across Claude Project, GitHub repo, and reality, as of that
-  date. `workplan.md` retired.
+- **Tier 2 collection, both sides — ✅ Closed, 2026-10-07.** Legitimate side: 130 postings
+  from 26 companies via the public Greenhouse/Lever APIs. Fraud side: 24 postings from BBB
+  Scam Tracker, read via Claude in Chrome once the development machine was linked, each
+  with a provenance-verified unique permalink — written to
+  `data/raw/tier2/tier2_fraud_raw.jsonl`. **Neither raw file is committed to git, by
+  existing repo policy** — `data/raw/` is gitignored wholesale (confirmed via
+  `git check-ignore`); only the derived summaries/scripts are tracked
+  (`reports/tier2_sourcing_summary.json`, `src/ingestion/tier2_sourcing.py`). An earlier
+  note in this file wrongly treated the fraud-side raw file as pending a commit —
+  corrected 2026-10-07 evening. Both sides well inside or above the 20–30 / 30–50 target
+  bands. Full detail in `decisions.md`, 2026-10-07.
+- **Docs sync (2026-09-20, refreshed 2026-10-07)** — `project.md`, `decisions.md`,
+  `methodology.md`, `sources.md`, `PROJECT_PLAN.md` consistent across Claude Project,
+  GitHub repo, and reality, as of 2026-10-07. `workplan.md` retired.
 - **Scope-cut decisions (2026-09-20)** — rules-only baseline cut; DistilBERT fine-tuned, not
   frozen; Tier 2 reduced to ~50–100 postings; 3 seeds (one fixed split, N initialisations);
   explainability narrowed to SHAP only; divergent architecture review skipped, time-driven.
@@ -39,8 +56,10 @@ conflicts with one of those three, THEY win._
   sources and rejected (all are EMSCAD derivatives); two-tier EMSCAD + independently-collected
   Tier 2 plan reaffirmed.
 
-**Not done, and now compressed into 5 days:** Stage 2 manual audit, Stages 3–9 in full,
-Tier 2 collection (zero postings so far), Chapters 4–6, AI-use declaration, research paper.
+**Not done, now the live critical path:** Stage 2 manual audit (200 postings — not started
+at all), Stages 4–9 in full, Chapters 4–6, AI-use declaration, research paper. The git
+commit-attribution trailer on 3 commits from last night is now fixed locally (§0.3) — the
+student still needs to run the force-push themselves.
 
 ### 0.2 What changed today (2026-10-06) — log these in `decisions.md` (done below; see the
 new entry dated 2026-10-06)
@@ -53,6 +72,10 @@ new entry dated 2026-10-06)
    2026-09-20. Same fallback rule, just a much shorter fuse: if fewer than ~20 verified
    fraudulent postings are secured by the end of Day 1, the qualitative-only fallback is
    invoked and Tier 2 does not get a second day.
+
+   > ✅ **Outcome, 2026-10-07:** not needed — 24 verified fraudulent postings secured well
+   > within Day 1. See `decisions.md`.
+
 3. **Ablation seed count is now conditional**, decided empirically on Day 3 by timing one
    real DistilBERT fine-tuning run, not guessed in advance.
 4. **A triage order is fixed now, in advance** — see §0.4 — so that if the week slips, you
@@ -72,8 +95,22 @@ new entry dated 2026-10-06)
   fallback needed. `requirements.txt` still needs regenerating (`pip freeze > requirements.txt`,
   commit) to reflect the new pin before Day 3.
 
-- **Tier 2 fraud-side sourcing is unverified.** Day 1 is the only day budgeted for it. If it
-  fails, the fallback is already decided (§0.2.2) — don't improvise a new plan on the day.
+- **Tier 2 fraud-side sourcing — ✅ RESOLVED, 2026-10-07.** 24 postings collected from BBB
+  Scam Tracker via Claude in Chrome. See `decisions.md`.
+
+- **Git commit attribution — 🟡 FIXED LOCALLY, 2026-10-07 evening; student push still
+  needed.** Three commits (`b5a45aa`, `5545d37`, `6e391b4`) carried a
+  `Co-Authored-By: Claude` / `Claude-Session:` trailer the student did not want showing up
+  in GitHub's contributor graph. Fix applied: backed up the old history as
+  `backup-pre-attribution-fix`, cherry-picked all three onto a fresh branch from their
+  shared parent, amended each message to drop the trailer lines only (author, email,
+  commit/author dates all preserved), verified each new commit's tree is byte-identical to
+  the old one (`git diff <old> <new>` empty) and that no trailer remains anywhere in the
+  rewritten range. `main` reset to the rewritten tip locally. **Could not push from this
+  session** — the linked machine's isolated remote shell has no stored GitHub credentials
+  (separate sandbox from the Windows host's own credential manager). The student must run,
+  from their own terminal: `git push --force-with-lease origin main`. Do **not** `git pull`
+  first (that would re-merge the old trailer-carrying commits back in).
 
 ### 0.4 Triage order if the week slips — decided now, not live under pressure
 
@@ -82,8 +119,7 @@ new entry dated 2026-10-06)
 2. **Second cut: ablation seed count.** Reduce the leave-one-category-out ablation arms
    (E1, E2, E3, E4, `has_company_logo`) from 3 seeds to 1 each. The main baseline-vs-improved
    comparison keeps 3 seeds regardless — that comparison is the headline result.
-3. **Third cut: Tier 2 depth.** Already time-boxed (§0.2.2); if it fails, it falls back to
-   qualitative-only and that's the end of it — not a second attempt.
+3. **Third cut: Tier 2 depth.** Already resolved (§0.1) — both sides closed within Day 1.
 4. **Never cut:** leakage-controlled partitioning, calibration, the test-set-used-once rule,
    the 200-posting manual audit, and the honest stub-vs-real distinction in the API. If the
    week runs out before these are solid, the paper and Tier 2 are what's missing from the
@@ -92,25 +128,24 @@ new entry dated 2026-10-06)
 ### 0.5 Day-by-day schedule
 
 **Tonight — 2026-10-06 (before you sleep, ~1 hour)**
-- [ ] Run the CUDA check in §0.3. If it fails, start the fallback install tonight so Day 3
-  isn't a surprise.
+- [x] Run the CUDA check in §0.3.
 - [ ] Read `STAGE2_CODING_INSTRUCTIONS.md` once tonight so Day 1 morning starts coding
   immediately instead of re-reading the scheme cold.
-- [ ] Nothing else. Sleep — you need the next 5 days functioning.
+- [x] Sleep.
 
 **Day 1 — 2026-10-07**
 *Goal: Decisions 0.3/0.4 resolved; Stage 3 built and tested; manual audit started; Tier 2
 push happens and is checkpointed by end of day.*
 
-| When | Task | Who |
-|---|---|---|
-| Morning | Resolve Decision 0.3 (does label-conditional statistics influence design — C6 viability) in a short CONVERGENT session with me, before Stage 4 design locks in | You + me |
-| Morning | Resolve Decision 0.4 (Tier 2 field symmetry — can E4 fire on the fraud side if fraud postings arrive text-only) — this decides how Tier 2 sourcing proceeds today | You + me |
-| Morning–afternoon | Build Stage 3: group-aware stratified 70/15/15 split using the MD5+title grouping from Decision 0.2; fit vectorisers/scalers on train only; prove zero group overlap; report duplicate counts under the real grouping method | Me (code), you run/verify |
-| All day, parallel | **Start the Stage 2 manual audit** — 200 postings, `STAGE2_CODING_INSTRUCTIONS.md`. This does not block Stage 3/4 engineering; it only needs to be done before Stage 4's lexicon-revision step lands, so start now and don't let it slip past Day 2 | You, alone |
-| All day, parallel | **Tier 2 push.** Build the Greenhouse/Lever company-slug list, pull 30–50 legitimate postings; attempt fraud-side sourcing from documented scam repositories/advisories, recording provenance for every posting | You + me |
-| End of day | **Tier 2 checkpoint.** Count verified fraudulent postings. <20 → invoke qualitative-only fallback now, don't carry this into Day 2 | You |
-| End of day | Commit Stage 3 code + tests. Log the Decision 0.3/0.4 resolutions in `decisions.md`. Tick the relevant boxes in §7.5 below | You |
+| When | Task | Who | Status |
+|---|---|---|---|
+| Morning | Resolve Decision 0.3 (C6 viability) | You + me | ✅ Done, 23:50 last night |
+| Morning | Resolve Decision 0.4 (Tier 2 field symmetry) | You + me | ✅ Done, 23:50 last night |
+| Morning–afternoon | Build Stage 3 | Me (code), you run/verify | ✅ Done, committed `b5a45aa` |
+| All day, parallel | **Start the Stage 2 manual audit** — 200 postings | You, alone | ⬜ **Not started — now the critical path** |
+| All day, parallel | **Tier 2 push** — legitimate + fraud sourcing with provenance | You + me | ✅ Both sides done: 130 legit, 24 fraud |
+| End of day | **Tier 2 checkpoint** — count verified fraudulent postings | You | ✅ 24, well above the 20 minimum |
+| End of day | Commit Stage 3 + Tier 2 data; log decisions; fix git attribution | You | ✅ Stage 3 committed; Tier 2 raw files correctly gitignored (nothing to commit there); attribution fix rewritten locally — 🟡 force-push still needed from your own terminal; docs synced and committed |
 
 **Day 2 — 2026-10-08**
 *Goal: Stage 4 built — the actual research contribution (E4). Manual audit finished.*
@@ -168,7 +203,7 @@ excuse to touch the test set twice.*
   separate from Stage 9.
 - [ ] Run Stage 9: full metric set on the test set, **used exactly once**; leave-one-category-
   out ablation at whatever seed count Day 3 settled on; Tier 2 temporal transfer (T1/T2/T3)
-  if Tier 2 collection succeeded on Day 1, otherwise the qualitative write-up instead;
+  — Tier 2 is ready on both sides, so this runs for real, not as the qualitative fallback;
   source-probe leakage test, reported regardless of outcome.
 - [ ] Commit. Tick §7.5 boxes. Write the raw numbers into `methodology.md` immediately —
   don't let them live only in a notebook.
@@ -184,7 +219,8 @@ a commitment — see §0.4.*
   any that don't confirm what was hoped. A null or negative result on O3 is a complete
   answer, not a failure to hide.
 - [ ] Write **Chapter 6 (Conclusion)** — contributions, limitations (name the Tier 2
-  shortcut and the skipped ethics sign-off here, plainly), future work.
+  asymmetry — 130 legit vs. 24 fraud, different source types — and the skipped ethics
+  sign-off here, plainly), future work.
 - [ ] Write the **AI-use declaration** — required by the programme; state what AI assisted
   with (planning, code scaffolding, docs structuring) versus what's yours (the contribution,
   the words, the judgement calls).
@@ -267,7 +303,7 @@ A backend REST API (**FastAPI**) exposing a **`/score`** endpoint.
 
 The score is a **calibrated probability mapped to 0–100** — never a raw model output.
 
-**Current build status (2026-10-06):** the FastAPI app, `/score` route, and the exact
+**Current build status (2026-10-07):** the FastAPI app, `/score` route, and the exact
 request/response schema above are built and tested (`src/api/main.py`, `src/api/schemas.py`).
 Every pipeline stage is an honest stub — raises a clear "not yet built" error rather than
 inventing a result. Zero fabricated data anywhere in the running system. Real wiring is
@@ -308,23 +344,24 @@ evaluable per posting. Full detail: `sources.md` #3.
 | Tier | Dataset | Size | Role | Status |
 |---|---|---|---|---|
 | 1 | EMSCAD (Vidros et al., 2017) | 17,880 (866 fraud / 4.84%) | ALL training, tuning, calibration, ablation | ✅ Audited, ingestion built and tested |
-| 2 | Independently collected contemporary postings | ~50–100 target (20–30 fraud / 30–50 legit) | Held-out temporal validation ONLY | 🟡 **Time-boxed to Day 1 of the sprint** (compressed from the 1-week checkpoint); legitimate-side sourcing verified and ready (Greenhouse/Lever/Arbeitnow/Adzuna); fraud-side sourcing unverified — Day 1's main open question |
+| 2 | Independently collected contemporary postings | **130 legitimate (Greenhouse/Lever) + 24 fraudulent (BBB Scam Tracker) = 154 total** | Held-out temporal validation ONLY | ✅ **Closed, 2026-10-07** — both sides sourced, provenance-recorded, exceeding their respective 30–50 / 20–30 targets |
 
 Tier 2 is never used for training; the tiers are never merged. **Decision 0.4 (Tier 2 field
-symmetry)** — if fraudulent Tier 2 postings arrive text-only while legitimate ones carry full
-structured fields, E3 would separate the classes for collection-artefact reasons, not fraud
-reasons, and E4 might not fire on the fraud side at all. **Resolved on Day 1 morning, before
-sourcing starts** (see §0.5).
+symmetry)** — resolved: BBB fraud reports document almost no structured fields, so the
+asymmetry could not be reduced at the source as originally hoped; it is disclosed instead
+(130:24 volume ratio, and E3/E4 feature availability differs systematically by source, not
+by fraud status). The source-probe leakage test (2026-08-07 decision) is run on Tier 2 as
+planned, during Stage 9.
 
 ---
 
 ## 7. Full methodology — all nine stages plus 8b, with sprint-day targets
 
-| Stage | Activity | Objective | Status (2026-10-06) | Sprint day |
+| Stage | Activity | Objective | Status (2026-10-07) | Sprint day |
 |---|---|---|---|---|
 | — | Data audit | grounds Stage 1 | ✅ Done | — |
 | 1 | Ingestion & preprocessing | Foundation | ✅ Done, 9/9 tests | — |
-| 2 | Evidence taxonomy + manual audit (200 postings) | O1 | 🟡 Sampling done; manual coding not done | **Day 1–2** |
+| 2 | Evidence taxonomy + manual audit (200 postings) | O1 | 🟡 Sampling done; manual coding not started — **critical path** | **Day 1–2** |
 | 3 | Leakage-controlled partitioning (70/15/15) | O2,O3,O5 | ✅ Done, verified 2026-10-06/07 | **Day 1** |
 | 4 | Multi-signal evidence extraction (E1–E4) | O1,O3 | ⬜ Not started | **Day 2** |
 | 5 | Model development (baseline + improved) | O2,O3 | ⬜ Not started | **Day 3** |
@@ -356,7 +393,7 @@ Section 8 below still apply unchanged to every stage.
 - [x] CUDA-enabled torch confirmed working (`2.6.0+cu124`, 2026-10-06 22:56)
 - [x] Decision 0.3 resolved (2026-10-06, 23:50 — see `decisions.md`)
 - [x] Decision 0.4 resolved (2026-10-06, 23:50 — see `decisions.md`)
-- [ ] Tier 2 fraud-source access verified (**Day 1**)
+- [x] Tier 2 fraud-source access verified (2026-10-07 — Claude in Chrome against BBB Scam Tracker)
 
 ### Stage 1 — Ingestion & preprocessing
 
@@ -365,7 +402,7 @@ Section 8 below still apply unchanged to every stage.
 ### Stage 2 — Evidence taxonomy + manual audit
 
 - [x] Sample, worksheet, coding scheme built and committed
-- [ ] **Manual coding of 200 postings (Day 1–2 — yours alone)**
+- [ ] **Manual coding of 200 postings (Day 1–2 — yours alone, not started yet)**
 - [ ] Per-category observability rate computed (Day 2)
 - [ ] Per-rule agreement rate computed (Day 2)
 - [ ] At least one signal revised/dropped based on audit findings, logged (Day 2)
@@ -428,17 +465,18 @@ Section 8 below still apply unchanged to every stage.
 
 - [ ] Full metric set computed on test set, used once
 - [ ] Ablation run at whatever seed count Day 3 settled on
-- [ ] Tier 2 transfer run if Tier 2 succeeded, else qualitative write-up
+- [ ] Tier 2 transfer run (ready on both sides — not the qualitative fallback)
 - [ ] Source-probe leakage test run and reported regardless of outcome
 - [ ] Results written into `methodology.md`
 
-### Tier 2 collection (Day 1 only)
+### Tier 2 collection (Day 1 only) — ✅ ALL CLOSED, 2026-10-07
 
-- [ ] Company slug list built
-- [ ] Legitimate postings collected (target 30–50)
-- [ ] Fraud-source access verified
-- [ ] Fraudulent postings collected (target 20–30) or fallback invoked
-- [ ] Provenance recorded for every collected posting
+- [x] Company slug list built
+- [x] Legitimate postings collected (target 30–50) — 130 collected, kept in full
+- [x] Fraud-source access verified
+- [x] Fraudulent postings collected (target 20–30) — 24 collected
+- [x] Provenance recorded for every collected posting (unique source URL + source job ID
+  for every one of the 130 + 24 records)
 
 ### Write-up (Day 5)
 
@@ -479,7 +517,7 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 
 ---
 
-## 10. Decision log — status as of 2026-10-06
+## 10. Decision log — status as of 2026-10-07
 
 | Decision | Status | Notes |
 |---|---|---|
@@ -496,13 +534,15 @@ developer. Hardware: RTX 3050 GPU + 16GB RAM (gaming laptop). Git repository:
 | Explainability method scope | ✅ Closed — SHAP only | 2026-09-20 |
 | Tier 2 legitimate-source API access | ✅ Verified | 2026-09-20 |
 | **0.3** — label-conditional statistics in design | ✅ Closed | 2026-10-06, 23:50 — see `decisions.md` |
-| **0.4** — Tier 2 field symmetry | ✅ Closed | 2026-10-06, 23:50 — see `decisions.md` |
+| **0.4** — Tier 2 field symmetry | ✅ Closed | 2026-10-06, 23:50; outcome confirmed 2026-10-07 — see `decisions.md` |
 | **Deadline correction** | ✅ Applied | 2026-10-06 — 5 days remaining, not ~1 month |
-| **Tier 2 time-boxing to Day 1** | ✅ Closed | 2026-10-06 — see `decisions.md` |
+| **Tier 2 time-boxing to Day 1** | ✅ Closed, not needed | 2026-10-06 — both sides closed within Day 1, see `decisions.md` |
+| **Tier 2 fraud-side sourcing** | ✅ Closed | 2026-10-07 — 24 postings via BBB Scam Tracker / Claude in Chrome, see `decisions.md` |
 | **Ablation seed count** | 🟡 Conditional | 2026-10-06 — decided empirically Day 3 |
 | **Sprint triage order** | ✅ Closed | 2026-10-06 — fixed in advance, §0.4 |
 | Success thresholds per objective | ⬜ Open | Agree with supervisor if any contact window exists this week; otherwise state as a limitation |
 | Tier 2 ethics approval status | ⬜ Open, explicitly accepted risk | Not gating collection this week — see §0.2.6 |
+| Git commit attribution (3 commits) | 🟡 Fixed locally 2026-10-07 evening | Rewritten on `attribution-fix`, trees verified identical, trailers gone, `main` reset locally; student runs `git push --force-with-lease origin main` — see §0.3 |
 
 ---
 
@@ -555,11 +595,11 @@ Chapters 4–6 and the declaration are done.
 
 ## 14. What "done" looks like, end of Day 5
 
-- Stages 1–9 and 8b each meeting its own stated definition of done, at whatever seed/Tier 2
-  depth Day 1 and Day 3's conditional decisions actually landed on.
+- Stages 1–9 and 8b each meeting its own stated definition of done, at whatever seed depth
+  Day 3's conditional decision landed on.
 - Decisions 0.3 and 0.4 closed and logged.
-- Tier 2 either collected and transferred-tested, or honestly reported as qualitative-only —
-  either way, Decision 0.4's field-symmetry question answered one way or the other.
+- Tier 2 collected on both sides and transfer-tested on Day 4 — Decision 0.4's field-
+  symmetry question already answered (asymmetric, disclosed) rather than still open.
 - `/score` runs the full real pipeline on a real request — no stubs remaining in
   `src/api/main.py`.
 - Every RQ has a measured answer in Chapter 4, including any that don't confirm what was

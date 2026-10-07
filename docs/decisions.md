@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-07, 00:40_
+_Last updated: 2026-10-07, 18:10_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,125 @@ _Last updated: 2026-10-07, 00:40_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-07, 18:10 — Git commit-attribution fix: history rewritten locally via cherry-pick, not interactive rebase; push deferred to the student
+
+- **What decided:** three commits (`b5a45aa`, `5545d37`, `6e391b4` — Stage 3, Tier 2
+  legit-side sourcing, and the overnight close-out note) carried an unwanted
+  `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` + `Claude-Session:` trailer. I
+  do not want Claude attributed as a co-author in GitHub's contributor graph — my explicit
+  instruction from last night. Fixed by rewriting those three commits.
+- **Options considered:**
+  1. **Interactive rebase (`git rebase -i`, mark as `reword`)** — the standard tool for this,
+     but it opens an interactive editor per commit, which a non-interactive shell (this
+     session's `device_bash`) cannot drive without extra scripting (`GIT_SEQUENCE_EDITOR` /
+     `GIT_EDITOR` tricks).
+  2. **`git filter-branch` / `git filter-repo`** — more powerful than needed for exactly
+     three known, contiguous, top-of-branch commits; `filter-repo` wasn't confirmed
+     installed, and `filter-branch` is explicitly discouraged by git itself for anything
+     this small.
+  3. **Branch from the shared parent + cherry-pick each commit, amending the message each
+     time (`git commit -F <cleaned-message-file>`)** — chosen. Since all three commits were
+     already the three most recent on `main` (no commits after them), this is equivalent to
+     a reword-only rebase but fully scriptable without an interactive editor, and lets me
+     verify each result before moving to the next.
+- **Why this one:** option 3 does exactly what's needed with no editor dependency, and its
+  intermediate state is easy to verify at each step — after each cherry-pick I diffed the
+  new commit's tree against the old commit's tree (`git diff <old> <new>`) and required it
+  to be empty before amending the message, so content could not silently drift. Author name,
+  author email, and both author and committer dates were explicitly carried over
+  (`GIT_AUTHOR_*` / `GIT_COMMITTER_*` env vars set from the original commit's own metadata)
+  so the rewritten commits look, date-wise, exactly like the originals — only the message
+  changed.
+- **Safety steps taken before rewriting:** created `backup-pre-attribution-fix`, a branch
+  pointing at the old history (tip `6e391b4`), before touching anything, so the original
+  commits remain reachable and recoverable if anything goes wrong. After rewriting, scanned
+  the full rewritten range (`af25cb5..a39f441`) for the strings `Co-Authored-By` and
+  `Claude-Session` — zero matches.
+- **What I gave up:** nothing load-bearing. The rewritten commits have different hashes from
+  the ones currently on `origin/main`, which is unavoidable for any history rewrite — this
+  is why the next step is a `--force-with-lease` push, not a plain push.
+- **Why the push itself was not done from this session:** the task's linked development
+  machine exposes a sandboxed, isolated Linux shell (`device_bash`) that is a separate VM
+  from the actual Windows machine — it mounts only the connected repo folder, not the
+  Windows credential manager / Git Credential Manager that normally supplies GitHub
+  authentication. `git push` from that shell failed immediately with
+  `fatal: could not read Username for 'https://github.com'` — there is no token or stored
+  credential available to it, and entering one on its behalf isn't something I generate or
+  substitute for the student. The fix must be completed by running
+  `git push --force-with-lease origin main` from the student's own terminal, where GitHub
+  auth already works.
+- **Side-finding, logged not fixed-around:** the first `git stash` attempt during this
+  work left a stray `.git/index.lock` and some `tmp_obj_*` files that blocked further git
+  commands (`device_bash`'s connected folder has delete disabled by default). After delete
+  permission was granted for this one folder, clearing the stale lock triggered a full
+  working-tree line-ending (CRLF-vs-LF) rewrite of 9 unrelated already-committed files
+  (`.gitignore`, `README.md`, two audit-history files, `data/README.md`, four `reports/*`
+  files) — confirmed via `git diff -w` to be whitespace-only, zero semantic change, and
+  discarded with `git checkout --` before proceeding, so none of that noise entered any
+  commit.
+- **Self-check:** *why is a plain `git push` not enough here, and why `--force-with-lease`
+  specifically rather than plain `--force`?* — Because the commit hashes changed (the
+  content is identical but the messages differ, so git treats them as different commits),
+  a plain push is rejected as a non-fast-forward update; `--force` would push regardless of
+  what's currently on the remote, while `--force-with-lease` refuses if someone/something
+  else has pushed to `origin/main` since I last fetched it — a guard against silently
+  clobbering work I don't know about.
+
+---
+
+## 2026-10-07, 17:30 — Tier 2 fraud-side sourcing resolved: 24 verified postings, BBB Scam Tracker, via Claude in Chrome
+
+- **What happened:** with the development machine linked and the Claude in Chrome
+  extension installed (walked through step by step this morning), BBB Scam Tracker's
+  "employment" search became reachable — Claude in Chrome, driving my real signed-in
+  Chrome, loads the page normally where both the sandboxed browser pane and plain WebFetch
+  were stopped by a Cloudflare "Just a moment..." challenge. No bypass technique was used
+  anywhere — every block was handled by waiting and retrying, or by paginating once the
+  page had already loaded cleanly.
+- **What was collected:** read through BBB Scam Tracker's "employment" search results,
+  pages 1–8 (`from=0` through `from=70`, ~80 individual reports read in full), and kept
+  every report that contains **genuinely reproduced posting-adjacent text** — a quoted
+  email, SMS, or chat message from the scammer naming a role, pay rate, duties, or an
+  application step — rejecting reports that are narrative-only ("they called and asked if I
+  could hear them") or too corrupted to use (one report's message text was obfuscated with
+  stray `?` characters past the point of being legible). **24 reports passed this filter**,
+  comfortably inside the 20–30 target set in the 2026-09-20 scope-cut decision.
+- **Provenance:** each BBB report has its own permanent URL
+  (`https://www.bbb.org/scamtracker/lookupscam/<Scam ID>`), confirmed by inspecting the
+  page's own DOM (`aria-labelledby="result-<id>-title"` on each result's link) rather than
+  guessing — this resolves the provenance question left open overnight. Every one of the 24
+  records in `data/raw/tier2/tier2_fraud_raw.jsonl` carries its own unique `source_job_id`
+  (the BBB Scam ID) and `source_url` (the permalink), exactly mirroring how
+  `tier2_legit_raw.jsonl` carries `source_job_id`/`source_url` for Greenhouse/Lever.
+- **Schema decision:** the EMSCAD-shaped structured fields (`title`, `location`,
+  `salary_range`, etc.) are left `null` for every fraud-side record, rather than invented
+  from the narrative or populated from BBB's "Victim Location" (which is where the *victim*
+  lives, not a claimed job location — not the same field semantically, so it does not belong
+  in `location`). BBB-specific context (the category tag, the business name the scammer
+  used, the date reported, and dollars lost) is kept in separate `bbb_*` fields instead of
+  forced into EMSCAD columns. This keeps the E3/E4 asymmetry exactly as already decided and
+  disclosed in Decision 0.4 (2026-10-06) — I am not quietly inventing structure on the fraud
+  side to make it look more symmetric than it is.
+- **Data-quality finding, worth disclosing in Chapter 6:** the same scam narrative (a
+  "David Smith" / "Sheriff Gossling" personal-assistant check-fraud report) appears at least
+  three times in BBB's own database under three different Scam IDs (442452, 442451, and one
+  more seen in an earlier page) — byte-for-byte identical text, different report IDs. This
+  report was excluded from the 24 anyway because it has no quoted posting/ad text, but the
+  pattern itself matters: BBB Scam Tracker contains genuine near-duplicate injection (the
+  same report filed, or re-filed, multiple times), so any later aggregate statistic drawn
+  from BBB counts ("X% of scam reports are...") would need deduplication first. Noted here
+  rather than silently worked around.
+- **What I gave up:** nothing further was attempted after reaching 24 — pagination stopped
+  once comfortably past the 20-minimum / 30-target band, rather than continuing to scrape
+  every one of BBB's "employment" pages. A larger fraud-side set was available (BBB reports
+  10,000+ results for this search) but collecting it all would have cost Day 1 time for a
+  number the target band already calls sufficient, and Tier 2 is held-out validation only —
+  more volume here doesn't buy anything a training set would need.
+- **Self-check:** *Why does "Victim Location" not belong in the same `location` field
+  EMSCAD uses, even though both are nominally about where a job is?*
 
 ---
 
@@ -49,6 +168,10 @@ _Last updated: 2026-10-07, 00:40_
   tired, rushed attempt. Given this data becomes part of a held-out validation set whose
   entire value rests on trustworthy labels, a smaller number of carefully-verified postings
   is worth more than a larger number collected carelessly.
+
+  > ✅ **Resolved, 2026-10-07, 17:30:** option (a) worked — see the entry above. 24 verified
+  > postings collected, well inside the 20–30 target. Tier 2 fraud-side sourcing is closed.
+
 - **Self-check:** *Why does the legitimate side of Tier 2 have a clean public API while the
   fraud side doesn't — what's structurally different about who wants a scam report to be
   easy to find by machine?*
@@ -79,6 +202,10 @@ _Last updated: 2026-10-07, 00:40_
   target is even met) — this asymmetry must be reported plainly in `methodology.md`
   alongside the fraud-side numbers once both are known, not presented as if the two sides
   were collected at comparable scale.
+
+  > ✅ **Numbers now final, 2026-10-07:** 130 legitimate vs. 24 fraudulent. The asymmetry is
+  > real (5.4:1) and must be stated plainly wherever Tier 2 composition is reported.
+
 - **Self-check:** *Why is extra Tier 2 legitimate-side volume safe to keep, when extra
   Tier 1 training data in the wrong place would not be?*
 
@@ -168,6 +295,15 @@ _Last updated: 2026-10-07, 00:40_
   than measuring and disclosing it; (4) the source-probe leakage test already decided
   2026-08-07 is run specifically flagging E3/E4 feature importance, so the size of the
   confound is measured, not guessed.
+
+  > ✅ **Outcome, 2026-10-07:** BBB Scam Tracker reports document almost no structured
+  > fields (no salary_range, no employment_type, etc. — only a free-text narrative plus a
+  > handful of BBB-specific metadata that isn't EMSCAD-shaped). Clause (1) above could not
+  > be satisfied in practice — BBB simply doesn't offer a more structured alternative for
+  > fraud reports the way Greenhouse/Lever do for legitimate postings. Clauses (2)–(4) stand
+  > as planned: Tier 2's fraud side is text-heavy, EMSCAD-shaped fields are null, and this is
+  > reported as a disclosed asymmetry, not hidden.
+
 - **What I gave up:** a clean, confound-free Tier 2 E4 result. What's gained instead is an
   honest, measured one.
 - **Self-check:** *Why is dropping E3/E4 from Tier 2 entirely a worse choice than measuring
@@ -308,6 +444,9 @@ _Last updated: 2026-10-07, 00:40_
 
   > ⚠️ **Update, 2026-10-06:** the 1-week checkpoint below is now a 1-day checkpoint — see
   > the 2026-10-06 entry above. The reduced target (20–30 fraud / 30–50 legit) is unchanged.
+
+  > ✅ **Final numbers, 2026-10-07:** 130 legitimate (kept in full, see entry above) / 24
+  > fraudulent (see entry above). Both targets met or exceeded within the Day 1 time-box.
 
 - **Self-check:** *Why is a small, honestly-reported Tier 2 more defensible than either
   collecting the full 300–600 or abandoning quantitative Tier 2 entirely?*
@@ -891,6 +1030,9 @@ _Last updated: 2026-10-07, 00:40_
   > ⚠️ **Status, 2026-10-06:** the fallback clause is now time-boxed to a single day — see
   > the 2026-10-06 entry at the top of this file.
 
+  > ✅ **Status, 2026-10-07:** fallback not needed — both tiers of Tier 2 met their targets
+  > within Day 1. See the 2026-10-07 entries above.
+
 - **Self-check:** *Why didn't I just replace EMSCAD with modern data, and why can't I merge
   the two tiers?*
 
@@ -923,6 +1065,13 @@ _Last updated: 2026-10-07, 00:40_
   invisible in normal metrics — it looks like success. The source probe is how I detect it,
   so it isn't optional. I also normalise aggressively and exclude features whose
   availability differs systematically by source.
+
+  > ✅ **Applied, 2026-10-07:** the fraud-side BBB-sourced records are labelled
+  > "fraudulent by report," not independently fact-checked for whether the underlying
+  > narrative is literally true — consistent with this decision. The quoted scammer
+  > message/email itself is what I train/evaluate on, not the surrounding narrative, which
+  > keeps the labelling principle intact (the text is reproduced, not paraphrased by the
+  > reporter or by me).
 
 - **What I gave up:** Coverage of borderline cases. My Tier 2 set will contain clearer
   examples than the real world does, which probably makes it an optimistic test. I say so.
@@ -1018,9 +1167,9 @@ _Last updated: 2026-10-07, 00:40_
 # Pending decisions (not yet made)
 
 > ✅ **Resolved:** the 2026-09-20 scope-cut round, Decision 0.2, the 2026-10-06 sprint
-> compression (deadline, Tier 2 time-boxing, ablation contingency, triage order), and now
-> Decisions 0.3 and 0.4 (resolved 2026-10-06, 23:50 — see above) are all closed. Two items
-> remain genuinely open:
+> compression (deadline, Tier 2 time-boxing, ablation contingency, triage order), Decisions
+> 0.3 and 0.4 (resolved 2026-10-06, 23:50), and Tier 2 fraud-side sourcing (resolved
+> 2026-10-07, 17:30) are all closed. Two items remain genuinely open:
 
 ## Success thresholds for each objective
 
