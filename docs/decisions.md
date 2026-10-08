@@ -16,6 +16,94 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 9, Part 3 design decisions: Tier 2 transfer (T1/T2/T3) and the
+source-probe leakage test, logged before touching Tier 2 for evaluation purposes
+
+Tier 2's 154 postings were already touched once, narrowly, in Stage 8b (3 postings pulled
+by a mechanical rule for a qualitative demo — logged separately as not spending this
+budget). This is the first time the FULL 154 are used for a quantitative result. Four
+decisions, made before any of these four experiments ran.
+
+### 1. T1 (temporal transfer): same 3-seed treatment as the main EMSCAD test result
+
+- **Decision:** evaluate all 3 existing main-model checkpoints (seeds 0/1/2 — no
+  retraining) on all 154 Tier 2 postings, report mean ± SD. Matches the treatment Stage 9
+  Part 1 gave the main model and baselines on EMSCAD test (Decision 3, 2026-10-08) — the
+  same parity reasoning applies: a 1-seed Tier 2 number next to a 3-seed EMSCAD number
+  would make the EMSCAD side look more precise for no principled reason, and this is pure
+  inference (cheap) so there's no GPU-budget reason to cut it to 1 seed the way the
+  ablation arms were.
+- **Self-check:** *Why is giving T1 three seeds the right call when the ablation arms
+  (Decision 2026-10-06) were deliberately cut to one?*
+
+### 2. T2 (signal durability): reuse the 5 ablation checkpoints already trained, no new
+training
+
+- **Decision:** run the 5 existing `models/stage9_ablation_{arm}_seed0.*` checkpoints
+  (already trained for the EMSCAD-side ablation) on the same 154 Tier 2 postings, compare
+  each arm's Δ-vs-full-model on Tier 2 to its Δ on EMSCAD test. This is what
+  "ablation repeated on Tier 2" (methodology.md's T2 row) means in practice — the same 5
+  trained models, a second evaluation set, not a second training run. Re-training 5 arms a
+  second time (another ~2.25 hours) was never the plan and isn't needed: the question T2
+  asks is whether a category's IMPORTANCE (measured by these same checkpoints) holds up on
+  different-era data, not whether a Tier-2-trained model would ablate differently.
+- **What this does NOT answer:** whether a model trained partly or wholly on Tier 2 would
+  show a different category ranking — that's closer to T3's question, not T2's.
+- **Self-check:** *Why does reusing the EMSCAD-trained ablation checkpoints on Tier 2
+  still test "signal durability across eras," rather than just testing the same thing
+  twice?*
+
+### 3. T3 (domain adaptation): 50/50 stratified split, fine-tune 3 epochs, no held-out
+Tier 2 validation set
+
+- **Context:** 154 postings (24 fraud) is not enough to support a train/val/test split
+  the way EMSCAD got one — any three-way split leaves too few fraud examples per portion
+  to mean anything.
+- **Decision:** one 50/50 split, stratified by `fraudulent` so both halves get a
+  proportionate ~12 fraud postings, fixed seed. Continue training the frozen seed-0 EMSCAD
+  checkpoint on one half for **3 epochs** (same batch size 16, same lr 2e-5 as every other
+  fine-tuning run in this project — not re-tuned for this tiny dataset), evaluate once on
+  the other half. The SAME frozen checkpoint is also evaluated zero-shot (no fine-tuning)
+  on that same held-out half first, so the fine-tuned result has a same-data baseline to
+  compare against, not just the EMSCAD-test number.
+- **The epoch count is NOT validated against anything — this is a disclosed limitation,
+  not an oversight.** There is no separate Tier 2 validation split to pick an epoch count
+  against the way Stage 5's epoch count came from a real validation curve. 3 was chosen in
+  advance as a small, conservative number (enough passes over ~77 rows to adapt without
+  gross overfitting) and is reported as exactly that — a pre-committed guess, not a tuned
+  hyperparameter. methodology.md states this plainly next to the T3 result.
+- **What I gave up:** any claim that 3 epochs is the "right" amount of fine-tuning for
+  this portion size. A different pre-committed number might show a different adaptation
+  effect; this project reports what 3 epochs showed, not a sweep.
+- **Self-check:** *Why is picking 3 epochs in advance and reporting it as unvalidated more
+  defensible than trying several epoch counts and reporting whichever looked best?*
+
+### 4. Source-probe leakage test: structured features only, EMSCAD-train vs. Tier 2-full,
+class-weighted probe, ROC-AUC and balanced accuracy (not raw accuracy)
+
+- **What "source" means here:** a binary label, EMSCAD vs. Tier 2 — exactly the
+  "collection source" the guardrail and Decision 0.4 both name as the leakage risk to
+  check (does the model, or a feature set like it, learn WHICH DATASET a posting came
+  from rather than whether it's fraudulent).
+- **Features:** the same 46 structured E1-E4 features the fraud model itself uses — not
+  raw text. Text would trivially reveal source for an uninteresting reason (EMSCAD's
+  text is anonymised with placeholder tokens; Tier 2's isn't) and wouldn't test what
+  actually matters: whether the STRUCTURED FEATURES the model relies on encode source.
+- **Data:** EMSCAD's TRAIN split (12,516 rows — test stays untouched) + all 154 Tier 2
+  rows, combined. A stratified 80/20 split of this combined set (by source label, fixed
+  seed) gives the probe its own train/test — the probe needs to generalise to unseen rows
+  of each source just like any other classifier, not be graded on rows it was fit on.
+- **Why NOT raw accuracy:** the combined set is ~98.8% EMSCAD / ~1.2% Tier 2 — a classifier
+  that always predicts "EMSCAD" already scores ~98.8% accuracy while being completely
+  uninformative about leakage. Reported as ROC-AUC (threshold-free) and balanced accuracy
+  (mean of per-class recall) instead, with `class_weight="balanced"` on a LogisticRegression
+  probe (same convention as the O2 baselines) so the probe isn't just learning to always
+  guess the majority class.
+- **Self-check:** *Why would reporting raw accuracy here make this leakage test actively
+  misleading rather than just imprecise?*
+
+---
+
 ## 2026-10-08 — Stage 9 design decisions, logged BEFORE touching the test split
 
 Four decisions, all made and written down before any code reads `split == "test"` from
@@ -1373,6 +1461,33 @@ this run, and the full set is reported above, not a selected best-of-3.
   honest, measured one.
 - **Self-check:** *Why is dropping E3/E4 from Tier 2 entirely a worse choice than measuring
   and disclosing the asymmetry, given E4 is the project's actual contribution?*
+
+  > **Addendum, 2026-10-08 — the scope is larger than this decision anticipated.** The
+  > source-probe leakage test (design logged in the Stage 9 Part 3 entry below) came back
+  > at ROC-AUC=1.0000 / balanced_accuracy=1.0000 — perfect separation between EMSCAD and
+  > Tier 2 using only the 46 structured E1-E4 features. Investigated with `device_bash`
+  > rather than accepted at face value, 2026-10-08: `has_company_logo`/`has_questions` are
+  > 0% missing in EMSCAD's source CSV (audited at Stage 1 — `load_emscad.py`'s own
+  > docstring, "0% missing — real values only, never null") and 100% missing across ALL 154
+  > Tier 2 postings — the 24 BBB Scam Tracker fraud reports AND the 130 Greenhouse/Lever
+  > legitimate postings alike, not only the fraud side this decision named. The other seven
+  > STRUCT_COLS fields are at or near 100% missing on both Tier 2 classes too (exact counts
+  > in `methodology.md`, "Tier 2 (O5)"). This is a Tier-2-collection-wide artefact — neither
+  > side of Tier 2 ever captured these nine fields — not a fraud-vs-legit asymmetry within
+  > Tier 2, which is a bigger scope than clause (4)'s "fraud-side sparsity" framing
+  > anticipated. The same clause's response (measure and disclose, don't drop the
+  > experiment) still applies and is what Stage 9 Part 3 did.
+  >
+  > **Consequence flagged, not yet separately measured:** EMSCAD's own fraud/legit split
+  > makes total E3 missingness disproportionately a fraud cue (part of why E3 was included
+  > as an evidence category at all), so a model trained on EMSCAD may read every Tier 2
+  > posting's near-total missingness as "looks suspicious" regardless of its real label.
+  > This is a plausible reading of part of T1/T3's pattern (`methodology.md`), reported
+  > there explicitly as inference, not as an independently verified result.
+  >
+  > **Self-check:** *why does a perfect source-probe score mean Tier 2's absolute transfer
+  > numbers must be read with a collection-artefact caveat, rather than meaning E3/E4 are
+  > "broken" as features?*
 
 ---
 

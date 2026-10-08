@@ -223,10 +223,16 @@ excuse to touch the test set twice.*
   scope, baseline seed parity, ablation comparison basis) logged in `decisions.md` before
   this ran. Per Decision 2: no further model/feature/seed changes are permitted now that
   test has been seen.
-- [ ] Run Stage 9, Part 2: leave-one-category-out ablation at the seed count Day 3 settled
-  on (1 seed/arm); Tier 2 temporal transfer (T1/T2/T3) — Tier 2 is ready on both sides, so
-  this runs for real, not as the qualitative fallback; source-probe leakage test, reported
-  regardless of outcome.
+- [x] Stage 9, Part 2/3 — ablation + Tier 2 transfer + source-probe, 2026-10-08. Ablation
+  (5 arms, 1 seed/arm): all 4 evidence categories lower F1 when removed; `has_company_logo`
+  removal improves both F1 and PR-AUC. Tier 2 (T1/T2/T3): extreme seed variance on only 24
+  fraud examples (F1 0.22-0.70 across seeds) makes individual numbers unreliable; brief
+  fine-tuning recovers strongly (F1 0.29 -> 0.86) but at n=12 fraud/half. Source-probe came
+  back at a perfect ROC-AUC=1.0000 — investigated, not accepted at face value: confirmed as
+  a Tier-2-collection-wide missingness artefact (both fraud AND legit sides never captured
+  9 structured fields EMSCAD always/often has), bigger in scope than Decision 0.4
+  anticipated. Full write-up in `methodology.md`, "Tier 2 (O5)"; addendum in `decisions.md`,
+  Decision 0.4.
 - [ ] Commit. Tick §7.5 boxes. Write the raw numbers into `methodology.md` immediately —
   don't let them live only in a notebook.
 
@@ -506,7 +512,7 @@ Section 8 below still apply unchanged to every stage.
 - [x] Fraud, legitimate, and ambiguous examples run and captured
 - [x] Results written into `methodology.md`, kept separate from Stage 9
 
-### Stage 9 — Evaluation (Day 4) — Part 1 done, 2026-10-08
+### Stage 9 — Evaluation (Day 4) — Parts 1-3 done, 2026-10-08
 
 - [x] Full metric set computed on test set, used once (baselines + main model, 3 seeds
   each) — `src/evaluation/stage9_test_eval.py`, `reports/stage9_test_results.json`
@@ -515,8 +521,11 @@ Section 8 below still apply unchanged to every stage.
   and PR-AUC, supporting the pre-registered suspicion it's a dataset-construction
   artifact. PR-AUC deltas flagged as not separable from run-to-run noise (no per-arm seed
   estimate) — see `methodology.md`, "Ablation (O5)."
-- [ ] Tier 2 transfer run (ready on both sides — not the qualitative fallback)
-- [ ] Source-probe leakage test run and reported regardless of outcome
+- [x] Tier 2 transfer run, 2026-10-08 — T1/T2/T3 all run on the real 154-posting set; see
+  `methodology.md`, "Tier 2 (O5)" for results and the small-sample caveats attached to each.
+- [x] Source-probe leakage test run and reported regardless of outcome, 2026-10-08 —
+  ROC-AUC=1.0000, investigated and root-caused to a Tier-2-wide structured-field
+  collection artefact (not fraud-specific), not left unexplained.
 - [x] Part 1 results written into `methodology.md` ("Final test-set evaluation (O2/O3)")
 
 ### Tier 2 collection (Day 1 only) — ✅ ALL CLOSED, 2026-10-07

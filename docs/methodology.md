@@ -904,13 +904,132 @@ mean. Total run time ~2.4 hours (5 arms × ~1770–1810s). Full per-epoch detail
   which the "used once" guardrail forecloses for the rest of this project. It is reported
   as a finding and a recommendation for future work, not acted on here.
 
-### Tier 2 (O5) — [DATE]
+### Tier 2 (O5) — 2026-10-08
 
-- Collected: [ ] legitimate / [ ] fraudulent, from [sources]
-- Source-probe accuracy: [ ] — interpretation: [ ]
-- T1 temporal transfer: [ ]
-- T2 signal durability — per-category Δ comparison across eras: [ ]
-- T3 domain adaptation recovery: [ ]
+**Collected:** 24 fraudulent postings (BBB Scam Tracker) + 130 legitimate postings (120
+Greenhouse, 10 Lever) = 154 postings, built into EMSCAD-shaped rows through the same
+`record_to_request` -> `build_posting_row` pipeline Stage 8b uses
+(`src/evaluation/stage9_tier2_and_leakage.py`). Full numeric output:
+`reports/stage9_tier2_and_leakage_results.json`.
+
+#### Source-probe leakage test: ROC-AUC = 1.0000, balanced accuracy = 1.0000
+
+**This is not a fraud-detection result and is not reported as one** — the probe is a
+separate `LogisticRegression` trained only to answer "is this row EMSCAD or Tier 2,"
+using the same 46 structured E1-E4 features the fraud model uses. A perfect score here
+means those features can tell the two *sources* apart, which is a problem for how far
+T1/T2/T3 below can be trusted, not a result about fraud.
+
+Investigated with `device_bash` rather than taken at face value (2026-10-08). Root cause
+confirmed and quantified, not inferred:
+
+| Field | EMSCAD-train missing | Tier 2 fraud missing (n=24) | Tier 2 legit missing (n=130) |
+|---|---|---|---|
+| has_company_logo | 0.0% (0/12,516) | 100% (0/24 present) | 100% (0/130 present) |
+| has_questions | 0.0% (0/12,516) | 100% (0/24 present) | 100% (0/130 present) |
+| salary_range | 85.5% | 100% | 100% |
+| required_experience | 40.7% | 100% | 100% |
+| required_education | 44.7% | 100% | 100% |
+| industry | 26.9% | 100% | 100% |
+| function | 37.2% | 100% | 100% |
+| department | 66.5% | 100% | 92.3% (10/130 present) |
+| employment_type | 19.1% | 100% | 92.3% (10/130 present) |
+
+`has_company_logo` / `has_questions` alone are already a perfect, single-feature
+separator: EMSCAD's source CSV never leaves them null (audited at Stage 1 —
+`load_emscad.py`'s own docstring: "0% missing — real values only, never null"), while
+Tier 2's raw collection — BBB Scam Tracker fraud reports *and* the Greenhouse/Lever
+legitimate scrape alike — never captured either field for a single one of the 154
+postings. The other seven `STRUCT_COLS` fields sit at or near 100% missing on both Tier 2
+classes too, so they reinforce the same signal rather than complicating it.
+
+**This is larger in scope than Decision 0.4 (2026-10-06, `decisions.md`) anticipated.**
+That decision foresaw an asymmetry between Tier 2's fraud side (BBB, text-only) and its
+legitimate side (Greenhouse/Lever, potentially more structured). What's confirmed here
+instead is a near-total absence of these nine fields across **both** Tier 2 classes —
+driven by how Tier 2 was collected, not by fraud status. Addendum logged in
+`decisions.md`, Decision 0.4, 2026-10-08.
+
+**Consequence for T1/T2/T3 below (flagged as a plausible reading, not a separately
+measured fact):** the E3 completeness group (10 of the model's 46 features) is close to
+constant across all 154 Tier 2 rows, so it cannot discriminate fraud from legit *within*
+Tier 2 regardless of what it contributes on EMSCAD. More importantly, EMSCAD's own
+fraud/legit split makes total E3 missingness disproportionately a fraud cue (part of why
+E3 was built as an evidence category at all) — so a model trained on EMSCAD may read
+*every* Tier 2 posting's near-total missingness as "looks suspicious," independent of its
+real label. This is offered as a candidate explanation for part of the pattern below, not
+as an independently verified result.
+
+#### T1 — temporal transfer (3 seeds, EMSCAD-trained model, zero-shot on all 154 Tier 2 rows)
+
+| Seed | F1 | PR-AUC |
+|---|---|---|
+| 0 | 0.2222 | 0.5533 |
+| 1 | 0.7000 | 0.8351 |
+| 2 | 0.4848 | 0.7984 |
+| **mean +/- SD** | **0.4690 +/- 0.2393** | **0.7289 +/- 0.1532** |
+
+For comparison, EMSCAD test (seed 0, from "Final test-set evaluation" above): F1=0.6449,
+PR-AUC=0.6881.
+
+**Read with the same caution as any 24-fraud-example statistic.** An SD of 0.24 on F1
+across three seeds of the *same trained model* on the *same 154 rows* is less a
+transfer-quality measurement than a demonstration that F1 is not a stable statistic at
+this sample size — consistent with the GPU non-determinism already documented
+(`decisions.md`, Stage 5 epoch-count entry: cuDNN/attention kernels aren't forced
+deterministic even at a fixed seed). No single seed's number is reported as "the"
+temporal-transfer result; the honest statement is the mean +/- SD, with the SD itself
+being as informative as the mean.
+
+#### T2 — signal durability (5 ablation arms, reused Part 2 checkpoints, zero-shot on Tier 2, vs. full-model seed 0 = T1 seed 0)
+
+| Arm removed | F1 | delta F1 vs. full (seed 0) | PR-AUC | delta PR-AUC |
+|---|---|---|---|---|
+| E1 | 0.3750 | +0.1528 | 0.6132 | +0.0599 |
+| E2 | 0.4242 | +0.2020 | 0.5507 | -0.0026 |
+| E3 | 0.4000 | +0.1778 | 0.7540 | +0.2007 |
+| E4 | 0.6842 | +0.4620 | 0.7786 | +0.2253 |
+| has_company_logo | 0.4516 | +0.2294 | 0.7284 | +0.1751 |
+
+**Not read as "removing any category helps on Tier 2."** Every delta is positive only
+because the comparison baseline (full model, seed 0, F1=0.2222) is T1's demonstrated low
+outlier on this same model — seed 1 alone scored F1=0.70. With no per-arm seed variance
+(same 1-seed-per-arm budget decision used for the EMSCAD-test ablation) and T1 showing
+seed-to-seed F1 swings larger than any delta in this table, these numbers cannot
+distinguish "category X doesn't transfer to Tier 2" from "seed 0 was already this run's
+unlucky draw before any category was removed." The one point worth naming regardless: E3's
+removal shows the second-largest PR-AUC gain (+0.2007) of any arm, consistent with — not
+proof of — the completeness-group finding above (E3 close to constant and possibly
+actively misread as a fraud cue on Tier 2). Per Decision 2, nothing here is acted on; it is
+reported and flagged for Chapter 5.
+
+#### T3 — domain adaptation (50/50 stratified split: 77/12 fine-tune, 77/12 eval)
+
+| | F1 | PR-AUC |
+|---|---|---|
+| Zero-shot | 0.2857 | 0.7161 |
+| Fine-tuned (3 epochs, final-epoch number) | 0.8571 | 0.9833 |
+
+A brief fine-tune on 77 Tier 2 rows (12 fraud) recovers to a level above the EMSCAD-test
+baseline, measured on a disjoint 77-row (12-fraud) held-out half. **The same small-sample
+caution as T1/T2 applies, at an even smaller N** — 12 fraud examples in each half means a
+handful of predictions moving can swing F1 by a large amount; this demonstrates that brief
+domain adaptation is *possible*, not a precise or generalisable recovery-rate estimate. The
+epoch count (3), learning rate, and split ratio were fixed before running
+(`decisions.md`, "Stage 9, Part 3 design decisions," 2026-10-08) specifically so this
+number could not be tuned toward a better-looking result after the fact.
+
+#### Summary reading for Chapter 4/5
+
+The source-probe finding is the one number in this section backed by a fully verified,
+quantified root cause rather than an inference: Tier 2's structured-field collection is
+categorically different from EMSCAD's, across both classes, and this is a disclosed,
+significant limitation on how much weight T1/T2/T3's absolute numbers can carry. They
+measure the fused model's behaviour on data whose completeness profile looks nothing like
+anything it was trained on — a *harder*, not an equivalent, test of temporal transfer than
+the EMSCAD test split itself. T1/T2/T3 are reported in full rather than suppressed
+(Decision 0.4's own reasoning: disclosing a confound beats dropping the experiment), but no
+individual number above should be read as a stable estimate at n=154 (24 fraud).
 
 ### Demonstration (Step 4) — 2026-10-08
 
