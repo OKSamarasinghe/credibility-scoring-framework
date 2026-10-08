@@ -1,0 +1,167 @@
+Disagreements: MANUAL contradiction judgement vs REFERENCE_ONLY pattern flag
+(your answer != the provisional pattern's flag, among rows where the field
+exists and you gave a real Y/N, not NA). This is raw data for you to review
+and write the 'causes' part of the catalogue yourself -- I'm not
+interpreting why each one differs, just compiling the list.
+
+=== C1: 26 disagreements ===
+  S001: your answer=Y, pattern flag=N | notes: Add more details
+  S003: your answer=Y, pattern flag=N | notes: $150-175k "straight commission" income claim in benefits; salary field blank
+  S017: your answer=Y, pattern flag=N | notes: Same template as $350-450/day, no experience, zero fee, link.
+  S037: your answer=N, pattern flag=Y
+  S044: your answer=N, pattern flag=Y | notes: Profile (Accion, finance/retail) unrelated to a municipal code-compliance job, TMRS refers to Texas.
+  S049: your answer=N, pattern flag=Y | notes: Korean address string in the location field.
+  S061: your answer=N, pattern flag=Y | notes: Commission-based with "six figures" claim.
+  S062: your answer=Y, pattern flag=N | notes: Scam template
+  S063: your answer=Y, pattern flag=N | notes: Relocation available.
+  S067: your answer=Y, pattern flag=N | notes: $65/hour "guaranteed pay" with no experience.
+  S074: your answer=Y, pattern flag=N | notes: Pay-to-join structure ("$40 to start").
+  S083: your answer=N, pattern flag=Y | notes: Job summary describes AECOM's staffing contract rather than the job.
+  S090: your answer=N, pattern flag=Y | notes: Duplicate of S149.
+  S101: your answer=N, pattern flag=Y | notes: Title says "QA Engineer" but the body is headed "QA Manager (Cable)" and describes managing a lab and team - title/role mismatch.
+  S126: your answer=Y, pattern flag=N | notes: Looks like a personal-assistant scam pattern ("Mr Terry", "long term friend", weekly pay $300 for 7-10 hours). Text mentions 1-2 years and a Bachelor's but those fields are blank. C1 is a judgement call: the text never says "on-site" outright, but household tasks and errands imply it.
+  S145: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S149: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S158: your answer=N, pattern flag=Y
+  S159: your answer=N, pattern flag=Y | notes: salary range 15-19 looks like an hourly rate.
+  S162: your answer=Y, pattern flag=N | notes: Text asks for logistics/warehouse experience but required experience is blank.
+  S164: your answer=N, pattern flag=Y | notes: Profile says "Ohio based company" while the location is Lexington, KY - possible mismatch but not stated as the job site.
+  S180: your answer=N, pattern flag=Y | notes: Text asks a Bachelor's and 3-5 years, but both fields are blank. Listed skills (Windows 98/2000/2003) look dated.
+  S186: your answer=N, pattern flag=Y | notes: Profile belongs to a recruiter, not the battery storage employer in the text. Text asks 5 years and a Bachelor's, but those fields are blank.
+  S192: your answer=Y, pattern flag=N | notes: 2+ years vs Entry level.
+  S193: your answer=N, pattern flag=Y | notes: MLM-style pitch with unrealistic earnings. salary range 7200-1380000 is an absurd span.
+  S196: your answer=N, pattern flag=Y | notes: "working towards" is not the same as "holding" a degree.
+
+=== C3: 27 disagreements ===
+  S017: your answer=N, pattern flag=Y | notes: Same template as $350-450/day, no experience, zero fee, link.
+  S033: your answer=N, pattern flag=Y
+  S034: your answer=N, pattern flag=Y | notes: Scam template
+  S049: your answer=N, pattern flag=Y | notes: Korean address string in the location field.
+  S057: your answer=N, pattern flag=Y | notes: Profile describes Catapult Chicago (coworking space), not VLinks Media.
+  S062: your answer=N, pattern flag=Y | notes: Scam template
+  S064: your answer=N, pattern flag=Y | notes: Internship level conflicts with "experienced".
+  S067: your answer=N, pattern flag=Y | notes: $65/hour "guaranteed pay" with no experience.
+  S068: your answer=N, pattern flag=Y | notes: Internal inconsistency 6-8 vs 3-5 years.
+  S078: your answer=N, pattern flag=Y | notes: mismatch looks like a x100 scale/parsing error.
+  S083: your answer=N, pattern flag=Y | notes: Job summary describes AECOM's staffing contract rather than the job.
+  S084: your answer=N, pattern flag=Y
+  S091: your answer=N, pattern flag=Y | notes: NA
+  S096: your answer=N, pattern flag=Y | notes: Salary appears truncated.
+  S102: your answer=N, pattern flag=Y | notes: Text says 10+ years but required experience is blank. Same skype/email template as S115. Salary range is very wide.
+  S115: your answer=N, pattern flag=Y | notes: Same skype/email as S102 - same poster. Text says 6+ years but required_experience is blank.
+  S117: your answer=N, pattern flag=Y | notes: Borderline C3 because "Permanent" also appears.
+  S124: your answer=N, pattern flag=Y | notes: Text calls it a "commission based subcontractor position", which fits poorly with a normal Part-time employee but is not an outright contradiction.
+  S125: your answer=N, pattern flag=Y | notes: Classic scam template ($400-450 per day, 30 minutes a day, no experience). Same family as S146.
+  S128: your answer=N, pattern flag=Y | notes: Borderline a full-time internship is acceptable. C5 is mild: "basic education" could mean less than a degree.
+  S129: your answer=Y, pattern flag=N | notes: Text asks for a Bachelor's/Associate in Nursing and 2 years of experience, but those fields are blank.
+  S137: your answer=N, pattern flag=Y | notes: Employer unnamed; benefits mention a "nationally recognised brand" vaguely. C1 is borderline because of "home office".
+  S142: your answer=N, pattern flag=Y | notes: Typical recruitment-agency mass posting (Blue Card, air tickets). Salary 24000-26000 has no currency or period.
+  S145: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S146: your answer=N, pattern flag=Y | notes: Same scam template as S125 ($400-500 per day).
+  S158: your answer=N, pattern flag=Y
+  S170: your answer=N, pattern flag=Y | notes: Advance-fee style posting (free accommodation, travel-document processing, relocation allowance, generic mass hiring). Same pattern as S133.
+
+=== C4: 39 disagreements ===
+  S002: your answer=N, pattern flag=Y | notes: Title says "Project Manager" but body says "Manager, Software Development" (title/body mismatch)
+  S004: your answer=N, pattern flag=Y | notes: Looks like a genuine non-profit posting. "female applicants strongly preferred" is a discrimination flag only.
+  S006: your answer=N, pattern flag=Y
+  S008: your answer=N, pattern flag=Y | notes: Bachelor's field has no support in text. salary only "subject to experience".
+  S012: your answer=N, pattern flag=Y | notes: Education wording in text Associate's or technical training but education field blank.
+  S013: your answer=N, pattern flag=Y | notes: Closing date in text is 8 Dec 2014.
+  S016: your answer=N, pattern flag=Y
+  S033: your answer=N, pattern flag=Y
+  S035: your answer=N, pattern flag=Y | notes: Title is Front End Developer but body says "Sr. JavaScript Developer".
+  S037: your answer=N, pattern flag=Y
+  S043: your answer=N, pattern flag=Y
+  S054: your answer=N, pattern flag=Y | notes: Internal inconsistency: "1-3 years" vs "3-5 years".
+  S055: your answer=N, pattern flag=Y
+  S057: your answer=N, pattern flag=Y | notes: Profile describes Catapult Chicago (coworking space), not VLinks Media.
+  S064: your answer=Y, pattern flag=N | notes: Internship level conflicts with "experienced".
+  S066: your answer=N, pattern flag=Y | notes: "LA" could be Louisiana or Los Angeles.
+  S078: your answer=N, pattern flag=Y | notes: mismatch looks like a x100 scale/parsing error.
+  S085: your answer=N, pattern flag=Y
+  S087: your answer=Y, pattern flag=N | notes: Education wording in text but field blank.
+  S088: your answer=N, pattern flag=Y | notes: Template shared with S002.
+  S089: your answer=N, pattern flag=Y
+  S092: your answer=N, pattern flag=Y | notes: telecommuting but text requires being based in specific cities.
+  S094: your answer=N, pattern flag=Y
+  S096: your answer=N, pattern flag=Y | notes: Salary appears truncated.
+  S097: your answer=N, pattern flag=Y | notes: Education field set but not mentioned in text.
+  S100: your answer=N, pattern flag=Y
+  S101: your answer=N, pattern flag=Y | notes: Title says "QA Engineer" but the body is headed "QA Manager (Cable)" and describes managing a lab and team - title/role mismatch.
+  S104: your answer=N, pattern flag=Y
+  S109: your answer=N, pattern flag=Y | notes: Profile says IBEX is headquartered in Washington, DC, but the job is in Hampton VA - normal for a call center.
+  S117: your answer=N, pattern flag=Y | notes: Borderline C3 because "Permanent" also appears.
+  S119: your answer=N, pattern flag=Y
+  S145: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S152: your answer=N, pattern flag=Y
+  S155: your answer=N, pattern flag=Y | notes: Employer never named.
+  S158: your answer=N, pattern flag=Y
+  S169: your answer=N, pattern flag=Y | notes: Profile describes Playfair Capital (an investment fund) but the body describes Addy - profile/employer mismatch. C4 is borderline at the 2-5 / Mid-Senior edge.
+  S177: your answer=N, pattern flag=Y
+  S183: your answer=N, pattern flag=Y
+  S191: your answer=N, pattern flag=Y | notes: 5+ years against "Associate" is a stretch but within the loose band I used.
+
+=== C5: 46 disagreements ===
+  S004: your answer=N, pattern flag=Y | notes: Looks like a genuine non-profit posting. "female applicants strongly preferred" is a discrimination flag only.
+  S006: your answer=N, pattern flag=Y
+  S009: your answer=N, pattern flag=Y | notes: Education field says Bachelor's while text says it is not strictly required.
+  S027: your answer=N, pattern flag=Y | notes: Profile mentions DTE Energy, the contact is a third-party recruiter.
+  S033: your answer=N, pattern flag=Y
+  S037: your answer=N, pattern flag=Y
+  S040: your answer=N, pattern flag=Y | notes: Profile HQ Denver vs location Austin; plausible for a remote role.
+  S044: your answer=N, pattern flag=Y | notes: Profile (Accion, finance/retail) unrelated to a municipal code-compliance job, TMRS refers to Texas.
+  S051: your answer=N, pattern flag=Y | notes: salary range 8000-14000 is presumably HKD per month.
+  S054: your answer=N, pattern flag=Y | notes: Internal inconsistency: "1-3 years" vs "3-5 years".
+  S058: your answer=N, pattern flag=Y | notes: Benefits text identical to S050.
+  S060: your answer=N, pattern flag=Y
+  S066: your answer=N, pattern flag=Y | notes: "LA" could be Louisiana or Los Angeles.
+  S068: your answer=N, pattern flag=Y | notes: Internal inconsistency 6-8 vs 3-5 years.
+  S069: your answer=N, pattern flag=Y | notes: salary range 1000-6000 is very wide; duties (route reconciliation) don't match the profile.
+  S072: your answer=N, pattern flag=Y | notes: salary range 0-0 is a placeholder.
+  S073: your answer=N, pattern flag=Y
+  S076: your answer=N, pattern flag=Y | notes: Looks genuine.
+  S077: your answer=N, pattern flag=Y | notes: Typo "representativesCorporation".
+  S078: your answer=N, pattern flag=Y | notes: mismatch looks like a x100 scale/parsing error.
+  S079: your answer=N, pattern flag=Y | notes: "12+ years" has no experience field.
+  S084: your answer=N, pattern flag=Y
+  S085: your answer=N, pattern flag=Y
+  S089: your answer=N, pattern flag=Y
+  S090: your answer=N, pattern flag=Y | notes: Duplicate of S149.
+  S092: your answer=N, pattern flag=Y | notes: telecommuting but text requires being based in specific cities.
+  S094: your answer=N, pattern flag=Y
+  S096: your answer=N, pattern flag=Y | notes: Salary appears truncated.
+  S098: your answer=N, pattern flag=Y | notes: Salary looks low for 5-10+ years.
+  S100: your answer=N, pattern flag=Y
+  S101: your answer=N, pattern flag=Y | notes: Title says "QA Engineer" but the body is headed "QA Manager (Cable)" and describes managing a lab and team - title/role mismatch.
+  S102: your answer=N, pattern flag=Y | notes: Text says 10+ years but required experience is blank. Same skype/email template as S115. Salary range is very wide.
+  S104: your answer=N, pattern flag=Y
+  S115: your answer=N, pattern flag=Y | notes: Same skype/email as S102 - same poster. Text says 6+ years but required_experience is blank.
+  S119: your answer=N, pattern flag=Y
+  S121: your answer=N, pattern flag=Y
+  S141: your answer=N, pattern flag=Y
+  S145: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S149: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S152: your answer=N, pattern flag=Y
+  S156: your answer=N, pattern flag=Y
+  S157: your answer=N, pattern flag=Y
+  S163: your answer=N, pattern flag=Y
+  S171: your answer=N, pattern flag=Y | notes: Salary 1000-5000 is a wide, unlabeled range.
+  S173: your answer=N, pattern flag=Y | notes: Same Accion profile as S044.
+  S179: your answer=N, pattern flag=Y | notes: Athens is the recruiter's base; the job site is Oman.
+
+=== C6: 14 disagreements ===
+  S027: your answer=N, pattern flag=Y | notes: Profile mentions DTE Energy, the contact is a third-party recruiter.
+  S038: your answer=N, pattern flag=Y | notes: Very wide salary range.
+  S060: your answer=N, pattern flag=Y
+  S076: your answer=N, pattern flag=Y | notes: Looks genuine.
+  S078: your answer=Y, pattern flag=N | notes: mismatch looks like a x100 scale/parsing error.
+  S090: your answer=N, pattern flag=Y | notes: Duplicate of S149.
+  S098: your answer=N, pattern flag=Y | notes: Salary looks low for 5-10+ years.
+  S102: your answer=N, pattern flag=Y | notes: Text says 10+ years but required experience is blank. Same skype/email template as S115. Salary range is very wide.
+  S115: your answer=N, pattern flag=Y | notes: Same skype/email as S102 - same poster. Text says 6+ years but required_experience is blank.
+  S121: your answer=N, pattern flag=Y
+  S142: your answer=N, pattern flag=Y | notes: Typical recruitment-agency mass posting (Blue Card, air tickets). Salary 24000-26000 has no currency or period.
+  S149: your answer=N, pattern flag=Y | notes: Refined Resources template.
+  S159: your answer=N, pattern flag=Y | notes: salary range 15-19 looks like an hourly rate.
+  S170: your answer=N, pattern flag=Y | notes: Advance-fee style posting (free accommodation, travel-document processing, relocation allowance, generic mass hiring). Same pattern as S133.

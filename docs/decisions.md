@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-07, 23:55_
+_Last updated: 2026-10-08_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,79 @@ _Last updated: 2026-10-07, 23:55_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-08 — Second incident: the field-presence fix reverted between two git commits; worksheet re-corrected, root cause of the reversion still unconfirmed
+
+- **What happened:** after all 200 postings were coded (commit `57da423`) and I sat down to
+  compute the O1 observability/agreement rates for the methodology write-up, `C3`, `C4` and
+  `C5` field coverage came back at (or near) 100% again — the exact symptom of the bug
+  already found and fixed on 2026-10-07. This was surprising, because `grep` confirmed the
+  fix (the `_field_str` helper in `sample_for_manual_audit.py`) was still correctly on disk.
+  The bug wasn't back in the code; something had changed the **data**.
+- **Investigation:** `git show`/`git diff` across the worksheet's commit history
+  (`498200d` → `2ec4e00` → `bd19a7d` → `57da423`) isolated it precisely. `2ec4e00` ("Fix
+  Stage 2 field-presence bug; add manual coding tool") has the correct, fixed values — the
+  2026-10-07 fix genuinely worked. `bd19a7d` ("Add Stage 2 reading copies (postings +
+  question explanations)") was supposed to only add two new `.txt` reading-aid files, but
+  `git show --stat` shows it also touched `reports/stage2_manual_audit_worksheet.csv`
+  (+101/−101 lines) — and the diff shows `field_present` for C3 (41 rows), C4 (86 rows) and
+  C5 (92 rows) reverting back to the pre-fix buggy values, and S001's
+  `C3/C4/C5_manual_contradiction_MANUAL` reverting from `NA,NA,NA` back to the original
+  `Y,Y,Y`. The commit that was meant to add two unrelated files silently carried the
+  worksheet back to an earlier, already-fixed-and-superseded state.
+- **Root cause of the reversion itself: not confirmed.** My working hypothesis is a sync
+  conflict — the repo sits under `Documents`, a path commonly synced by OneDrive on
+  Windows, and if a cached/conflicted copy of the worksheet was restored around the time of
+  that commit, it would produce exactly this effect. This is a hypothesis, not a finding: I
+  have not verified whether OneDrive sync was active, whether the worksheet was open in
+  Excel or another program at the time, or any other explanation. **Open question for the
+  student to help resolve** — if it happens a third time without being caught, it would
+  silently corrupt real judgement data, which is a materially worse outcome than this time.
+- **Quantifying real impact before fixing anything:** rather than assume the worst, I first
+  checked how many of the 200 real manual answers were actually affected by the reverted
+  `field_present` columns (as opposed to how many rows were merely re-exposed to the
+  question). Result: of the 41/86/92 structurally-reverted rows for C3/C4/C5, only **10
+  postings' answers were actually wrong** — S001 (C3, C4, C5, all three), S028 (C3), S045
+  (C3), S126 (C3), S134 (C3), S140 (C3), S166 (C3), S176 (C4). Every other reverted row
+  already had `NA` as its manual answer, meaning **the student's own careful reading had
+  already caught the tool asking an impossible question and answered `NA` anyway**,
+  independently of whether the underlying `field_present` flag was correct. This is good
+  evidence that the 200-row audit was conducted carefully rather than by trusting the
+  tool's prompts at face value.
+- **Fix:** identical non-destructive method to the first incident — recomputed
+  `field_present` for C2–C6 directly from the raw CSV using the already-fixed `_field_str`
+  logic; where it flipped Y→N, reset the matching `_manual_contradiction_MANUAL` cell to
+  `NA` **only if** it held a real, previously-given Y/N answer (the 10 postings above);
+  every other cell (all E1–E4 answers, all other C-rule answers, every `notes_MANUAL`
+  entry) was left completely untouched. Saved atomically (write to `.tmp`, then
+  `os.replace`).
+- **Verified:** re-ran the full 200-row cross-check afterward — 0/200 mismatches remain for
+  C3, C4, C5 (and C2/C6, unaffected both times, confirmed still correct). Separately
+  verified completeness: 200/200 postings, every required E1–E4 and C1–C6 cell holds a
+  valid value, zero blanks.
+- **Why this belongs in the dissertation, same reasoning as the first incident:**
+  `STAGE2_CODING_INSTRUCTIONS.md` asks the O1 write-up to name at least one thing the audit
+  made me revise or drop. The field-presence bug being caught a *second* time, this time as
+  a file-level reversion rather than a code-level bug, strengthens that point rather than
+  repeating it: the human-in-the-loop step and the surrounding verification discipline
+  caught two different failure modes of the same underlying defect, at two different
+  stages of the process.
+- **What I gave up:** nothing recoverable — as with the first incident, no genuine
+  judgement was lost; the 10 affected cells held answers to a question that should never
+  have been asked, not valid judgements being overwritten.
+- **Still open:** confirm with the student whether the `credibility-scoring-framework`
+  folder is OneDrive-synced, and whether the worksheet was open in Excel or VS Code around
+  the time of commit `bd19a7d`. Until the actual cause is confirmed, treat any future
+  session that touches `reports/stage2_manual_audit_worksheet.csv` as needing a fresh
+  cross-check against the raw CSV before trusting its `field_present` columns.
+- **Self-check:** *why did only 10 of the ~219 structurally-reverted rows actually have a
+  wrong manual answer, and what does that gap tell you about how dependent your own
+  judgement was on the tool's prompts being correct versus your own reading of each
+  posting?* *Separately: why does "the worksheet file reverted between two commits" need a
+  different kind of fix — a file-integrity investigation and an open root-cause question —
+  rather than just reapplying the same code fix and moving on?*
 
 ---
 

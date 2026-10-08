@@ -1,6 +1,6 @@
 # methodology.md — How I'm Doing This (and the Evaluation Plan)
 
-_Last updated: 2026-09-20_
+_Last updated: 2026-10-08_
 
 > Companion to `Research_Methodology_Final.docx` (the formal, supervisor-facing version).
 > This file is the **working** version: it tracks what I am *actually* doing, records results
@@ -52,10 +52,10 @@ held throughout: no objective states its expected result (see `decisions.md`, 20
 Nine implementation stages (below). Design decisions and their rationale are recorded in
 `decisions.md`, which is the primary evidence for this step.
 
-**Status, 2026-08-27:** data audit complete and corrected twice; Stage 1 complete and
-tested; Stage 8 skeleton (API routing/schema, no real pipeline yet) complete and tested;
-Stage 2 partially complete (sampling code done, manual audit not started). Stages 3–9
-otherwise not started.
+**Status, 2026-10-08:** data audit complete and corrected twice; Stage 1 complete and
+tested; **Stage 2 complete — 200/200 posting manual audit coded by hand (commit
+`57da423`), results below**; Stage 8 skeleton (API routing/schema, no real pipeline yet)
+complete and tested. Stages 3, 4–7, 9 not started.
 
 ### Step 4 — Demonstration
 
@@ -92,7 +92,7 @@ declaration to be included — see `project.md` open questions.
 |---|---|---|---|
 | — | Data audit | grounds Stage 1 | ✅ Complete, corrected twice, verified in 2 environments |
 | 1 | Data ingestion & preprocessing | Foundation | ✅ Complete, 9/9 tests passing, verified twice |
-| 2 | Evidence taxonomy definition & manual audit | O1 | 🟡 Sampling script + worksheet built and tested; manual coding of 200 postings not started; repo integration not confirmed |
+| 2 | Evidence taxonomy definition & manual audit | O1 | ✅ Complete, 2026-10-08 — 200/200 postings coded by hand; see Taxonomy validation (O1) below |
 | 3 | Leakage-controlled data partitioning | O2, O3, O5 | ⬜ Ready to start — Decision 0.2 resolved (MD5 + title grouping), 2026-09-20 |
 | 4 | Multi-signal evidence extraction | O1, O3 | ⬜ Not started |
 | 5 | Model development (baseline & improved) | O2, O3 | ⬜ Not started — all blocking decisions resolved 2026-09-20 (fine-tuned DistilBERT, no rules-only arm, architecture review skipped by decision) |
@@ -178,15 +178,75 @@ categories are observable; whether each automated rule agrees with manual judgem
 
 **Sampling script status:** built and tested (`sample_for_manual_audit.py`), reproducibility
 confirmed (identical output across repeated runs and across two separate environments).
-**Manual coding status:** not started. Coding scheme defined in advance in
-`STAGE2_CODING_INSTRUCTIONS.md`.
 
-**Reported:** per-category observability rate; per-rule agreement rate; catalogue of
-disagreements and causes.
+**Manual coding status: complete, 2026-10-08.** All 200 postings coded by hand, single
+coder (the student), blind to the ground-truth fraud label by default (per
+`STAGE2_CODING_INSTRUCTIONS.md`). Worksheet committed at `57da423`. A data-integrity issue
+in the worksheet was found and corrected twice during this process without altering any
+manual judgement already entered — see `decisions.md`, 2026-10-07 and 2026-10-08, and
+"What the audit made me revise" below.
+
+**Observability rates (E1–E4), measured on the 200-posting sample:**
+
+| Category | Y — observable | PARTIAL | N — not observable |
+|---|---|---|---|
+| E1 Text / content cues | 89.0% (178/200) | 10.0% (20/200) | 1.0% (2/200) |
+| E2 Identity & contact cues | 74.0% (148/200) | 23.0% (46/200) | 3.0% (6/200) |
+| E3 Metadata completeness | 49.0% (98/200) | 30.5% (61/200) | 20.5% (41/200) |
+| E4 Text–metadata consistency | 54.5% (109/200) | 26.5% (53/200) | 19.0% (38/200) |
+
+**Field coverage and agreement rate (C1–C6), measured on the 200-posting sample:**
+
+Agreement rate = the student's `_manual_contradiction_MANUAL` judgement vs. the pre-filled
+`_pattern_evaluable_REFERENCE_ONLY` placeholder-pattern flag, computed only among rows where
+the field is present **and** the manual answer is Y or N (NA excluded — the automated flag
+has no NA category to match against). Per `STAGE2_CODING_INSTRUCTIONS.md`, this is **a
+preview of Stage 4, not the final rule-consistency check**: the pattern flags are still
+placeholder regexes written for audit purposes, not the frozen Stage 4 lexicons.
+
+| Rule | Field coverage (this sample) | Agreement rate (MANUAL vs. placeholder pattern) | Disagreements |
+|---|---|---|---|
+| C1 Remote / on-site | 100.0% (200/200) | 86.9% (173/199) | 26 |
+| C2 Location | 84.5% (169/200) | not measured — no automated baseline (deferred to Stage 4) | — |
+| C3 Employment type | 79.5% (159/200) | 82.9% (131/158) | 27 |
+| C4 Experience level | 57.0% (114/200) | 65.2% (73/112) | 39 |
+| C5 Education | 54.0% (108/200) | 54.5% (55/101) | 46 |
+| C6 Salary | 26.5% (53/200) | 73.6% (39/53) | 14 |
+
+Every disagreement is logged verbatim (sample ID, manual answer, pattern flag, the
+student's own `notes_MANUAL` text) in `reports/stage2_disagreements_for_review.txt` — raw
+material for the "catalogue of disagreements and causes" write-up; the causal analysis
+itself is the student's own interpretive work and is not generated here.
+
+This sample's field-coverage figures sit close to, but are not identical to, the
+full-corpus (n=17,880) figures in the Consistency rule set table above — e.g. C6 is 26.5%
+in this 200-posting sample vs. 15.2% across the full corpus. That gap is expected sampling
+variance from drawing 200 postings, not a contradiction between the two measurements; the
+full-corpus figures remain the authoritative ones for any claim about EMSCAD as a whole, and
+the 200-sample figures are specific to what the human coder could evaluate.
+
+**What the audit made me revise (per `STAGE2_CODING_INSTRUCTIONS.md`'s requirement to name
+at least one such thing):** the sampling/pre-fill script's field-presence logic had a real
+NaN-handling bug — a blank cell's `str(NaN)` is the non-empty string `"nan"`, which passed a
+`!= ""` presence check — that wrongly marked C3/C4/C5 as present on fields that were
+genuinely blank. This was caught **twice**: once while coding S001, before the fix was
+applied worksheet-wide (2026-10-07); and a second time, after all 200 postings were coded,
+when the worksheet file itself was found to have partially reverted to the pre-fix state
+between two git commits, for a reason not yet confirmed (see `decisions.md`, 2026-10-08).
+Both times the fix was a non-destructive recomputation of only the `field_present` flags
+against the raw CSV, resetting to `NA` only the handful of `_MANUAL` answers that had
+actually been given in response to a question that should never have been asked (10 of 200
+postings, in the second incident) — never a wholesale regeneration of the worksheet, and
+never a re-judgement of any answer that was genuinely asked. This is treated as a real
+finding about the project's own tooling, not noise: the manual, human-in-the-loop audit
+caught a defect that a purely automated pipeline would have propagated silently into every
+downstream measurement.
+
+**Reported:** per-category observability rate (above); per-rule field coverage and
+agreement rate (above); catalogue of disagreements (`reports/stage2_disagreements_for_review.txt`).
 
 **Limitation:** single coder, so no inter-rater reliability statistic. Coding scheme
 defined in advance and applied consistently. Stated in limitations.
-
 ---
 
 ## Evaluation plan
@@ -379,6 +439,26 @@ section) — field coverage fully verified for all six rules; evaluable coverage
 provisional for C1, C3–C6; deferred entirely for C2 pending Stage 4 location matching.
 Aggregate: 56.7% of postings evaluable by at least one rule; mean 0.88 rules evaluable per
 posting.
+
+### Stage 2 manual audit (O1) — 2026-10-08
+
+_Measured on `reports/stage2_manual_audit_worksheet.csv` (200 stratified EMSCAD postings,
+single coder, commit `57da423`, corrected in place for the field-presence bug — see
+`decisions.md`, 2026-10-07 and 2026-10-08). Full tables and discussion in "Taxonomy
+validation (O1)" above; this entry is the dated results-log counterpart to that writeup, in
+the format used for every other measurement in this section._
+
+- Observability (Y/PARTIAL/N): E1 89.0%/10.0%/1.0%; E2 74.0%/23.0%/3.0%; E3
+  49.0%/30.5%/20.5%; E4 54.5%/26.5%/19.0%.
+- Field coverage: C1 100.0%; C2 84.5%; C3 79.5%; C4 57.0%; C5 54.0%; C6 26.5%.
+- Agreement rate (MANUAL vs. placeholder-pattern `REFERENCE_ONLY` flag, among rows with the
+  field present and a Y/N manual answer): C1 86.9% (173/199); C2 not measured; C3 82.9%
+  (131/158); C4 65.2% (73/112); C5 54.5% (55/101); C6 73.6% (39/53).
+- Disagreements logged: C1 26, C3 27, C4 39, C5 46, C6 14 — raw list in
+  `reports/stage2_disagreements_for_review.txt`; causal write-up still to be done (by the
+  student, not fabricated here).
+- **Revised/dropped signal:** the field-presence pre-fill bug (NaN → `"nan"` string
+  defeating a `!= ""` check), caught twice — see "What the audit made me revise" above.
 
 ### Partition summary — [DATE]
 
