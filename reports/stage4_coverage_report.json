@@ -1,0 +1,58 @@
+{
+  "C1": {
+    "field_present": 17880,
+    "field_present_pct": 100.0,
+    "evaluable": 90,
+    "evaluable_pct": 0.5,
+    "contradictions": 45,
+    "contradictions_pct_of_evaluable": 50.0
+  },
+  "C2": {
+    "field_present": 17534,
+    "field_present_pct": 98.06,
+    "evaluable": 1238,
+    "evaluable_pct": 6.92,
+    "contradictions": 119,
+    "contradictions_pct_of_evaluable": 9.61
+  },
+  "C3": {
+    "field_present": 14409,
+    "field_present_pct": 80.59,
+    "evaluable": 2712,
+    "evaluable_pct": 15.17,
+    "contradictions": 294,
+    "contradictions_pct_of_evaluable": 10.84
+  },
+  "C4": {
+    "field_present": 10830,
+    "field_present_pct": 60.57,
+    "evaluable": 3676,
+    "evaluable_pct": 20.56,
+    "contradictions": 81,
+    "contradictions_pct_of_evaluable": 2.2
+  },
+  "C5": {
+    "field_present": 9775,
+    "field_present_pct": 54.67,
+    "evaluable": 2740,
+    "evaluable_pct": 15.32,
+    "contradictions": 135,
+    "contradictions_pct_of_evaluable": 4.93
+  },
+  "C6": {
+    "field_present": 2726,
+    "field_present_pct": 15.25,
+    "evaluable": 219,
+    "evaluable_pct": 1.22,
+    "contradictions": 52,
+    "contradictions_pct_of_evaluable": 23.74
+  },
+  "aggregate": {
+    "n": 17880,
+    "evaluable_by_at_least_one_rule": 7625,
+    "evaluable_by_at_least_one_rule_pct": 42.65,
+    "mean_rules_evaluable": 0.597,
+    "postings_with_at_least_one_contradiction": 709,
+    "postings_with_at_least_one_contradiction_pct": 3.97
+  }
+}

@@ -54,8 +54,11 @@ Nine implementation stages (below). Design decisions and their rationale are rec
 
 **Status, 2026-10-08:** data audit complete and corrected twice; Stage 1 complete and
 tested; **Stage 2 complete — 200/200 posting manual audit coded by hand (commit
-`57da423`), results below**; Stage 8 skeleton (API routing/schema, no real pipeline yet)
-complete and tested. Stages 3, 4–7, 9 not started.
+`57da423`), results below**; **Stage 3 complete — group-aware 70/15/15 split run and
+verified (commit `9a5379b`), results below**; **Stage 4 complete — E1–E4 extraction built
+and run on the full corpus (n=17,880), 33/33 new tests passing, results below**; Stage 8
+skeleton (API routing/schema, no real pipeline yet) complete and tested. Stages 5–7, 9 not
+started.
 
 ### Step 4 — Demonstration
 
@@ -93,8 +96,8 @@ declaration to be included — see `project.md` open questions.
 | — | Data audit | grounds Stage 1 | ✅ Complete, corrected twice, verified in 2 environments |
 | 1 | Data ingestion & preprocessing | Foundation | ✅ Complete, 9/9 tests passing, verified twice |
 | 2 | Evidence taxonomy definition & manual audit | O1 | ✅ Complete, 2026-10-08 — 200/200 postings coded by hand; see Taxonomy validation (O1) below |
-| 3 | Leakage-controlled data partitioning | O2, O3, O5 | ⬜ Ready to start — Decision 0.2 resolved (MD5 + title grouping), 2026-09-20 |
-| 4 | Multi-signal evidence extraction | O1, O3 | ⬜ Not started |
+| 3 | Leakage-controlled data partitioning | O2, O3, O5 | ✅ Complete, 2026-10-08 — group-aware 70/15/15 split, 9/9 tests passing, zero group overlap; see Partition summary below |
+| 4 | Multi-signal evidence extraction | O1, O3 | ✅ Complete, 2026-10-08 — E1-E4 built and run on full corpus; 4 precision bugs found & fixed; see Stage 4 extraction results below |
 | 5 | Model development (baseline & improved) | O2, O3 | ⬜ Not started — all blocking decisions resolved 2026-09-20 (fine-tuned DistilBERT, no rules-only arm, architecture review skipped by decision) |
 | 6 | Probability calibration & score mapping | O4 | ⬜ Not started |
 | 7 | Explainability layer & fidelity evaluation | O4 | ⬜ Not started — scope: SHAP only, LIME dropped, decided 2026-09-20 |
@@ -139,35 +142,56 @@ declaration to be included — see `project.md` open questions.
 
 | ID | Rule | Trigger | Field coverage (measured) | Evaluable coverage (measured) | Status |
 |---|---|---|---|---|---|
-| C1 | Remote / on-site | `telecommuting` conflicts with remote/on-site language in description | **100.0%** | **10.5%** | 🟡 Provisional — placeholder pattern |
-| C2 | Location mismatch | location field absent from text while a different location is named | **88.4%** | **not measured** | ❌ Deferred to Stage 4 — see note |
-| C3 | Employment type | `employment_type` conflicts with working-arrangement language | **80.6%** | **12.2%** | 🟡 Provisional |
-| C4 | Experience level | `required_experience` conflicts with "N+ years" extracted from text | **60.6%** | **30.2%** | 🟡 Provisional |
-| C5 | Education | `required_education` conflicts with qualification statements | **54.7%** | **27.8%** | 🟡 Provisional |
-| C6 | Salary | description figures fall outside parsed `salary_range` | **15.2%** | **7.6%** | 🟡 Provisional |
+| C1 | Remote / on-site | `telecommuting` conflicts with remote/on-site language in description | **100.0%** | **0.50%** | ✅ Final, Stage 4 — real lexicon |
+| C2 | Location mismatch | location field absent from text while a different location is named | **98.1%** | **6.92%** | ✅ Final, Stage 4 — first real location matcher (cue-phrase gated) |
+| C3 | Employment type | `employment_type` conflicts with working-arrangement language | **80.6%** | **15.17%** | ✅ Final, Stage 4 — real lexicon |
+| C4 | Experience level | `required_experience` conflicts with "N+ years" extracted from text | **60.6%** | **20.56%** | ✅ Final, Stage 4 — real lexicon |
+| C5 | Education | `required_education` conflicts with qualification statements | **54.7%** | **15.32%** | ✅ Final, Stage 4 — real lexicon |
+| C6 | Salary | description figures fall outside parsed `salary_range` | **15.25%** | **1.22%** | ✅ Final, Stage 4 — real lexicon; see unit-ambiguity note below |
 
-**Aggregate (measured, 2026-08-27):** postings evaluable by at least one rule: **10,145
-(56.7%)** of 17,880. Mean rules evaluable per posting: **0.88 of 6**.
+**Aggregate (measured, full corpus n=17,880, 2026-10-08, final Stage 4 lexicons):**
+postings evaluable by at least one rule: **7,625 (42.65%)**. Mean rules evaluable per
+posting: **0.597 of 6**. Contradiction rate per evaluable rule: C1 50.00%; C2 9.61%; C3
+10.84%; C4 2.20%; C5 4.93%; C6 23.74%. Postings with at least one contradiction: **709
+(3.97%)**. Full breakdown in `reports/stage4_coverage_report.json`.
 
-**Why C2 is deferred, not estimated:** C2's premise — a place name in free text differing
-from the structured field — is an open-vocabulary problem. A quick regex proxy, unlike the
-bounded vocabularies used for C1/C3 (remote/on-site language, employment-arrangement
-language), would amount to a second, weaker implementation of the rule that is guaranteed to
-disagree with the real Stage 4 location matcher. Field coverage (88.4%) is reported as an
-explicit upper bound only.
+**Why evaluable coverage dropped sharply from the provisional estimates above** (e.g. C1
+10.5% → 0.50%, C3 12.2% → 15.17% is close but C4/C5 roughly halved): the provisional
+patterns from the August audit counted a rule as "evaluable" far more loosely than the
+real Stage 4 lexicons do. The real lexicons require an unambiguous signal, not merely a
+topic mention — e.g. C1 now requires a genuine remote/on-site position claim, not any
+mention of "work from home" (see the precision-bug note below). Lower evaluable coverage
+with a stricter, more defensible definition of "evaluable" is the expected and intended
+outcome of replacing placeholder patterns with real ones, not a regression.
 
-**Why C1, C3–C6 are "provisional," not final:** all five use placeholder pattern-matching
-written for audit purposes, not the final Stage 4 lexicons. **Re-measure every one of these
-figures once Stage 4 lexicons are frozen** — do not carry today's numbers into the
-dissertation as final results.
+**C2, Stage 4 (2026-10-08) — no longer deferred:** the real location matcher only
+counts a place name found via an explicit cue phrase ("based in X", "relocate to X",
+"location: X", ...) against a modest hardcoded gazetteer (~75 major cities, ~55 ISO
+country names, US states) — never a blind scan of the whole posting, which would
+false-positive constantly (a company_profile naming other offices or eligibility
+clauses — "Canada/US passport holders only" — is not a claim about where *this* job is).
+This is a genuine but partial implementation: the gazetteer is not exhaustive, so a real
+place-name mismatch written with a city or country outside the lexicon is silently
+under-counted as "not evaluable" rather than wrongly flagged — the limitation is biased
+toward under-claiming, not over-claiming, which is the safer direction for a coverage
+figure reported as a finding.
+
+**C1, C3–C6, Stage 4 (2026-10-08) — real lexicons, final.** The provisional
+placeholder patterns from the August audit have been fully replaced; see "Stage 4 multi-signal
+evidence extraction" below for the design approach, the four precision bugs found during
+full-corpus validation and fixed before any figure above was reported, and the
+methodological safeguard taken against tuning these lexicons to the Stage 2 audit sample.
 
 **What this means for E4 as a whole:** the original field-coverage estimates (used since
-2026-08-07) implied E4 was observable on nearly every posting. The measured, honestly-defined
-picture is that under half the corpus (56.7%) can be evaluated by even one rule, and on
-average less than one rule per posting (0.88 of 6) can fire at all. This is a real and
-significant finding about the practical reach of the consistency-verification contribution —
-not a data-quality failure, but something the dissertation must state plainly and account
-for, rather than let the original optimistic estimate stand uncorrected.
+2026-08-07) implied E4 was observable on nearly every posting. The final, measured picture
+(full corpus, real lexicons) is that well under half the corpus (42.65%) can be evaluated
+by even one rule, and on average under one rule per posting (0.597 of 6) can fire at all —
+lower than even the provisional August estimate (56.7% / 0.88 of 6), because the real
+lexicons require an unambiguous signal rather than a loose topic mention. This is a real
+and significant finding about the practical reach of the consistency-verification
+contribution — not a data-quality failure, but something the dissertation must state
+plainly and account for, rather than let either the original optimistic estimate or the
+provisional August figure stand as final.
 
 ### Taxonomy validation (O1)
 
@@ -350,10 +374,10 @@ Result reported regardless of outcome.
 
 | Category | Threat | Mitigation |
 |---|---|---|
-| Internal | Duplicate postings spanning train/test | Content-hash group-aware partitioning; duplicate count measured (see Results) — **near-duplicate grouping method still undecided, see Decision 0.2** |
+| Internal | Duplicate postings spanning train/test | Content-hash group-aware partitioning (Decision 0.2, resolved); verified zero overlap across train/val/test, 2026-10-08 — see Partition summary. **One group (3 rows) is label-impure** — an identical posting appears with inconsistent fraud labels in EMSCAD itself; handled by majority-label, disclosed not hidden |
 | Internal | `has_company_logo` may encode dataset construction | Targeted ablation; results with and without |
 | Internal | Tier 2 provenance labelling → model learns source not fraud | Normalisation, source-dependent feature exclusion, reported source probe |
-| Internal | **E4 evaluable on only 56.7% of postings, 0.88 rules/posting on average** | State plainly in Results and Limitations; do not let the original field-coverage estimate stand uncorrected anywhere in the dissertation |
+| Internal | **E4 evaluable on only 42.65% of postings, 0.597 rules/posting on average (final, Stage 4)** | State plainly in Results and Limitations; do not let the original field-coverage estimate or the provisional August figure (56.7% / 0.88) stand uncorrected anywhere in the dissertation |
 | External | EMSCAD is 2012–2014, predates AI-assisted fraud | Tier 2 temporal assessment, reported as a primary result — **at risk given the deadline** |
 | External | English-language only | Stated scope boundary; multilingual as future work |
 | External | Anonymisation destroys email domain | Token counts used instead; unavailable feature documented |
@@ -434,11 +458,12 @@ EMAIL 20.1% fraud vs 7.1% legit (ratio 2.84); PHONE 9.2% vs 3.4% (ratio 2.72); U
 **Location parseability (drives C2):** location present 98.1%; country component usable
 98.1%; city component usable 88.4%.
 
-**Measured coverage C1–C6:** see the Consistency rule set table above (Evidence taxonomy
-section) — field coverage fully verified for all six rules; evaluable coverage measured but
-provisional for C1, C3–C6; deferred entirely for C2 pending Stage 4 location matching.
-Aggregate: 56.7% of postings evaluable by at least one rule; mean 0.88 rules evaluable per
-posting.
+**Measured coverage C1–C6 (final, Stage 4, 2026-10-08):** see the Consistency rule set
+table above (Evidence taxonomy section) — field coverage fully verified for all six rules;
+evaluable coverage now final for all six, including C2 (real location matcher, no longer
+deferred). Aggregate: 42.65% of postings evaluable by at least one rule; mean 0.597 rules
+evaluable per posting; see "Stage 4 multi-signal evidence extraction" below for the full
+results log.
 
 ### Stage 2 manual audit (O1) — 2026-10-08
 
@@ -460,12 +485,134 @@ the format used for every other measurement in this section._
 - **Revised/dropped signal:** the field-presence pre-fill bug (NaN → `"nan"` string
   defeating a `!= ""` check), caught twice — see "What the audit made me revise" above.
 
-### Partition summary — [DATE]
+### Partition summary — 2026-10-08
 
-- Train / validation / test sizes: [ ] / [ ] / [ ]
-- Fraud ratio per partition: [ ] / [ ] / [ ]
-- Duplicate groups spanning partitions: **must be 0**
-- Near-duplicate grouping method used: [ ] _(Decision 0.2 must be settled first)_
+_Measured by running `src.partitioning.split_data` against `DataSet.csv` (commit
+`9a5379b`). 9/9 tests in `tests/test_split_data.py` passing. Re-run in this session's
+verification environment (Python 3.10.12, pandas 2.3.3) and compared byte-for-byte
+against `reports/stage3_split_summary.json` already committed at `9a5379b` (produced in
+the pinned project venv) — **identical output, confirming reproducibility across two
+independent environments**, the same standard already applied to the data audit. This is
+pure deterministic grouping/allocation (MD5 hashing + a seeded `numpy` permutation, no
+model training), so an exact match is the expected and required result, not a loose
+approximation._
+
+- **Grouping (description-hash only, Decision 0.2):** 17,880 rows → 14,375 groups; 1,257
+  groups of size > 1; **4,762 records (26.63%) in a duplicate group**; largest group 417
+  — matches the original August data-audit figures exactly (cross-validates both
+  measurements independently).
+- **Train / validation / test sizes:** 12,516 / 2,682 / 2,682 (70.0% / 15.0% / 15.0% —
+  within 0.01 of every target fraction).
+- **Fraud count per partition:** 606 / 130 / 130 (866 total — fully conserved, matches
+  the audited corpus total exactly).
+- **Fraud rate per partition:** 4.84% / 4.85% / 4.85% — closely tracks the corpus-wide
+  4.84%, despite the split allocating whole groups rather than individual rows.
+- **Duplicate groups spanning partitions: 0 of 1,257 — verified, not assumed**
+  (`verify_split()`'s `zero_group_overlap` check).
+- **Near-duplicate grouping method used:** description-hash only (Decision 0.2, resolved
+  2026-10-06 after the title-hash union was tried and found to over-merge — see
+  `decisions.md`).
+- **Finding — one impure group (3 rows), inspected not just counted:** group 7712 holds
+  three postings (ids 9138, 11889, 15236) with **byte-for-byte identical description
+  text** (a "Workable" company boilerplate, 2,106 characters, confirmed identical, not
+  merely near-duplicate) but **inconsistent EMSCAD fraud labels** — one marked
+  fraudulent, two legitimate. This is label noise already present in EMSCAD itself, not
+  an artefact of the grouping or splitting code. The greedy allocator assigns the whole
+  group by majority label (legitimate, 2 of 3), so the one fraud-labelled row travels
+  with the legitimate majority — a very small, disclosed deviation (3 of 17,880 rows,
+  0.017%) rather than a hidden one. Worth one sentence in the dissertation's limitations,
+  not more: 1,256 of 1,257 duplicate groups are label-pure.
+
+### Stage 4 multi-signal evidence extraction (O1, O3) — 2026-10-08
+
+_Measured by running `src.features.extract_features.extract_all()` against the full
+EMSCAD corpus (`data/raw/DataSet.csv`, n=17,880) via its own `__main__` driver, which
+writes `reports/stage4_coverage_report.json` (committed alongside the module and tests —
+pending the student's commit). 33/33 new tests in `tests/test_extract_features.py`
+passing; 51/51 across the whole suite (no regression in Stages 1 or 3)._
+
+**What was built:** E1 (a 6-group suspicious-phrase lexicon: advance-fee, unrealistic
+earnings, off-platform contact, urgency/pressure, personal-info requests, vague
+employer), E2 (company_profile presence/length, location specificity, the Stage 1
+contact-token counts carried through, tagged E2_), E3 (9-field presence + equal-weighted
+completeness score), and E4 — real C1–C6 lexicons replacing every provisional pattern
+from the August audit, including the first real C2 location matcher.
+
+**Methodological safeguard taken (delegated decision, student's instruction "do the best
+and most suitable way... take the best decision carefully"):** the 200-posting Stage 2
+disagreement notes (`reports/stage2_disagreements_for_review.txt`) are the only
+human-labelled signal this project has about these rules. Tuning the new lexicons
+row-by-row against that sample until they agreed with it would have been circular — the
+same failure mode the project's own guardrail names directly ("a threshold set after
+seeing results is not a threshold"). Each rule was instead designed on general linguistic
+principle, using the disagreement notes only as qualitative inspiration for *categories*
+of failure (e.g. "topic mention vs. genuine claim"), never as a row-by-row tuning target.
+No lexicon decision in this module was made by checking its effect on the 200-posting
+sample.
+
+**Four precision bugs found and fixed during full-corpus validation, before any figure
+above was reported** (same discipline as the C2/C4 fixes already in the module's inline
+notes from first authoring) — in each case the fix is a general linguistic distinction
+checked against the actual matched text, not a fit to the Stage 2 audit sample:
+
+1. **C1 — "work from home" perk vs. position claim.** The bare phrase fired on
+   flexible-working *perks* ("ability to occasionally work from home", "work from home
+   Wednesdays") as often as on genuine remote-position claims. 197 of 223 first-pass C1
+   "contradictions" (88%) traced to this one phrase. Fixed by requiring a position-
+   asserting cue near the phrase and excluding a nearby perk/conditional cue.
+2. **C1 — negation ignored.** "This is **not** a remote position" still matched the
+   literal phrase "remote position" and was flagged as contradicting the field even
+   though the text and field actually agreed. Fixed with a general negation check applied
+   to every C1 phrase match, not patched per-phrase.
+3. **C6 — "k" (thousands) unresolved, and a dead salary-context gate.** "$95k – $105k"
+   parsed as the literal numbers 95 and 105, so a figure that exactly matched the field
+   range was reported as "far outside" it. Separately, `_SALARY_WORD_RE` (meant to
+   require a $ figure to sit near explicit salary/pay language) was defined but never
+   actually wired into the matching logic, so unrelated dollar figures in the same
+   posting (a travel/interview reimbursement, a product cost mentioned in ad copy) were
+   compared against `salary_range` and flagged as contradictions. Both fixed; the
+   context gate is now load-bearing rather than dead code.
+4. **C3 — "short-term"/"fixed-term" too polysemous.** 95 of 252 "Temporary"-signal
+   contradictions traced to "short-term disability" / "long-term disability" — standard
+   US benefits-plan boilerplate with nothing to do with the advertised role's employment
+   type. A related shape: bare "seasonal" matched even when describing *other* staff
+   mentioned in the posting ("...80 full-time staff and 200 seasonal workers...") rather
+   than the advertised role. Fixed by dropping the polysemous bare phrases and requiring
+   "seasonal" to be followed by a role-noun.
+
+C1's evaluable/contradiction counts fell from 362/223 (pre-fix) to 90/45 (final) as a
+direct result of fix 1–2; C6 from 242/142 to 219/52 as a result of fix 3; C3 from
+17.49%-of-evaluable contradictions to 10.84% as a result of fix 4. The final figures in
+the Consistency rule set table above are post-fix.
+
+**Data-quality finding, not a code bug — `salary_range` unit ambiguity.** Of 2,725
+postings with a parseable `salary_range`, 280 (10.3%) have a low bound under 1,000 (174
+under 50) — almost certainly a mix of literal annual-dollar figures, unmarked
+"thousands"-shorthand (a field literally reading "135-165" meaning $135k–$165k), and
+genuine hourly rates, with no unit indicator in the field itself to tell them apart.
+Guessing the unit would itself be an invented assumption, so this was left undecided
+rather than "fixed" with a heuristic. This is additional empirical support for Decision
+0.3's existing preference for a presence/structure check over numeric comparison in C6 —
+the numeric-escalation path is inherently noisier than the rest of C6 for a reason
+outside this module's control.
+
+**Two inconsistency patterns found outside C1–C6, logged as future work only (delegated
+decision):** the Stage 2 audit surfaced (a) a title-vs-body role mismatch (the advertised
+job title doesn't match the role described in the body text) and (b) a
+company_profile-vs-description employer mismatch (the company described in the profile
+differs from the employer implied in the description). Both are real patterns worth
+naming in the dissertation's limitations/future-work section, but neither became a new
+rule this stage: C1–C6 is the taxonomy already defined and partially validated against
+the 200-posting sample, and extending it now — after seeing these two cases — would be
+exactly the kind of post-hoc, result-driven scope change the project's guardrails warn
+against ("no objective or research question may presuppose its own result" is the
+nearest-in-spirit guardrail, applied here to scope rather than a threshold). See
+`decisions.md` for the full decision record.
+
+**C2 gazetteer limitation (restated from the table note above):** ~75 major cities, ~55
+ISO country names, and US states — not exhaustive. A genuine location mismatch written
+with a place outside this list is under-counted as "not evaluable," not wrongly flagged —
+the safer direction for a reported coverage figure.
 
 ### Baseline results (O2) — [DATE]
 
