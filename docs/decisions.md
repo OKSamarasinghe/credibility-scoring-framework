@@ -16,6 +16,294 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 8b executed: near-identical explanations for the two BBB-sourced
+examples, confirmed as the Decision 0.4 field asymmetry, not a bug
+
+- **What happened:** `stage8b_select.py` ran clean (154/154 Tier 2 postings scored,
+  3 selected by the pre-registered rule above). But `clear_fraud` (fraud#10) and
+  `ambiguous` (fraud#20) — both drawn from BBB Scam Tracker — came back with **word-for-
+  word identical `top_reasons`**, and both showed **`suspicious_phrases: []`** despite
+  being confirmed real scams. Before writing either into methodology.md I checked both
+  against the raw source data rather than assuming either was a defect.
+
+- **Finding 1 — identical top_reasons, verified cause:** I read the raw JSONL records for
+  both postings directly (`data/raw/tier2/tier2_fraud_raw.jsonl`, index 10 and 20). Every
+  single structured field — title, location, department, salary_range, employment_type,
+  required_experience, required_education, industry, function, company_profile,
+  telecommuting, has_company_logo, has_questions — is `None` on **both** records; they
+  differ only in free-text description. Stage 7's SHAP design (logged already) deliberately
+  scopes explanation to the 46 structured E1-E4 features and holds DistilBERT's [CLS] text
+  embedding fixed, unexplained. Two postings with identical (all-null) structured vectors
+  therefore produce near-identical structured-feature SHAP rankings by construction, even
+  though their actual scores differ (7 vs. 25) because that difference is driven entirely by
+  DistilBERT's reading of the different description text — a channel this explanation
+  pathway doesn't expose. This is the SAME field-asymmetry property already logged in
+  Decision 0.4 ("Tier 2 field symmetry... BBB Scam Tracker reports document almost no
+  structured fields"); Stage 8b's live output is the first place it was actually seen to
+  bite, not a new problem.
+
+- **Finding 2 — `suspicious_phrases: []`, verified not a bug:** I pulled both description
+  texts and checked them against every compiled pattern in `E1_LEXICON`
+  (`src/features/extract_features.py`) directly — zero matches on either text, confirmed by
+  running the actual compiled regex groups against the actual text, not by inspection. The
+  lexicon targets "classic" scam-ad phrasing (guaranteed income, wire transfer, act now);
+  these two BBB reports are written in a more modern, narrative, first-person-victim-report
+  style that doesn't use that phrasing. The full fused model still flagged both with high
+  confidence (93%, 75% calibrated P(fraud)) through other signals — text embedding +
+  structural completeness — which is a point *for* the multi-signal design over a
+  lexicon-only approach, not evidence against it, but it does mean E1's contribution to
+  these two particular explanations is honestly zero, and methodology.md's Stage 8b table
+  says so rather than hiding it.
+
+- **Finding 3 — `ambiguous`'s calibrated P(fraud)=0.75 is not a literal coin-flip:** by
+  construction, `ambiguous` is the Tier 2 posting whose calibrated P(fraud) is closest to
+  0.50 among all 154 — that is guaranteed by the selection code, not something I needed to
+  re-verify. But 0.75 is not close to 0.50 in any absolute sense. I have NOT re-run all 154
+  scores to inspect the full distribution (would need the student's torch-enabled venv, not
+  available to me directly), so I can't measure how skewed it is — I can only report what
+  the selection already proved: 0.75 was the single closest value available across all 154,
+  meaning the model essentially never expressed genuine 50/50 uncertainty on this Tier 2
+  sample. A plausible explanation is the sigmoid-saturation/skew behaviour already documented
+  in Stage 7, but that is an unverified inference, flagged as such, not a measured fact —
+  Stage 9's full Tier 2 run will show the actual probability distribution.
+
+- **Why none of this was fixed:** all three are properties of the data and the already-
+  agreed SHAP scope, not implementation defects — there is nothing here that a code fix
+  closes without reopening Decision 0.4 or Stage 7's SHAP-scope decision, which were each
+  already made deliberately and for stated reasons. Re-opening them now, after seeing this
+  one demo's output, would itself violate "a threshold set after seeing results is not a
+  threshold" by a different name.
+
+- **What I gave up:** a cleaner-looking three-example table. The honest version says plainly
+  that two of the three explanations look alike and that neither flags a lexicon phrase, and
+  explains why, rather than quietly presenting only the parts that look good.
+
+- **Self-check:** *Why does "the two explanations are nearly identical" not contradict
+  "the model scored them differently and correctly," and what would have to be true about
+  SHAP's scope for that not to happen?*
+
+---
+
+## 2026-10-08 — Stage 8b selection method: how to pick 3 "real" postings without cherry-picking
+
+- **Context:** PROJECT_PLAN.md commits to Stage 8b running "3 real postings through the live
+  API — clear fraud, clear legit, one genuinely ambiguous. No cherry-picking." That commitment
+  is empty without a pre-specified rule for what "clear" and "ambiguous" mean — otherwise
+  "no cherry-picking" just means I don't LOOK like I picked favourably, while still reading
+  posting text and choosing whichever three tell the best story. Decided and logged here
+  BEFORE running the selection script or looking at any individual posting's output.
+
+- **Source:** Tier 2 (`data/raw/tier2/tier2_fraud_raw.jsonl` + `tier2_legit_raw.jsonl`, 24 +
+  130 = 154 real postings), not EMSCAD's test split. Two reasons: (1) EMSCAD test is
+  untouched until Stage 9's one-time evaluation — using even 3 test rows here would spend
+  that guardrail before Stage 9 runs, for a demonstration that doesn't need it; (2) Tier 2 is
+  genuinely external, contemporary, real-world data, never used for training — closer to what
+  "a real job seeker pastes a real posting" actually means than a 2012-2014 EMSCAD row would
+  be. Stage 9 still runs the FULL 154-posting Tier 2 set for its own quantitative temporal-
+  transfer result later — pulling 3 out now for a qualitative demo doesn't spend or bias that
+  (FEDS positioning already distinguishes demonstration, "does it work at all," from
+  evaluation, "how well" — different stages, different purposes).
+
+- **Selection rule (mechanical, blind to posting content):**
+  1. Score all 154 Tier 2 postings through the real, frozen pipeline (score only — SHAP
+     explanation computed only for the 3 finally selected, not all 154).
+  2. **Clear fraud** = the TRUE-fraud posting with the HIGHEST calibrated P(fraud) — the
+     model's own most confident correct fraud call.
+  3. **Clear legit** = the TRUE-legit posting with the LOWEST calibrated P(fraud) — the
+     model's own most confident correct legit call.
+  4. **Ambiguous** = the posting (either true label) with calibrated P(fraud) closest to
+     0.50 — genuine model uncertainty, not my subjective read of how convincing the text is.
+
+- **Options considered:** (A) read through Tier 2 myself and pick 3 examples that illustrate
+  the framework well; (B) the mechanical rule above, applied to the model's own output;
+  (C) random selection (one random true-fraud, one random true-legit, one random overall).
+- **Why B:** option A is cherry-picking with extra steps — "no cherry-picking" has to mean
+  the SELECTION PROCEDURE can't see posting content before committing to which ones get used,
+  not just that I don't admit to liking the examples. Option C is honestly non-cherry-picked
+  too, but a random "ambiguous" pick could easily land on a posting the model is actually
+  quite confident about by chance (with only 154 postings, a uniform random draw isn't
+  guaranteed to land anywhere near the 0.5 boundary) — which would undercut exactly the point
+  Framework_Explanation_Walkthrough.docx makes about why the ambiguous case matters ("shows
+  how the framework behaves in the middle of the distribution"). Option B gets genuine
+  ambiguity by construction while staying just as blind to content as random selection.
+- **What I gave up:** the chance to hand-pick a posting that makes for the cleanest possible
+  demo narrative. That is precisely the cost "no cherry-picking" is supposed to impose.
+- **Self-check:** *Why does picking posting content myself still count as "cherry-picking"
+  even if I only look at the MODEL'S output and not the text, and why does random selection
+  not fully solve the "genuine ambiguity" requirement the way the closest-to-0.5 rule does?*
+
+---
+
+## 2026-10-08 — Stage 8 smoke test caught an inverted credibility score (direction bug, not a Stage 8-only bug — traced to calibrate.py's own framing)
+
+- **What happened:** the first real end-to-end run of the wired API (`stage8_smoke_test.py`)
+  scored an obviously fraudulent posting (urgent hiring, guaranteed $500/day, registration
+  fee, "contact us at our personal email", act-now pressure) at **71/100, "Low risk"**, and
+  scored a clean, complete, ordinary posting at **2/100, "High risk"** — exactly backwards.
+
+- **Root cause:** the DistilBERT+evidence model is trained on `y = train["fraudulent"]`
+  (`train_distilbert.py`), so its raw and calibrated output is **P(fraudulent=1)**, not
+  P(credible). `calibrate.py`'s own docstring states "the 0-100 `credibility_score` Stage
+  8's API returns is this calibrated probability x 100" and its code computes
+  `scores_0_100 = final_prob * 100` directly — treating calibrated P(fraud) as if it were
+  already a credibility score. Confirmation this was wrong, not a one-off: the file's own
+  `calibrated_score_summary.mean` is **4.85 on validation**, matching the ~4.8% fraud base
+  rate almost exactly — i.e. it is unambiguously the mean of calibrated P(fraud), not
+  P(credible) (whose mean should sit near 95.2, not 4.85). I built Stage 8 against this
+  existing convention without re-deriving it from the training label, and carried the same
+  inversion into `pipeline.py`'s `run_inference()` — and, separately, into
+  `_describe_feature()`'s "raised/lowered the score" wording, since SHAP there explains the
+  same fraud-direction logit (Stage 7's own convention; correct for Stage 7's purposes,
+  which never relabels it as "credibility").
+
+- **What is NOT affected:** the calibration science itself. Brier/ECE, which calibrator won
+  (isotonic), the reliability curve, and Stage 7's entire SHAP/fidelity analysis are all
+  computed against the `fraudulent` label consistently and remain correct — only the final
+  semantic label attached to the 0-100 number ("credibility" vs. "fraud risk") was backwards.
+  This is contained to: (1) `calibrate.py`'s docstring/variable naming (not fixed — see
+  below), (2) one sentence in `methodology.md`'s Calibration section (fixed, see that file),
+  (3) `src/api/pipeline.py` (fixed, this entry), (4) a standing warning for whoever writes
+  Stage 9's final results, so the same inversion isn't re-introduced there.
+
+- **Fix (`src/api/pipeline.py`, `run_inference`):** the model/calibrator's output is now
+  explicitly named `calibrated_fraud_prob` (not `calibrated_prob`), and
+  `credibility_prob = 1.0 - calibrated_fraud_prob` is computed as its own step before
+  `score = round(credibility_prob * 100)`. `_describe_feature()`'s direction logic flipped
+  to match (`direction = "lowered" if shap_value > 0 else "raised"`, since a feature that
+  pushes the logit up pushes P(fraud) up, which lowers credibility). `risk_band_from_score()`
+  itself needed NO change — it was already written correctly (low score -> High risk, per
+  Finding 1 earlier today); it was simply being fed an already-inverted score.
+
+- **`calibrate.py` itself deliberately left unchanged:** its stored numbers
+  (`calibrated_score_summary`, Brier, ECE, the selected calibrator) are all still accurate
+  descriptions of calibrated P(fraud) — re-running Stage 6 would not change any of them.
+  Only the English label "credibility_score" attached to that number, in the docstring and
+  in methodology.md, was wrong. Fixing the docstring there is low-risk housekeeping, not
+  logged as a separate decision; the methodology.md sentence is corrected directly (see
+  that file's Calibration section) since that one DOES claim a specific interpretation in a
+  document that will be read standalone.
+
+- **Why this matters beyond Stage 8:** if this had gone uncaught until Stage 9 (which
+  reports the final, citable test-set numbers) or into Chapter 4's write-up, "credibility
+  score" would have been reported backwards in the dissertation's headline result — a
+  Discussion-chapter-breaking error, not a cosmetic one. Caught here specifically because
+  Stage 8's smoke test ran two hand-picked, obviously-labelled examples (one clearly
+  fraudulent, one clearly ordinary) BEFORE Stage 8b's formal demonstration and well before
+  Stage 9 — exactly what hand-picked smoke-test examples are for.
+
+- **Also fixed in the same review pass (templating bug, not another direction inversion):**
+  `_describe_feature()`'s `E1_phrase_*` and `E2_location_specificity` branches always said
+  a phrase "was found" / named an active category, without checking whether the feature's
+  value was actually 1 — harmless in this run (the phrases it named for the "suspicious"
+  smoke-test example genuinely were present) but a latent correctness bug: if SHAP ever
+  ranks a feature's ABSENCE as important, the old text would have falsely claimed something
+  was found that wasn't. Both branches now check `value >= 0.5` the same way the
+  `E3_*_present` / `E2_company_profile_present` branches already did correctly.
+
+- **A genuine (non-bug) finding from the same smoke-test run, worth knowing before Stage 8b
+  or a viva:** for the "suspicious" example, 2 of the top-5 SHAP reasons showed a scam-style
+  phrase group (`off_platform_contact`, and the overall `E1_suspicious_phrase_count`)
+  RAISING credibility rather than lowering it, while the model's overall verdict (29/100,
+  correctly "High risk") was still right. Not re-litigated or "corrected" here — overriding
+  individual SHAP signs to match intuition would fabricate agreement between the explanation
+  and a prior belief, exactly what Stage 7's fidelity testing exists to check for
+  objectively rather than assume. Plausible (not verified) explanation: `train_distilbert.py`
+  already documents that E1 features are REDUNDANT with the raw text DistilBERT reads
+  directly (its own [CLS] embedding is held fixed; only the structured E1 flag is toggled),
+  and a redundant feature's own head-weight can be locally noisy/counter-signed for a
+  specific instance without damaging the model's overall accuracy or Stage 7's
+  aggregate SHAP-vs-random fidelity result. Only two hand-picked examples were run — this is
+  an observation to keep in mind, not a measured, general claim. Worth a sentence in Chapter
+  5 if this exact example or anything like it is used in Stage 8b's demonstration.
+
+- **Self-check:** *Why does "mean calibrated score = 4.85, matching the fraud base rate"
+  prove the number is P(fraud), not P(credible) — and why did Stage 7's SHAP/fidelity
+  results not need any correction even though they use the exact same model output?*
+
+---
+
+## 2026-10-08 — Stage 8 wiring: API input contract resolved (schema expanded, not text-only); two deployment-time findings caught before shipping
+
+- **Context:** starting Stage 8 (replacing the four stub functions in `src/api/main.py`), I
+  read Stage 4's real code (`extract_features.py`) against the API contract and found the
+  project's own files disagreed. `schemas.py` / `PROJECT_PLAN.md` / `project.md` describe
+  `/score`'s input as raw text (primary) or a URL (secondary) only. But the already-finalized
+  `Framework_Explanation_Walkthrough.docx` (Step 1) says "the primary input path is raw
+  posting text **with any structured fields the caller can supply**." `extract_all()` needs
+  15 EMSCAD-shaped columns to do E2/E3/E4 at all — most of them (`salary_range`,
+  `employment_type`, `required_experience`, `required_education`, `department`, `industry`,
+  `function`, `has_company_logo`, `has_questions`) are platform metadata, not something
+  recoverable by parsing pasted prose. A text-only contract would make E3/E4 — the project's
+  actual contribution — permanently dark on every live request.
+
+### Decision 1 — expand `ScoreRequest`, don't keep it text-only
+
+- **Options considered:** (A) expand `ScoreRequest` with the ~10 structured fields as
+  optional inputs, matching the walkthrough doc; (B) keep text-only, every structured field
+  permanently missing at inference time; (C) keep text-only, but heuristically split the
+  pasted blob into title/requirements/benefits sections to recover some fields.
+- **Why A:** reuses `extract_features.py`'s existing missingness semantics completely
+  unchanged — an unsupplied field at inference time is handled by exactly the same code path
+  as a missing field in EMSCAD, not a new behaviour. Keeps E3/E4 meaningfully alive for real
+  queries, including Stage 8b's planned "ambiguous case" demonstration, which per the
+  walkthrough doc depends on at least one structured-field-vs-text contradiction actually
+  being checkable. Resolves the inconsistency in favour of the document that was already
+  finalized and specific, rather than the shorter PROJECT_PLAN.md/project.md bullets, which
+  read as an abbreviation that drifted, not a deliberate redesign. Option C was rejected
+  specifically: splitting a text blob into EMSCAD-shaped sections is an untested, unvalidated
+  heuristic the model was never trained or tested against — it would silently create a
+  train/inference mismatch worse than honestly leaving a field missing.
+- **What I gave up:** PROJECT_PLAN.md's and project.md's one-line "Input" descriptions needed
+  a one-line correction (not a redesign) to match what the walkthrough doc already committed
+  to. A slightly more complex request schema than the original "just paste some text" pitch.
+- **Delegated:** I raised this as a blocking question before writing any Stage 8 code; the
+  answer was to use my own judgement given full authority, so this decision is mine to defend
+  in a viva, not a student-made call relayed here.
+- **Self-check:** *Why is heuristically splitting pasted text into EMSCAD-shaped sections
+  (option C) worse than just leaving the unsupplied structured fields genuinely missing?*
+
+### Finding 1 — `calibrate.py`'s `risk_bands_0_100` dict keys name the SCORE band, not the risk level
+
+- **What I found:** `models/stage6_calibrator.joblib` / `reports/stage6_calibration_results.json`
+  store `risk_bands_0_100 = {"low": [0,33], "medium": [34,66], "high": [67,100]}`. Read
+  naively, a score of 10 would map to `risk_band="Low"` — but `credibility_score` is defined
+  (schemas.py) as "higher = more credible," so a score of 10 is the HIGH-risk end, not low.
+  The dict's own key names describe the position of the score band, not the direction of risk.
+- **Fix:** `src/api/pipeline.py`'s `risk_band_from_score()` uses the same two thresholds
+  (33/66, the real Stage-6-measured terciles) but maps them score-low→`"High"`,
+  score-mid→`"Medium"`, score-high→`"Low"` — the inverse of `calibrate.py`'s own key labels.
+  Confirmed against the one place project documentation states the intended direction
+  explicitly (`Framework_Explanation_Walkthrough.docx`, "0–39 High risk ... 70–100 Low") —
+  only the DIRECTION is taken from that doc, never its specific numbers (guardrail: that
+  file's numbers are an illustrative worked example, never citable — see sources.md #17).
+  The actual thresholds used are Stage 6's own measured terciles.
+- **Not revisited in `calibrate.py` itself** — renaming its dict keys is a harmless cosmetic
+  fix but touches an already-reported Stage 6 results file; left as-is with this note, since
+  Stage 8 is the only consumer and now handles the direction correctly.
+
+### Finding 2 — E2's contact-token features are structurally inert on real deployment text
+
+- **What I found:** Stage 1's `extract_contact_tokens()` (and therefore `E2_url_token_count`
+  / `E2_email_token_count` / `E2_phone_token_count`) matches EMSCAD's specific anonymisation
+  placeholder format (`#EMAIL_[hex]#`, etc.) — not a real email address, phone number, or
+  URL. EMSCAD's own description text already has these baked in (the dataset's own
+  anonymisation leaves hashed tokens in place of real contact details). A real job seeker
+  pasting a real posting will never produce that literal token format, so these three
+  features will read 0 for every live API request, regardless of whether the posting
+  actually pushes off-platform contact.
+- **Decision:** not fixed now. Building a second, live-text contact-detector (real email/
+  phone/URL regexes) would be new scope the student hasn't signed off on, not a Stage 8
+  wiring task, and risks silently changing what the trained model's E2 features mean versus
+  what was measured and reported in Stage 9. Logged here as a disclosed, known deployment
+  characteristic — worth a sentence in Chapter 6 limitations — not silently left unmentioned.
+- **Revisit if:** the student wants a live-text contact-pressure signal added to the API
+  response (e.g. for `verification_checklist`) as separate, clearly-labelled, non-trained
+  logic — never folded back into the E2 feature vector the trained model actually consumes.
+- **Self-check:** *Why can't `E2_*_token_count` detect a real email address pasted into a
+  live `/score` request, and why is "fix it now" the wrong move for Stage 8?*
+
+---
+
 ## 2026-10-08 — Stage 7 complete: logit-space fidelity run gives a real, consistent SHAP-vs-random gap; rule-consistency caveat strengthened by what the re-run showed
 
 - **Results (seed-0 model, 260 validation postings, logit-space, 26.9s total runtime):**

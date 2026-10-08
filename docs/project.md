@@ -87,9 +87,11 @@ the *extent of change*, not an improvement. A negative finding still completes t
 ## The artefact
 
 - **What it is:** a backend REST API (FastAPI) exposing a `/score` endpoint.
-- **What it does:** accepts a job posting (raw text primary; URL best-effort secondary),
-  runs preprocessing → multi-signal evidence extraction → prediction → calibration →
-  explanation, and returns structured JSON.
+- **What it does:** accepts a job posting (raw text primary, plus any structured EMSCAD
+  fields the caller can supply — salary_range, employment_type, etc.; URL best-effort
+  secondary), runs preprocessing → multi-signal evidence extraction → prediction →
+  calibration → explanation, and returns structured JSON. See decisions.md, 2026-10-08,
+  for why text-only would have left E3/E4 permanently dark on every live request.
 - **Response fields:** `credibility_score` (0–100), `risk_band`, `top_reasons`,
   `suspicious_phrases`, `contradictions`, `verification_checklist`.
 - **Hard constraints:** single developer; no paid data sources; English-language postings

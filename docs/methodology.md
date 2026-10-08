@@ -714,9 +714,16 @@ calibrated 0–100 score. Simple terciles, not validated against an external sta
 `PROJECT_PLAN.md` already records evaluation thresholds as open pending supervisor input;
 revisit if a contact window opens before submission.
 
-Calibrated-score summary on validation: mean 4.8, range [0.0, 95.7] — consistent with the
-true ~4.8% fraud base rate, a reasonable sign the calibrated score isn't systematically
-shifted.
+Calibrated-**fraud-probability** summary on validation: mean 4.8, range [0.0, 95.7] —
+consistent with the true ~4.8% fraud base rate, a reasonable sign the calibration isn't
+systematically shifted. **Correction, 2026-10-08:** this number is calibrated P(fraudulent),
+not the API's `credibility_score` — the two are complements
+(`credibility_score = (1 − calibrated P(fraud)) × 100`). An earlier version of this sentence
+called it "the calibrated score" without that distinction, which `src/api/pipeline.py`
+briefly inherited as a real bug (Stage 8 smoke test scored an obvious scam posting 71/100
+"Low risk") before being caught and fixed the same day — see decisions.md, 2026-10-08,
+"Stage 8 smoke test caught an inverted credibility score." Nothing about the calibration
+itself (Brier/ECE, which calibrator won) changes; only this label.
 
 ### Explanation fidelity (O4) — 2026-10-08
 
@@ -794,10 +801,49 @@ this stage instead of a test subsample.
 - T2 signal durability — per-category Δ comparison across eras: [ ]
 - T3 domain adaptation recovery: [ ]
 
-### Demonstration (Step 4) — [DATE]
+### Demonstration (Step 4) — 2026-10-08
 
-| Case | Type | Score | Band | Contradictions found | Notes |
-|---|---|---|---|---|---|
-| 1 | Clear fraud | | | | |
-| 2 | Clear legitimate | | | | |
-| 3 | Ambiguous | | | | |
+Source: Tier 2 (154 real postings: 24 fraud, 130 legit), not EMSCAD test. Selection was a
+pre-registered, content-blind mechanical rule — not hand-picked — run before any posting
+was individually inspected (decisions.md, "Stage 8b selection method"). All three examples
+were run through the real, live `/score` pipeline (`src/api/pipeline.py`, the same code
+`src/api/main.py` calls), not a notebook shortcut. Full output in
+`reports/stage8b_demonstration.json`.
+
+| Case | Type | Source | Score | Band | Calibrated P(fraud) | Contradictions found | Notes |
+|---|---|---|---|---|---|---|---|
+| 1 | Clear fraud | BBB Scam Tracker #973052 (fraud#10) | 7 | High | 0.933 | 0 fired | See note (a), (b) below |
+| 2 | Clear legitimate | Stripe careers site (legit#19) | 100 | Low | 0.000 | 0 fired | Correctly confident despite several missing structured fields (no company_profile, no industry) |
+| 3 | Ambiguous | BBB Scam Tracker #744199 (fraud#20) | 25 | High | 0.750 | 0 fired | See note (a), (c) below |
+
+**(a) Cases 1 and 3's `top_reasons` are word-for-word identical.** Both source records have
+every structured field (location, department, salary_range, employment_type, industry,
+company_profile, etc.) set to `None` — verified directly against the raw Tier 2 JSONL, not
+inferred. SHAP's scope (Stage 7, logged) is deliberately limited to the 46 structured E1-E4
+features; DistilBERT's text embedding, which is what actually drives the two postings'
+different scores (7 vs. 25), is held fixed and never explained by this pathway. Two
+postings with identical (all-null) structured vectors therefore produce near-identical
+structured-feature SHAP rankings by construction — this is the Decision 0.4 field-asymmetry
+risk (Tier 2 / BBB Scam Tracker reports carry almost no structured metadata), now
+concretely observed in a live demonstration rather than only anticipated. Logged in full,
+with the verification steps taken, in decisions.md, 2026-10-08.
+
+**(b) Both fraud examples show `suspicious_phrases: []`.** Checked directly: neither
+description matches any pattern in any `E1_LEXICON` group (`src/features/extract_features.py`)
+— zero matches, confirmed by running the actual compiled regexes against the actual text.
+The lexicon targets "classic" scam-ad phrasing (guaranteed income, wire transfer, act now);
+these two BBB victim reports are written in a more modern, narrative, first-person style
+that the lexicon wasn't built to catch. The fused model still correctly flagged both with
+high confidence (93.3%, 75.0% calibrated P(fraud)) through the DistilBERT text channel and
+structural-completeness signals — evidence *for* the multi-signal design over lexicon
+matching alone, but it means E1's contribution to these two specific explanations is
+honestly zero, not a defect being concealed.
+
+**(c) Case 3's calibrated P(fraud) = 0.75 is not a literal coin-flip.** By construction it
+is the single Tier 2 posting (of all 154) whose calibrated P(fraud) is closest to 0.50 —
+guaranteed by the selection rule, not re-verified separately — but 0.75 itself is not close
+to 0.50 in absolute terms. This was not re-measured against the full 154-posting
+distribution (would require the full torch-enabled scoring run); Stage 9's Tier 2 temporal-
+transfer run will report that distribution directly. A plausible but **unverified**
+explanation is the probability-skew/saturation behaviour already documented under
+"Explanation fidelity (O4)" above — flagged here as inference, not measurement.

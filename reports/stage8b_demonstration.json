@@ -1,0 +1,85 @@
+{
+  "selection_rule": "clear_fraud = true-fraud posting with max calibrated P(fraud); clear_legit = true-legit posting with min calibrated P(fraud); ambiguous = any posting with calibrated P(fraud) closest to 0.5. Pre-specified before looking at any posting individually -- decisions.md, 2026-10-08, 'Stage 8b selection method'.",
+  "n_tier2_total": 154,
+  "n_scored": 154,
+  "results": {
+    "clear_fraud": {
+      "source_file": "fraud",
+      "source_index": 10,
+      "source_url": "https://www.bbb.org/scamtracker/lookupscam/973052",
+      "source_company_name": "Employment scam",
+      "true_fraudulent": 1,
+      "title": null,
+      "credibility_score": 7,
+      "risk_band": "High",
+      "calibrated_fraud_prob": 0.9333,
+      "top_reasons": [
+        "The posting's location (none) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The posting's location (city) was NOT specified at this level, which lowered the score.",
+        "The 'C2_field_present' signal lowered the score.",
+        "The 'C5_field_present' signal raised the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    },
+    "clear_legit": {
+      "source_file": "legit",
+      "source_index": 19,
+      "source_url": "https://stripe.com/jobs/search?gh_jid=8138044",
+      "source_company_name": "Stripe",
+      "true_fraudulent": 0,
+      "title": "Account Executive, AI Sales",
+      "credibility_score": 100,
+      "risk_band": "Low",
+      "calibrated_fraud_prob": 0.0,
+      "top_reasons": [
+        "The posting's location (region) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The 'industry' field was missing, which raised the score.",
+        "Only 0% of standard posting fields were filled in, which raised the score.",
+        "The 'has_company_logo' field was missing, which lowered the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    },
+    "ambiguous": {
+      "source_file": "fraud",
+      "source_index": 20,
+      "source_url": "https://www.bbb.org/scamtracker/lookupscam/744199",
+      "source_company_name": "Employment Chef",
+      "true_fraudulent": 1,
+      "title": null,
+      "credibility_score": 25,
+      "risk_band": "High",
+      "calibrated_fraud_prob": 0.75,
+      "top_reasons": [
+        "The posting's location (none) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The posting's location (city) was NOT specified at this level, which lowered the score.",
+        "The 'C2_field_present' signal lowered the score.",
+        "The 'C5_field_present' signal raised the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    }
+  }
+}

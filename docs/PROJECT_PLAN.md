@@ -197,13 +197,23 @@ excuse to touch the test set twice.*
   control, rule-consistency with a Wilson CI. Used VALIDATION, not test, for the fidelity
   sample (a decision, logged in decisions.md, not the plan text's original suggestion).
   Full results in methodology.md's "Explanation fidelity (O4)" section.
-- [ ] Wire Stage 8: replace the four stub functions in `src/api/main.py`
-  (`preprocess`, `extract_features`, `predict`, `explain`) with the real Stage 1/4/5-6/7
-  code, one function at a time, without touching the route handler. Run one real end-to-end
-  request with no stubs left.
-- [ ] Run Stage 8b: 3 real postings through the live API — clear fraud, clear legit, one
-  genuinely ambiguous. No cherry-picking. Write results straight into `methodology.md`, kept
-  separate from Stage 9.
+- [x] Stage 8 (API wiring) — code complete, 2026-10-08. `src/api/pipeline.py` wires the real
+  Stage 1/4/5-6/7 code behind `/score` (`src/api/main.py` stays a thin route). Two real bugs
+  caught by the first end-to-end smoke test, both fixed same day: (1) a request-schema gap —
+  `ScoreRequest` was text/URL-only but Stage 4 needs ~10 structured EMSCAD fields that can't
+  be parsed from prose, so E3/E4 would have been permanently dark on every live request
+  (decisions.md); (2) a serious direction bug — `credibility_score` was computed as calibrated
+  P(fraud)×100 instead of its complement, so an obvious scam posting scored 71/100 "Low risk"
+  on the first run. Both logged in detail in decisions.md, 2026-10-08. Smoke-tested via
+  `src/api/stage8_smoke_test.py` on two hand-written examples (one planted red flags, one
+  ordinary); not yet the formal, no-cherry-picking Stage 8b run below.
+- [x] Run Stage 8b: 3 real postings through the live API — clear fraud, clear legit, one
+  genuinely ambiguous. No cherry-picking, 2026-10-08. Selected by a pre-registered mechanical
+  rule over all 154 Tier 2 postings (decisions.md); results written into `methodology.md`,
+  kept separate from Stage 9. Two of the three explanations (both BBB-sourced fraud cases)
+  came back near-identical and both showed no lexicon matches — investigated and confirmed
+  as the already-logged Decision 0.4 field-asymmetry risk actually showing up, not a bug;
+  full write-up with verification steps in decisions.md and methodology.md.
 - [ ] Run Stage 9: full metric set on the test set, **used exactly once**; leave-one-category-
   out ablation at whatever seed count Day 3 settled on; Tier 2 temporal transfer (T1/T2/T3)
   — Tier 2 is ready on both sides, so this runs for real, not as the qualitative fallback;
@@ -287,8 +297,13 @@ a change; it does not presuppose the change is positive.
 
 A backend REST API (**FastAPI**) exposing a **`/score`** endpoint.
 
-- **Input:** raw job-posting text (primary, supported path) or a posting URL (secondary,
-  best-effort, only where terms allow automated retrieval).
+- **Input:** raw job-posting text (primary, supported path), with any of the ~10 structured
+  EMSCAD-shaped fields (salary_range, employment_type, required_experience, etc.) the caller
+  can optionally supply, so E3/E4 have something to check beyond prose — a posting URL is
+  accepted secondary and best-effort, only where terms allow automated retrieval. Resolved
+  2026-10-08 (decisions.md) after finding this file's original one-liner (text/URL only)
+  contradicted `Framework_Explanation_Walkthrough.docx`, which already specified "raw text
+  with any structured fields the caller can supply."
 - **Pipeline, executed end-to-end per request:** preprocessing → feature extraction →
   prediction → explainability.
 - **Output — single JSON object:**
@@ -468,16 +483,19 @@ Section 8 below still apply unchanged to every stage.
 - [x] Random-attribution control compared against (10 reps/posting; SHAP beats it at every
   k tested)
 
-### Stage 8 — API, real pipeline wiring (Day 4)
+### Stage 8 — API, real pipeline wiring (Day 4) — ✅ CODE COMPLETE, 2026-10-08
 
 - [x] Skeleton built and tested
-- [ ] All four stub functions wired to real code
-- [ ] End-to-end real request tested, no stubs remaining
+- [x] All four stub functions wired to real code (`src/api/pipeline.py`)
+- [x] End-to-end real request tested, no stubs remaining (`stage8_smoke_test.py`, two
+  examples) — two real bugs found and fixed same day: request-schema gap (text-only would
+  have left E3/E4 dark), and an inverted `credibility_score` (scored an obvious scam 71/100
+  "Low risk" before the fix). See decisions.md, 2026-10-08.
 
-### Stage 8b — Demonstration (Day 4)
+### Stage 8b — Demonstration (Day 4) — ✅ DONE, 2026-10-08
 
-- [ ] Fraud, legitimate, and ambiguous examples run and captured
-- [ ] Results written into `methodology.md`, kept separate from Stage 9
+- [x] Fraud, legitimate, and ambiguous examples run and captured
+- [x] Results written into `methodology.md`, kept separate from Stage 9
 
 ### Stage 9 — Evaluation (Day 4)
 
