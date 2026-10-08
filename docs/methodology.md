@@ -718,10 +718,62 @@ Calibrated-score summary on validation: mean 4.8, range [0.0, 95.7] — consiste
 true ~4.8% fraud base rate, a reasonable sign the calibrated score isn't systematically
 shifted.
 
-### Explanation fidelity (O4) — [DATE]
+### Explanation fidelity (O4) — 2026-10-08
 
-- Comprehensiveness: [ ] · Sufficiency: [ ] · Random control: [ ]
-- Rule-consistency: [ ]% of raised flags present in generated explanations
+**Sample:** validation split, all fraud postings (130) + an equal-sized random sample of
+validation legitimate postings (130) = 260 total. Not prevalence-representative by design
+(decisions.md) — oversampled the minority class for statistical power on the fidelity
+tests, which is a statistic about the explanations, not about the dataset.
+
+**Method:** SHAP (`KernelExplainer`, `nsamples=3000`, `l1_reg=0`) over the 46 structured
+E1–E4 features, holding each posting's own DistilBERT [CLS] embedding fixed and varying
+only the structured vector through the model's MLP head (`FusedModel.head`) — never
+re-running DistilBERT per coalition sample. Runtime: 26.9s total / 0.10s per posting on
+the seed-0 model (fast, because only the MLP head is evaluated per coalition, not the full
+transformer).
+
+SHAP and the fidelity tests explain the model's raw **logit** (pre-sigmoid), not the
+post-sigmoid probability. A first run in probability space produced a positive but tiny
+SHAP-vs-random gap (comprehensiveness ~0.002) — traced to most postings' predicted
+probability sitting in the saturated, near-zero part of the sigmoid, which compresses any
+feature's measurable effect regardless of explanation quality. Switching to logit space
+(unsaturated) is a measurement correction, not a re-run for a better-looking number — full
+reasoning in `decisions.md`, 2026-10-08.
+
+**Comprehensiveness / sufficiency, SHAP vs. a random-ranking control (10 reps/posting), in
+logit units:**
+
+| k (of 46 features) | SHAP comprehensiveness | Random comprehensiveness | Gap | SHAP \|sufficiency\| | Random \|sufficiency\| |
+|---|---|---|---|---|---|
+| 2 | 0.0390 | 0.0023 | +0.0367 | 0.0388 | 0.0660 |
+| 5 | 0.0457 | 0.0055 | +0.0402 | 0.0203 | 0.0615 |
+| 10 | 0.0451 | 0.0106 | +0.0345 | 0.0110 | 0.0541 |
+| 15 | 0.0417 | 0.0149 | +0.0267 | 0.0079 | 0.0464 |
+| 23 | 0.0430 | 0.0231 | +0.0199 | 0.0022 | 0.0346 |
+
+At every k, SHAP's ranking removes more predictive signal when its top features are
+deleted (comprehensiveness) and preserves the prediction far better when only its top
+features are kept (sufficiency) than a random ranking does — a consistent fidelity signal,
+not an artefact of one favourable k.
+
+**Rule-consistency:** 100% (14/14 postings with ≥1 fired C1–C6 contradiction had that
+rule's feature inside SHAP's top-ranked features), identical at top-5, top-10, and top-15
+— 95% Wilson CI [0.785, 1.000] at every k (n=14; a perfect mean from a small n is weaker
+evidence than "100%" suggests on its own, hence the CI). The result being identical at
+top-5 and top-15 is itself informative: a fired contradiction flag's feature lands inside
+the very top 5 of 46 features every time, not just inside a looser top-15 cutoff.
+
+**Limitation, stated plainly:** sparse binary features — most postings have
+`C{i}_contradiction = 0`, so the rare posting where one fires sits far from its
+background/mean value — structurally tend to receive large SHAP attributions on that
+basis alone, independent of whether the model's prediction genuinely depends on that rule
+versus any other rare deviation. The 100% rule-consistency figure is consistent with the
+model substantively relying on the C1–C6 rules, but this script cannot separate that from
+the structural effect; Chapter 5 should carry this caveat rather than present
+rule-consistency as unqualified proof the model "uses" the rules.
+
+**Not run on the test split, anywhere** — see decisions.md for why validation was used for
+this stage instead of a test subsample.
 
 ### Ablation (O5) — [DATE]
 

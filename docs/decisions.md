@@ -16,6 +16,189 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 7 complete: logit-space fidelity run gives a real, consistent SHAP-vs-random gap; rule-consistency caveat strengthened by what the re-run showed
+
+- **Results (seed-0 model, 260 validation postings, logit-space, 26.9s total runtime):**
+
+  | k | SHAP comp. | Random comp. | Gap | SHAP \|suff.\| | Random \|suff.\| |
+  |---|---|---|---|---|---|
+  | 2 | 0.0390 | 0.0023 | +0.0367 | 0.0388 | 0.0660 |
+  | 5 | 0.0457 | 0.0055 | +0.0402 | 0.0203 | 0.0615 |
+  | 10 | 0.0451 | 0.0106 | +0.0345 | 0.0110 | 0.0541 |
+  | 15 | 0.0417 | 0.0149 | +0.0267 | 0.0079 | 0.0464 |
+  | 23 | 0.0430 | 0.0231 | +0.0199 | 0.0022 | 0.0346 |
+
+  Unlike the probability-space run, this gap is large relative to the random control at
+  every k (SHAP's comprehensiveness is 4-17x random's), not just positive. The logit-space
+  switch (previous entry) is confirmed to have been the right call, not just a plausible
+  theory.
+- **Rule-consistency: 100% (14/14), 95% Wilson CI [0.785, 1.000] — identical at top-5,
+  top-10, AND top-15.** This is new information the re-run surfaced: a fired rule's feature
+  isn't just somewhere in a generous top-15 cutoff, it's inside the top-5 of 46 features
+  every single time. That strengthens, not weakens, the limitation already logged in the
+  previous entry: this pattern is exactly what the "sparse feature far from its background
+  value gets a structurally large SHAP attribution" explanation predicts, regardless of
+  whether the model substantively relies on the rule. I'm not walking back the finding —
+  the gap evidence above is separately real — but methodology.md's writeup states this
+  caveat directly next to the 100% figure, not as a buried footnote, specifically because
+  the re-run made the pattern more pronounced, not less.
+- **A real bug caught on the first logit-space attempt, before any number was trusted:**
+  the run crashed during `json.dump` with `TypeError: Object of type float32 is not JSON
+  serializable` — AFTER all 260 postings' SHAP computation had already finished correctly
+  (confirmed by the printed per-posting progress and timing). One display-only value
+  (`orig_probs[i]`, indexed directly from a `float32` numpy array) was being written into
+  the results dict without an explicit `float()` cast; `numpy.float32` doesn't subclass
+  Python's `float` the way `numpy.float64` does, so the standard library's `json` module
+  rejects it. One-line fix (`float(orig_probs[i])`), verified with a standalone
+  `json.dumps` test against the actual nested structure before pushing, then confirmed by
+  the successful second run. Logged because it's a genuine, specific bug — not because a
+  trivial fix needs a full decision entry on its own, but so the pattern ("numpy scalars
+  silently work everywhere except `json.dump`") is on record if it recurs elsewhere (Stage
+  9's result-writing code should be checked for the same thing before it runs).
+- **Stage 7 status:** complete. `methodology.md`'s "Explanation fidelity (O4)" section and
+  `PROJECT_PLAN.md`'s Stage 7 checklist (both the narrative Day-4 line and the §7.5 live
+  checklist) are updated with these real numbers.
+- **Self-check:** *Why does the rule-consistency result being identical at top-5 and
+  top-15 make the sparse-feature-inflation caveat MORE important to state, not less — and
+  why doesn't that undercut the separate comprehensiveness/sufficiency finding, which uses
+  a completely different mechanism (deletion/insertion, not ranking position)?*
+
+
+---
+
+## 2026-10-08 — Stage 7 first real run flagged a measurement problem: switched SHAP/fidelity from probability space to logit space
+
+- **Context:** The first real `src.explain.shap_explain` run (260 postings, probability
+  space, the original default) completed cleanly and printed a SHAP-vs-random gap that
+  was positive at every k — a real signal — but tiny: comprehensiveness ranged
+  0.0015-0.0023, sufficiency |diff| 0.0001-0.0016. Numbers this small are not a citable
+  fidelity result on their own; before writing them into `methodology.md` I looked at why
+  they were this small rather than reporting them as-is.
+- **What's actually going on:** this model's raw probability output is skewed low
+  (consistent with Stage 6's calibrated-score mean of 4.8/100 on validation) — most
+  sampled postings' predicted probability sits in the flat part of the sigmoid, where its
+  derivative is close to zero. In that region, masking even a genuinely important feature
+  barely moves the OUTPUT PROBABILITY, regardless of whether the SHAP ranking is faithful.
+  The compression is a property of the probability transform at this operating point, not
+  evidence the explanations are weak.
+- **Decision:** `src/explain/shap_explain.py` now explains and fidelity-tests the model's
+  raw LOGIT (pre-sigmoid score) by default (`--output-space logit`), not the post-sigmoid
+  probability. `--output-space prob` is kept as an explicit option so the original,
+  saturated numbers can still be shown for comparison if useful in the write-up, rather
+  than silently discarded.
+- **Is this "a threshold set after seeing results"?** No — that guardrail is about moving
+  the bar for what counts as a good result after seeing how a fixed method scored. Here
+  the bar is unchanged (SHAP's ranking must still beat a random one); what changed is the
+  SCALE the comparison is measured on, because the original scale was discovered to
+  mechanically compress the true effect size for this specific model's output
+  distribution. This is the same category of catch as the Stage 5 checkpoint-filename bug
+  or the Stage 6 isotonic-overfitting caveat: a flaw in the MEASUREMENT, found and fixed
+  before being written up, not a result that was massaged to look better.
+- **What I gave up:** nothing in rigor — logit-space attributions are the more standard
+  choice for SHAP on a classifier head precisely because they avoid this saturation issue;
+  if anything this is the more defensible default, not a compromise.
+- **Other corrections made at the same time (same run, no extra cost):** rule-consistency
+  is now reported as a sensitivity sweep across top-{5,10,15} features, each with a Wilson
+  95% confidence interval, instead of one bare top-10 mean — the first run's
+  "rule-consistency = 1.0000" came from only 14 postings with a fired rule, and a perfect
+  score from n=14 is weaker evidence than "1.0000" looks; the CI makes that explicit
+  (Wilson lower bound ≈0.78, not 1.0). Also noted as a limitation: sparse binary features
+  that are almost always 0 sit far from the background/mean value whenever they DO fire,
+  which structurally tends to earn them large SHAP attributions on its own — so a high
+  rule-consistency figure is consistent with, but doesn't on its own prove, the model
+  genuinely relying on that rule rather than just reacting to any rare deviation. The
+  discussion chapter should carry this caveat rather than present rule-consistency as an
+  unqualified finding.
+- **Self-check:** *Why does fixing the output space after seeing the first run not count
+  as the same mistake as setting a decision threshold after seeing results — what's the
+  actual difference between "the bar moved" and "the ruler was broken"?*
+
+---
+
+## 2026-10-08 — Stage 7 explainability built: validation (not test) for fidelity testing, SHAP scoped to the 46 structured features, sample oversamples fraud
+
+- **Context:** `PROJECT_PLAN.md`'s Day-4 plan text said "consider sub-sampling the test
+  set for the fidelity tests specifically... log this as a decision if you do it, don't
+  let it happen silently." Building `src/explain/shap_explain.py` meant settling that,
+  plus three implementation choices, before any GPU time was spent.
+
+- **Decision 1 — validation, not test, for Stage 7's fidelity sample.**
+  - **Options considered:** (A) sub-sample the test set, as the plan text suggested;
+    (B) use validation instead.
+  - **Why (B):** Comprehensiveness, sufficiency, and rule-consistency only ever consume
+    the model's OWN predicted probability and a posting's OWN C1-C6 flags — no true label
+    enters the masking/ranking math anywhere, so a strict reading of "test used once"
+    (which exists to stop a test LABEL influencing a decision) could arguably permit (A).
+    But resting an interpretation of the project's single strongest, explicitly
+    never-cut guardrail on that distinction isn't worth the risk under deadline pressure —
+    the guardrail's whole point is to remove ambiguity about whether test was "really"
+    touched. Validation gives identical fidelity evidence with zero exposure to that
+    argument being challenged in a viva.
+  - **What I gave up:** nothing measurable — the fidelity tests don't care which split's
+    postings they run on, as long as the model wasn't fit on them, and both qualify.
+  - **Self-check:** *Why would sub-sampling test for comprehensiveness/sufficiency not
+    actually violate "test used once" as that guardrail is meant to protect against — and
+    why did I avoid relying on that argument anyway?*
+
+- **Decision 2 — SHAP scoped to the 46 structured E1-E4 features, not raw tokens;
+  DistilBERT's [CLS] embedding computed once per posting and reused across all SHAP
+  coalitions.**
+  - **Options considered:** (A) token-level SHAP over DistilBERT's full input (needs
+    roughly one full transformer forward pass per SHAP coalition sample, per posting);
+    (B) KernelExplainer over only the structured feature vector, holding the posting's own
+    [CLS] embedding fixed and varying only structured features through the cheap MLP head
+    (`FusedModel.head`).
+  - **Why (B):** This project's explainability contribution is the E1-E4 evidence
+    taxonomy, not token attribution — (B) explains exactly that, at the same feature
+    granularity Stage 9's ablation already uses (so SHAP values can be summed per group —
+    E1/E2/E3/E4 — and compared against ablation's per-group delta-F1 later, if useful for
+    Chapter 4/5, without re-running SHAP). It is also the only option that fits Day 4's
+    budget: (A) costs (nsamples x postings) full BERT forward passes; (B) costs exactly one
+    BERT forward pass per posting, full stop.
+  - **What I gave up:** an explanation of DistilBERT's own token-level attention — out of
+    scope for O4, and already an accepted cost of dropping LIME for SHAP alone (see
+    "Explainability: SHAP only, LIME dropped," 2026-09-20).
+  - **Self-check:** *Why doesn't fixing the [CLS] embedding and only varying the 46
+    structured features through the model's head, rather than the whole model, make the
+    resulting SHAP values "less real"? What is actually being explained here?*
+
+- **Decision 3 — sample composition: all validation fraud (~130 rows) plus an
+  equal-sized random sample of validation legit, not a plain random sample of validation.**
+  - **Options considered:** (A) a plain random sample of validation (would carry only
+    ~10-12 fraud rows at the true 4.8% base rate — too few for a stable per-rule or
+    per-class fidelity estimate); (B) all fraud + matched random legit.
+  - **Why (B):** The fidelity tests and rule-consistency check are statistics ABOUT the
+    explanations, not a prevalence estimate — there is no guardrail reason to preserve the
+    4.8% base rate here the way Stage 9's one-time test evaluation must.
+  - **What I gave up:** the ability to quote a single "X% of postings have
+    rule-consistency Y" figure at the true base rate. Results here are conditional,
+    reported by class where it matters, and the output JSON carries an explicit
+    "not prevalence-representative" note so this can't later be misquoted as a population
+    estimate.
+  - **Self-check:** *Why is deliberately oversampling fraud for THIS stage not the same
+    mistake the "never present a cherry-picked best case as typical" guardrail warns
+    against?*
+
+- **Implementation notes (logged for completeness, not separately viva-worthy):**
+  KernelExplainer's background and the comprehensiveness/sufficiency deletion/insertion
+  masking both use the SAME reference vector — the saved `StandardScaler`'s `mean_` (the
+  TRAIN set's per-feature mean, raw units) — so SHAP's notion of "missing" and the
+  fidelity tests' notion of "removed" are one operation, not two conventions that happen
+  to share a name. `l1_reg=0` is passed to `shap.KernelExplainer.shap_values` so all 46
+  features get an attribution, instead of KernelExplainer's default sparsifying feature
+  selection silently zeroing some out. Fidelity is reported as a GAP against a
+  random-ranking control averaged over 10 reps per posting — the gap, not SHAP's number in
+  isolation, is the actual fidelity evidence; if the gap is small or negative, that is the
+  honest result, not a sign something needs re-running until it looks better.
+  `src/explain/shap_explain.py` was built and smoke-tested (pure-function logic plus a
+  real `shap.KernelExplainer` call against a synthetic model, mirroring the
+  smoke-testing discipline used for `train_distilbert.py` and `calibrate.py`) before
+  the first real run. That first run (probability space) is what surfaced the
+  saturation problem described in the entry directly above this one — real results are
+  there, not here.
+
+---
+
 ## 2026-10-08 — Stage 6 complete: isotonic selected over Platt, with an honest caveat about what its ECE=0.000 actually means
 
 - **Results on validation (seed-0 DistilBERT+evidence model, n=2682):**

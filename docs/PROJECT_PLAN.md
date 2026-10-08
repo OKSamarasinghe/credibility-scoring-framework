@@ -191,11 +191,12 @@ test-set evaluation with ablation. Flagged now: this is the most likely day to r
 if it does, it spills into Day 5 morning, and that's Day 5's writing time it eats, not an
 excuse to touch the test set twice.*
 
-- [ ] Build Stage 7: SHAP over the fused feature set (consider sub-sampling the test set for
-  the fidelity tests specifically, if SHAP's compute cost threatens the day — log this as a
-  decision if you do it, don't let it happen silently), rule-message summaries from the
-  C1–C6 flags, comprehensiveness/sufficiency (deletion/insertion) and rule-consistency
-  checks, compared against a random-attribution control.
+- [x] Stage 7 (Explainability) complete, 2026-10-08 — SHAP (logit-space, corrected from an
+  initial probability-space run that saturated) over the 46 structured E1-E4 features,
+  rule-message summaries from C1-C6, comprehensiveness/sufficiency vs. a random-attribution
+  control, rule-consistency with a Wilson CI. Used VALIDATION, not test, for the fidelity
+  sample (a decision, logged in decisions.md, not the plan text's original suggestion).
+  Full results in methodology.md's "Explanation fidelity (O4)" section.
 - [ ] Wire Stage 8: replace the four stub functions in `src/api/main.py`
   (`preprocess`, `extract_features`, `predict`, `explain`) with the real Stage 1/4/5-6/7
   code, one function at a time, without touching the route handler. Run one real end-to-end
@@ -457,12 +458,15 @@ Section 8 below still apply unchanged to every stage.
 - [x] Risk-band thresholds set (provisional terciles: Low 0–33, Medium 34–66, High 67–100
   — flagged as not supervisor-validated, matching the already-open thresholds item below)
 
-### Stage 7 — Explainability (Day 4)
+### Stage 7 — Explainability (Day 4) — ✅ COMPLETE, 2026-10-08
 
-- [ ] SHAP integrated over the fused feature set
-- [ ] Rule-message summaries generated from C1–C6 flags
-- [ ] Comprehensiveness, sufficiency, rule-consistency measured
-- [ ] Random-attribution control compared against
+- [x] SHAP integrated over the fused feature set (logit-space; see decisions.md for the
+  probability-space saturation issue found and corrected on the first run)
+- [x] Rule-message summaries generated from C1–C6 flags
+- [x] Comprehensiveness, sufficiency, rule-consistency measured (rule-consistency reported
+  with a Wilson 95% CI, not a bare mean — n=14)
+- [x] Random-attribution control compared against (10 reps/posting; SHAP beats it at every
+  k tested)
 
 ### Stage 8 — API, real pipeline wiring (Day 4)
 

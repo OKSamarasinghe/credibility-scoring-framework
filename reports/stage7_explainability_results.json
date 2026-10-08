@@ -1,0 +1,258 @@
+{
+  "seed": 0,
+  "n_sample": 260,
+  "n_fraud": 130,
+  "n_legit": 130,
+  "sample_note": "All validation fraud + a matched random sample of validation legit -- NOT prevalence-representative. Split used: VALIDATION, not test (see module docstring / decisions.md).",
+  "shap_config": {
+    "nsamples": 3000,
+    "l1_reg": 0,
+    "background": "scaler.mean_ (train mean, raw units)",
+    "output_space": "logit",
+    "output_space_note": "SHAP and the fidelity tests explain the model's RAW LOGIT, not the post-sigmoid probability, unless output_space='prob' was explicitly requested. Probability space saturates near 0/1 (the sigmoid derivative goes to ~0 there), which compresses genuine feature importance into a tiny, hard-to-interpret number -- this was observed on a first run and corrected before being written up; see decisions.md."
+  },
+  "runtime_seconds": 26.932125091552734,
+  "fidelity": {
+    "topk_list": [
+      2,
+      5,
+      10,
+      15,
+      23
+    ],
+    "output_space": "logit",
+    "comprehensiveness_shap_mean": {
+      "2": 0.039000313729047775,
+      "5": 0.045681848334005244,
+      "10": 0.0450911128320373,
+      "15": 0.041663585030115566,
+      "23": 0.04299374883278058
+    },
+    "comprehensiveness_random_mean": {
+      "2": 0.0023204412024754747,
+      "5": 0.005489684523871312,
+      "10": 0.010551281984035786,
+      "15": 0.014936747860450014,
+      "23": 0.023128778475981493
+    },
+    "comprehensiveness_gap_shap_minus_random": {
+      "2": 0.0366798725265723,
+      "5": 0.040192163810133935,
+      "10": 0.03453983084800152,
+      "15": 0.026726837169665552,
+      "23": 0.019864970356799086
+    },
+    "sufficiency_shap_mean_abs": {
+      "2": 0.038837417902854776,
+      "5": 0.020267236347381885,
+      "10": 0.011042098185190788,
+      "15": 0.007869109625999744,
+      "23": 0.002178114251448558
+    },
+    "sufficiency_random_mean_abs": {
+      "2": 0.06604083586054353,
+      "5": 0.061479818336665625,
+      "10": 0.05409983393951104,
+      "15": 0.04640004177219592,
+      "23": 0.034649731943813655
+    },
+    "sufficiency_gap_random_minus_shap_abs": {
+      "2": 0.027203417957688755,
+      "5": 0.041212581989283736,
+      "10": 0.04305773575432025,
+      "15": 0.03853093214619618,
+      "23": 0.0324716176923651
+    },
+    "n_random_reps": 10
+  },
+  "rule_consistency": {
+    "primary_topk": 10,
+    "sensitivity_by_topk": {
+      "5": {
+        "mean": 1.0,
+        "n_postings_with_fired_rule": 14,
+        "wilson_95ci": [
+          0.7846829880728186,
+          1.0
+        ],
+        "by_rule_mean": {
+          "C1": null,
+          "C2": 1.0,
+          "C3": 1.0,
+          "C4": null,
+          "C5": 1.0,
+          "C6": 1.0
+        },
+        "by_rule_n": {
+          "C1": 0,
+          "C2": 1,
+          "C3": 4,
+          "C4": 0,
+          "C5": 8,
+          "C6": 1
+        }
+      },
+      "10": {
+        "mean": 1.0,
+        "n_postings_with_fired_rule": 14,
+        "wilson_95ci": [
+          0.7846829880728186,
+          1.0
+        ],
+        "by_rule_mean": {
+          "C1": null,
+          "C2": 1.0,
+          "C3": 1.0,
+          "C4": null,
+          "C5": 1.0,
+          "C6": 1.0
+        },
+        "by_rule_n": {
+          "C1": 0,
+          "C2": 1,
+          "C3": 4,
+          "C4": 0,
+          "C5": 8,
+          "C6": 1
+        }
+      },
+      "15": {
+        "mean": 1.0,
+        "n_postings_with_fired_rule": 14,
+        "wilson_95ci": [
+          0.7846829880728186,
+          1.0
+        ],
+        "by_rule_mean": {
+          "C1": null,
+          "C2": 1.0,
+          "C3": 1.0,
+          "C4": null,
+          "C5": 1.0,
+          "C6": 1.0
+        },
+        "by_rule_n": {
+          "C1": 0,
+          "C2": 1,
+          "C3": 4,
+          "C4": 0,
+          "C5": 8,
+          "C6": 1
+        }
+      }
+    },
+    "note": "Reported with a Wilson 95% CI, not as a bare mean -- n is small (only postings with >=1 fired C1-C6 rule count), and a mean of 1.0 from a small n is weaker evidence than it looks. Sparse binary features (most postings have contradiction=0) sit far from the background/mean value when they DO fire, which structurally tends to earn them large SHAP attributions -- high rule-consistency is plausible for this reason as well as, or instead of, the model genuinely relying on that rule; this script doesn't have a way to tell those apart and the discussion chapter should say so."
+  },
+  "example_rule_messages": [
+    {
+      "sample_index": 22,
+      "fraudulent": 1,
+      "fired_rules": [
+        3
+      ],
+      "messages": [
+        "text signal 'Full-time' conflicts with field 'Part-time'"
+      ],
+      "credibility_prob_raw": 0.89716637134552
+    },
+    {
+      "sample_index": 23,
+      "fraudulent": 1,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 1 vs. field 'Master's Degree' (tier 4)"
+      ],
+      "credibility_prob_raw": 0.9947157502174377
+    },
+    {
+      "sample_index": 29,
+      "fraudulent": 1,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 3 vs. field 'High School or equivalent' (tier 1)"
+      ],
+      "credibility_prob_raw": 0.9861544966697693
+    },
+    {
+      "sample_index": 42,
+      "fraudulent": 1,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 3 vs. field 'High School or equivalent' (tier 1)"
+      ],
+      "credibility_prob_raw": 0.06410054862499237
+    },
+    {
+      "sample_index": 47,
+      "fraudulent": 1,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 1 vs. field 'Master's Degree' (tier 4)"
+      ],
+      "credibility_prob_raw": 0.9979065656661987
+    },
+    {
+      "sample_index": 66,
+      "fraudulent": 1,
+      "fired_rules": [
+        6
+      ],
+      "messages": [
+        "text figure $400 far outside field range $40-$50"
+      ],
+      "credibility_prob_raw": 0.18395711481571198
+    },
+    {
+      "sample_index": 79,
+      "fraudulent": 1,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 4 vs. field 'Some College Coursework Completed' (tier 2)"
+      ],
+      "credibility_prob_raw": 0.004762575961649418
+    },
+    {
+      "sample_index": 107,
+      "fraudulent": 1,
+      "fired_rules": [
+        3
+      ],
+      "messages": [
+        "text signal 'Contract' conflicts with field 'Full-time'"
+      ],
+      "credibility_prob_raw": 0.02976587601006031
+    },
+    {
+      "sample_index": 134,
+      "fraudulent": 0,
+      "fired_rules": [
+        2
+      ],
+      "messages": [
+        "text names 'san francisco' (united states), field says hungary"
+      ],
+      "credibility_prob_raw": 0.0030077642295509577
+    },
+    {
+      "sample_index": 158,
+      "fraudulent": 0,
+      "fired_rules": [
+        5
+      ],
+      "messages": [
+        "text qualification tier 5 vs. field 'Bachelor's Degree' (tier 3)"
+      ],
+      "credibility_prob_raw": 0.02468182146549225
+    }
+  ]
+}
