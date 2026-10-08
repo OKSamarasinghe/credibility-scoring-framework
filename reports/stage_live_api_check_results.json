@@ -1,0 +1,77 @@
+{
+  "clear_fraud": {
+    "live_response": {
+      "credibility_score": 7,
+      "risk_band": "High",
+      "top_reasons": [
+        "The posting's location (none) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The posting's location (city) was NOT specified at this level, which lowered the score.",
+        "The 'C2_field_present' signal lowered the score.",
+        "The 'C5_field_present' signal raised the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    },
+    "expected_score": 7,
+    "expected_risk_band": "High",
+    "score_match": true,
+    "risk_band_match": true
+  },
+  "ambiguous": {
+    "live_response": {
+      "credibility_score": 25,
+      "risk_band": "High",
+      "top_reasons": [
+        "The posting's location (none) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The posting's location (city) was NOT specified at this level, which lowered the score.",
+        "The 'C2_field_present' signal lowered the score.",
+        "The 'C5_field_present' signal raised the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    },
+    "expected_score": 25,
+    "expected_risk_band": "High",
+    "score_match": true,
+    "risk_band_match": true
+  },
+  "clear_legit": {
+    "live_response": {
+      "credibility_score": 100,
+      "risk_band": "Low",
+      "top_reasons": [
+        "The posting's location (region) was specified at this level, which raised the score.",
+        "An employer profile was missing, which lowered the score.",
+        "The 'industry' field was missing, which raised the score.",
+        "Only 0% of standard posting fields were filled in, which raised the score.",
+        "The 'has_company_logo' field was missing, which lowered the score."
+      ],
+      "suspicious_phrases": [],
+      "contradictions": [],
+      "verification_checklist": [
+        "No salary range was given \u2014 ask the recruiter directly before proceeding.",
+        "No employer description was given \u2014 independently verify the company exists (its own website, LinkedIn, or a business registry).",
+        "Department and industry weren't specified \u2014 ask what team and sector this role sits in.",
+        "No direct contact channel was detected in the text \u2014 confirm how you're expected to apply or follow up."
+      ]
+    },
+    "expected_score": 100,
+    "expected_risk_band": "Low",
+    "score_match": true,
+    "risk_band_match": true
+  }
+}

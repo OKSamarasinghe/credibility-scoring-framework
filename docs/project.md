@@ -1,6 +1,6 @@
 # project.md — An Explainable Credibility Scoring Framework for Online Recruitment Posts
 
-_Last updated: 2026-10-07, 18:10_
+_Last updated: 2026-10-08_
 
 > **How to use this file.** Paste it at the start of every AI working session, before doing
 > any work. Keep it current — update "Where I am right now" at the end of each session,
@@ -67,7 +67,7 @@ recruitment posts using multi-signal evidence and consistency verification.
 | O2 | Baseline Model | Develop and benchmark a TF-IDF baseline with classical classifiers on a leakage-controlled, duplicate-aware split | Must-have |
 | O3 | Multi-Signal Model | Combine transformer text representation with structured evidence and consistency-contradiction flags; quantify the change under matched conditions | Must-have |
 | O4 | Explainable Decision Module | Deliver a backend API converting calibrated probabilities into a 0–100 credibility score with verified explanations | Must-have |
-| O5 | Evaluation & Generalisability | Evaluate with full metric set, ablation per evidence category, and temporal generalisability on contemporary postings | Must-have (Tier 2 collection now closed for both sides — see "Where I am right now") |
+| O5 | Evaluation & Generalisability | Evaluate with full metric set, ablation per evidence category, and temporal generalisability on contemporary postings | Must-have — **complete, 2026-10-08**: full metric set, ablation, and Tier 2 temporal transfer all run once; see "Where I am right now" |
 
 Full statements: see `Research_Objectives_and_Questions_Final.docx`.
 
@@ -247,69 +247,110 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
   committed `57da423`. Per-category observability and per-rule agreement rates measured;
   one signal revised (the field-presence NaN-handling bug, caught twice). Full detail in
   `methodology.md`'s "Taxonomy validation (O1)".
-- **Stage 4 (multi-signal evidence extraction) — complete, 2026-10-08:** E1–E4 built
-  (`src/features/extract_features.py`), run on the full corpus (n=17,880), 33/33 new tests
-  passing (51/51 across the whole suite). Four precision bugs found during full-corpus
-  validation and fixed before any figure was reported (C1 "work from home" perk-vs-position
-  conflation, C1 negation ignored, C6 "k"-suffix unresolved plus a dead salary-context gate,
-  C3 "short-term disability"/"seasonal" polysemy). C2 has its first real location matcher,
-  no longer deferred. All C1–C6 coverage figures re-measured and final — see
-  `methodology.md`, `decisions.md`, `sources.md` #3. **Not yet committed — pending the
-  student's own commit**, per standing project policy that commits are never run by AI.
-- **Not yet started:** Stages 5–9 in full. Stage 5 (model development/DistilBERT
-  fine-tuning) needs the student's real Windows/CUDA venv — it cannot run from this
-  session's sandboxed `device_bash` shell, which is Python 3.10.12/pandas 2.3.3 (useful for
-  deterministic cross-checks, not for GPU training). Chapters 4–6 of the dissertation
-  (Chapter 4 cannot be drafted until Stage 9 produces real measurements — now scheduled for
-  Day 4–5 of the sprint). The git commit-attribution fix is fully closed (pushed, confirmed
-  on GitHub) — nothing left there.
-
-### Known state of documents
-
-- `Research_Methodology_Final.docx` still shows the *original estimated* C1–C6 field
-  coverage figures (100%/98%/81%/61%/55%/16%), not the measured ones (100%/88.4%/80.6%/
-  60.6%/54.7%/15.2%), and has no evaluable-coverage column at all. Also still states "no
-  dedicated GPU" as a constraint, and the Threats-to-Validity table still says "five-seed
-  repetition". Needs updating — likely after the sprint, not during it, unless a spare hour
-  appears.
-- All numeric values in `Framework_Explanation_Walkthrough.docx` are illustrative worked
-  examples, not results. Logged as `sources.md` #17. Never cite them.
-- Chapters 1 and 2 cite 11 sources; several are still unread/unverified — tracked in
-  `sources.md` Part C. Must be read before final submission; realistically this is a
-  post-sprint task unless the 5 days leave slack.
+- **Stages 4 through 9 — all complete, built, run, and committed, 2026-10-08.** The whole
+  5-day sprint's technical core finished in a single day, well ahead of the Day 3/4 pacing
+  `PROJECT_PLAN.md` originally planned — not something to read back into the plan as if it
+  were expected; it is logged here as what actually happened.
+  - **Stage 4 (multi-signal evidence extraction):** E1-E4 built, run on the full corpus
+    (n=17,880), four precision bugs found and fixed before any coverage figure was reported.
+    Committed `ff6872f`.
+  - **Stage 5 (baseline + multi-signal models):** TF-IDF+LogReg/RF baselines and the
+    DistilBERT+structured-evidence fusion model trained, 3 seeds each. DistilBERT+evidence
+    beats both baselines on validation (F1 0.671±0.030). Epoch count resolved from a real
+    6-epoch probe (peaked at epoch 4), not guessed. Ablation seed count closed at 1/arm from
+    measured per-epoch timing. Committed `04eaeb0`, `628857d`.
+  - **Stage 6 (calibration):** isotonic selected over Platt (Brier 0.0199 vs. 0.0212 on
+    validation), with an explicit caveat that isotonic's near-zero ECE is partly a
+    same-set-fit artefact, not re-litigated once Stage 9 reports test-set calibration.
+    Committed `e28520e`.
+  - **Stage 7 (explainability):** SHAP (KernelExplainer, scoped to the 46 structured
+    E1-E4 features), run in logit space after the first probability-space run was found to
+    be saturation-compressed. SHAP beats a random-ranking control at every k tested; rule-
+    consistency 100% (14/14, Wilson 95% CI [0.785, 1.000]), reported with the sparse-feature
+    SHAP-inflation caveat attached, not as an unqualified result. Committed `d940ea3`.
+  - **Stage 8 / 8b (API wiring + demonstration):** `src/api/pipeline.py` wires the real
+    Stage 1/4/5/6/7 code behind `/score`. Two real bugs caught by the first smoke test and
+    fixed: a missing structured-field input contract, and a direction-inverted
+    `credibility_score` (was reporting P(fraud), not P(credible)). Stage 8b ran 3 real Tier 2
+    postings through the live pipeline via a pre-registered, content-blind selection rule;
+    two of the three explanations came back near-identical, investigated and confirmed as the
+    already-logged Decision 0.4 field-asymmetry risk actually showing up, not a bug.
+    Committed `ada4c94`.
+  - **Stage 9 (evaluation), Parts 1-3 — the project's one-time, now-closed test-set
+    touch:** Part 1 — baselines (3 seeds, refit for parity) + main model (3 seeds)
+    evaluated once on the EMSCAD test split; multi-signal model beats both baselines on F1,
+    beats LogReg but not RF on PR-AUC (a genuine validation-to-test reversal, reported
+    honestly). Part 2 — leave-one-category-out ablation (5 arms, 1 seed/arm per the Day-3
+    budget decision); all four evidence categories lower F1 when removed, `has_company_logo`
+    improves both F1 and PR-AUC on removal (supports the pre-registered suspicion it's a
+    dataset-construction artefact, not shipped-on now per the "test used once" guardrail).
+    Part 3 — Tier 2 temporal transfer (T1/T2/T3) and the source-probe leakage test, all run
+    on the real 154-posting Tier 2 set. **The source-probe came back at a perfect
+    ROC-AUC=1.0000** — investigated with `device_bash` rather than accepted at face value,
+    and confirmed as a Tier-2-collection-wide structured-field missingness artefact
+    (EMSCAD's `has_company_logo`/`has_questions` are 0% missing; all 154 Tier 2 postings,
+    fraud AND legit alike, are 100% missing on both) — bigger in scope than Decision 0.4
+    anticipated. Full numbers in `methodology.md`'s "Tier 2 (O5)"; addendum in
+    `decisions.md`, Decision 0.4. T1/T2/T3's individual numbers are reported with an
+    explicit small-sample-instability caveat (n=154, 24 fraud) rather than read at face
+    value. Committed `e81fab5`, `3cc02b3`.
+  - Per the Stage 9 design decision logged before any test number was seen: **no further
+    model, feature, seed, or architecture change is permitted for the rest of this
+    project** — Stage 9's numbers are final.
+- **Live end-to-end API test — complete, 2026-10-08.** Ran a real `uvicorn` server and
+  sent the same 3 Stage 8b postings (clear fraud, clear legit, ambiguous) over actual HTTP,
+  via `src/api/live_api_check.py`. All 3 live responses matched Stage 8b's already-verified
+  `credibility_score`/`risk_band` exactly — confirms the request parsing, routing, and
+  response serialization are wired correctly, not just the pipeline logic in isolation
+  (Stage 8b only ever called it in-process). Results: `reports/stage_live_api_check_results.json`.
+  **Full automated test suite also re-run and confirmed, 2026-10-08: 51/51 tests passing**
+  (`test_extract_features.py`, `test_load_emscad.py`, `test_split_data.py`) — every stage's
+  unit tests pass together, not just individually as each was built.
+- **The artefact itself (the backend credibility-scoring API) is now fully built, trained,
+  evaluated, and verified end-to-end.** Nothing technical remains outstanding.
+- **Not yet started (writing, not development):** Chapters 4-6 of the dissertation (Chapter
+  4 can now be drafted — Stage 9's real measurements exist); the AI-use declaration; the
+  research paper (stretch goal, named first to go if time runs out).
 
 ### Next actions (in order)
 
-See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
-
-1. **Done overnight 2026-10-06/07:** CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built,
-   bug found and fixed, verified, committed; Tier 2 legitimate-side sourced (130 postings)
-   and committed.
-2. **Done Day 1 daytime (2026-10-07):** Tier 2 fraud-side sourced (24 postings,
-   provenance-verified) — Tier 2 collection is now fully closed, both sides.
-3. **Day 1, remaining — the critical path now:** start (and push hard on) the 200-posting
-   manual audit — it has not started at all yet and nothing in Stage 4 can be finalised
-   without it. Everything else on Day 1 is closed: the git commit-attribution fix is pushed
-   and confirmed on GitHub; today's doc sync is committed (`data/raw/` stays gitignored by
-   existing policy, nothing pending there).
-4. **Day 2:** finish the manual audit; build Stage 4 (real E1–E4, real lexicons, real C2).
-5. **Day 3:** train baseline + improved models; decide the ablation seed count from a real
-   timing; build Stage 6 (calibration).
-6. **Day 4:** build Stage 7 (SHAP); wire Stage 8 for real; run Stage 8b and Stage 9 once.
-7. **Day 5:** write Chapters 4–6, the AI-use declaration, and sync every `.md` file; the
-   research paper only if time remains.
+1. ~~Live API test~~ — ✅ done, 2026-10-08 (see above). Development is complete.
+2. **Chapter 4 (Results)** — can be drafted now; every number it needs exists in
+   `methodology.md`. Write from the measured tables only, not from memory of what was
+   expected.
+3. **Chapter 5 (Discussion)** — interpret Stage 9's honestly-reported findings (the RF
+   PR-AUC reversal, the ablation's noise-indistinguishable PR-AUC pattern, the Tier 2
+   source-probe artefact and what it does and doesn't undermine, the `has_company_logo`
+   finding). State the self-set-thresholds limitation here if no supervisor contact window
+   opens this week — **open question, needs an answer before this chapter is written.**
+4. **Chapter 6 (Conclusion)** — contributions, and limitations named plainly: the Tier 2
+   source-asymmetry/missingness artefact, the Tier 2 ethics-approval status (still open),
+   the E2 contact-token inertness on live text, the 70/15/15-split-not-nested-CV trade-off,
+   the un-reviewed architecture choice.
+5. **AI-use declaration** — programme-required; write once the wording/placement
+   requirement is confirmed.
+6. **Research paper** — stretch goal only, per the triage order fixed 2026-10-06.
 
 ---
 
 ## Open questions
 
-- **Tier 2 collection — ✅ CLOSED, 2026-10-07.** Both sides met or exceeded target within
-  the Day 1 time-box: 130 legitimate (Greenhouse/Lever), 24 fraudulent (BBB Scam Tracker,
-  via Claude in Chrome once the development machine was linked). See `decisions.md`,
-  2026-10-07.
-- **What are my success thresholds?** Still unset in `methodology.md`. Agree with
-  supervisor if any contact window exists this week; otherwise state as a self-set
-  limitation in Chapter 5.
+- **Tier 2 collection and evaluation — ✅ CLOSED, 2026-10-08.** Both sides collected within
+  the Day 1 time-box (130 legitimate / 24 fraudulent); Stage 9 Part 3 ran the full
+  154-posting temporal-transfer and source-probe evaluation on 2026-10-08. See
+  `decisions.md`, 2026-10-07 and 2026-10-08.
+- **Tier 2 source-probe: structured-field collection artefact, confirmed — stated here as
+  a real limitation, not a pending question.** The source-probe scored a perfect
+  ROC-AUC=1.0000 distinguishing EMSCAD from Tier 2 on structured features alone, root-caused
+  to Tier 2's raw collection never capturing 9 of EMSCAD's structured fields, across both
+  fraud and legit postings alike (bigger in scope than Decision 0.4 anticipated — see its
+  2026-10-08 addendum). This must appear as a named limitation in Chapter 6, and T1/T2/T3's
+  absolute numbers in Chapter 4/5 must carry this caveat rather than be read at face value.
+- **What are my success thresholds? Still genuinely open — needs an answer before Chapter 5
+  is drafted.** Has any supervisor contact happened since 2026-10-06? If yes, log the
+  agreed thresholds here and in `methodology.md`. If no, Chapter 5 states plainly that
+  thresholds were self-set under time pressure, per the fallback already agreed
+  (`decisions.md`, Stage 9 design decisions, 2026-10-08).
 - **Ethics form for Tier 2 primary data collection** — status unconfirmed. **Explicitly not
   gating collection this week** (student's direct instruction, 2026-10-06) — this must still
   be named as a disclosed limitation in Chapter 6, not silently omitted.
@@ -359,3 +400,4 @@ See `PROJECT_PLAN.md` §0.5 for the full day-by-day breakdown. In short:
 | 2026-10-06/07 (overnight) | CUDA fixed; Decisions 0.3/0.4 resolved; Stage 3 built and fixed; Tier 2 legit-side sourced | `torch` reinstalled as CUDA build, confirmed working. Decisions 0.3 (C6 presence-only, no label-conditioned threshold) and 0.4 (Tier 2 field symmetry) resolved. Stage 3 partitioning built, found to over-merge under Decision 0.2's exact logged method, caught by diagnostic before committing, reverted to description-hash-only, reproduced the original August audit exactly, committed (`b5a45aa`). Tier 2 legitimate-side sourced via self-validating Greenhouse/Lever script — 130 postings from 26 companies, well above target, committed (`5545d37`). Tier 2 **fraud-side** sourcing attempted via web search/fetch, confirmed a structural dead end (no bulk-fetchable source exists), deferred to daylight with a time-boxed, browser-assisted plan. Stopped for the night with fraud-side sourcing and the manual audit as the next judgment-heavy tasks, deliberately left for fresh attention. |
 | 2026-10-07 (Day 1 daytime) | Tier 2 fraud-side sourcing closed out | Linked the development machine; installed and used Claude in Chrome, which successfully loaded BBB Scam Tracker where the sandboxed browser pane and WebFetch had both been stopped by a Cloudflare challenge (handled by waiting, never bypassing). Read 8 pages of BBB's "employment" search results (~80 reports), filtered to 24 containing genuinely reproduced posting-adjacent text, resolved the provenance question (each report has a unique permalink, confirmed via the page's own DOM), and wrote the result to `data/raw/tier2/tier2_fraud_raw.jsonl` with BBB-specific provenance fields kept separate from the (mostly null) EMSCAD-shaped fields. Found and logged a source-side near-duplicate pattern (one report filed under 3+ Scam IDs) as a disclosed limitation. Tier 2 collection is now fully closed. `decisions.md` and `sources.md` updated and synced; git commit for commit-attribution fix still pending (remote shell was still provisioning). |
 | 2026-10-07 (Day 1 evening) | Git commit-attribution fix resolved; docs re-synced | Remote shell came online. Backed up old history (`backup-pre-attribution-fix`), replayed `b5a45aa`/`5545d37`/`6e391b4` on a fresh branch with `Co-Authored-By`/`Claude-Session` trailers stripped (author/dates preserved, tree contents verified byte-identical to originals), reset `main` to the rewritten tip. Also corrected a standing error: the Tier 2 fraud-side JSONL was never "pending a commit" — `data/raw/` is gitignored wholesale, same as the pre-existing legit-side file; nothing was missing. Committed today's four-file docs sync (`decisions.md`, `sources.md`, `project.md`, `PROJECT_PLAN.md`) with a clean message, no AI trailer, under the student's own already-used git identity. Local `main` is now 4 commits ahead / 3 behind `origin/main`, clean of any AI trailer across the whole new range (verified by scanning every commit message) — pushing it (`git push --force-with-lease origin main`) is the one remaining student action; this session's sandboxed remote shell has no GitHub credentials to do it directly. |
+| 2026-10-08 | Stages 4-9 built, run, and committed in one day — the sprint's technical core is done | Multi-signal evidence extraction (Stage 4), baseline + DistilBERT-fusion models (Stage 5), calibration (Stage 6), SHAP explainability (Stage 7), real API wiring + Stage 8b demonstration, and Stage 9's full evaluation (one-time test-set comparison, ablation, Tier 2 temporal transfer, source-probe) all completed same-day, well ahead of the original Day 3-4 pacing. Two real bugs caught and fixed before being reported (Stage 8's inverted credibility-score direction; Stage 7's probability-space SHAP saturation). The Tier 2 source-probe's perfect ROC-AUC=1.0000 was investigated empirically (`device_bash`, direct missingness counts against the raw EMSCAD/Tier 2 files) rather than accepted at face value, and confirmed as a Tier-2-collection-wide structured-field artefact — bigger in scope than Decision 0.4 anticipated. All results written into `methodology.md`; decisions and the investigation logged in `decisions.md`; `PROJECT_PLAN.md` and this file's "Where I am right now" brought current. Per the Stage 9 design decision, no further model/feature/seed change is permitted now that test has been seen. Next: live API test, then Chapters 4-6. |
