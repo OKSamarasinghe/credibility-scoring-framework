@@ -16,6 +16,103 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 9 design decisions, logged BEFORE touching the test split
+
+Four decisions, all made and written down before any code reads `split == "test"` from
+`data/interim/stage3_split.csv` — the point of writing this first is that none of it can
+be revised once test results are visible, per the guardrail this project has repeated
+since Day 1.
+
+### 1. Evaluation thresholds stay `[TO SET]` — this does not block running Stage 9
+
+- **Context:** the evaluation plan table (`methodology.md`) marks every success threshold
+  `[TO SET]` and says plainly: "Thresholds must be agreed with supervisor BEFORE results
+  are seen... now urgent." I have no record of supervisor contact happening this week.
+- **Decision:** proceed with Stage 9 anyway. A threshold is only needed to answer "was
+  this good enough" — it is not needed to compute Precision/Recall/F1/PR-AUC/ROC-AUC, the
+  ablation deltas, or the Tier 2 transfer numbers themselves. Running Stage 9 now and
+  deciding later whether the numbers clear some bar are two different acts; only the second
+  one needs a threshold. The plan's own already-written fallback applies as-is: Chapter 5
+  states plainly that thresholds were self-set under time pressure (if no supervisor
+  contact happens before then), as a disclosed limitation, not a result presented as
+  independently validated.
+- **What I did NOT do:** invent a specific pass/fail number now and present it as agreed.
+  That would be worse than leaving it open — a fabricated threshold is a threshold "set"
+  with no one to set it against.
+- **Self-check:** *Why is "no threshold yet" a reporting-honesty problem rather than a
+  reason to delay running Stage 9 itself?*
+
+### 2. All of Stage 9 — baselines, main model, ablation, Tier 2 — counts as ONE touch of
+test, even though it runs as several separate script executions
+
+- **Context:** the "test set used once" guardrail was already interpreted once, for the
+  main 3-seed comparison ("3 model initialisations against one fixed split... the only
+  reading compatible with the guardrail," 2026-09-20). Stage 9 adds more models that need
+  to touch test: 2 baselines (now 3 seeds each, see Decision 3), the main model's existing
+  3 seeds, and 5 ablation arms. That's 10 model configurations touching test, not 1.
+- **Decision:** "used once" means the test labels are never used to make a further design,
+  hyperparameter, threshold, or model-selection choice — not that literally one model may
+  ever see them. Every one of these 10 configurations was pre-committed before Stage 9
+  started (3 seeds: 2026-09-20; 5 ablation arms + `has_company_logo`: 2026-10-06). None of
+  them is chosen, tuned, or swapped out *because of* what test shows. Running them together
+  as one evaluation pass, across however many separate script invocations that practically
+  takes, is the same act as running them in one process — no result is seen and acted on
+  before the next one runs.
+- **Hard constraint this creates going forward:** once ANY Stage 9 test number has been
+  seen, no further change to the model architecture, feature set, seed choice, or ablation
+  design is permitted for the rest of this project. Seeing a disappointing test F1 is not
+  grounds to "try just one more thing" — that would retroactively break the very reading
+  of "used once" this decision relies on.
+- **Self-check:** *If the full model's test F1 turns out lower than its validation F1,
+  what am I allowed to do about it, and what am I not allowed to do?*
+
+### 3. Baseline models get the same 3-seed treatment as the main model for Stage 9,
+closing an asymmetry `train_baseline.py` left behind
+
+- **Context:** `train_baseline.py` fits LogReg/RF at all 3 seeds for its validation
+  numbers, but only ever **saves seed 0's fit** to `models/` — seeds 1 and 2 were fit,
+  measured, and discarded. The main DistilBERT model, by contrast, has all 3 seed
+  checkpoints saved on disk. Evaluating Stage 9 as-is would give the main model mean±SD
+  over 3 seeds on test, but baselines only a single seed-0 point value — a real asymmetry
+  that would make the O2-vs-O3 test comparison look more precise for one arm than the
+  other for no principled reason.
+- **Decision:** before evaluating anything on test, refit baseline seeds 1 and 2 using the
+  exact training code already in `train_baseline.py` (TRAIN split only, identical
+  TF-IDF/LogReg/RF settings, seeds 0/1/2) — this does not touch test, it only reproduces
+  work already specified and already done once at validation time, just without discarding
+  the fitted models this time. All 3 seeds of both baselines are then evaluated on test
+  once, mean±SD, matching the main model's treatment exactly. Cost: ~30 seconds total
+  (LogReg ~8s + RF ~4s, per seed, per the Stage 5 timing already measured) — cheap because
+  these are the same fast sklearn models, not DistilBERT fine-tuning.
+- **What I gave up:** nothing material — this is strictly more rigorous than the
+  alternative (disclosing the asymmetry and reporting baselines as single-point), at
+  near-zero cost.
+- **Self-check:** *Why does refitting baseline seeds 1/2 on train-only data NOT count as
+  "touching test more than once," even though it happens inside the Stage 9 script that
+  also evaluates on test?*
+
+### 4. Ablation arms are compared against the full model's seed-0 test result, not the
+3-seed mean
+
+- **Context:** the ablation (5 arms, 1 seed each — closed 2026-10-06) needs a Δ F1 / Δ
+  PR-AUC baseline to subtract from. The full model has 3 seeds on test; the ablation arms
+  have 1 each.
+- **Decision:** compare each 1-seed ablation arm against the full model's **seed-0** test
+  result specifically (the same seed, same initialisation convention used throughout this
+  project as "the" reference model), not the 3-seed mean. This keeps the comparison to a
+  single run-to-run noise profile on both sides rather than mixing a single noisy
+  measurement against an averaged one. The 3-seed mean is still reported separately as the
+  headline O3 result; the ablation table is explicitly a seed-0-vs-seed-0 comparison, and
+  methodology.md will say so.
+- **What I gave up:** an ablation Δ that's exactly comparable to the headline mean±SD
+  number — it isn't, and the writeup will say which baseline number the ablation actually
+  used, rather than letting a reader assume it was the mean.
+- **Self-check:** *Why would comparing a 1-seed ablation result to the full model's 3-seed
+  mean (instead of seed 0 specifically) risk crediting or blaming a category for what is
+  actually just seed-to-seed noise?*
+
+---
+
 ## 2026-10-08 — Stage 8b executed: near-identical explanations for the two BBB-sourced
 examples, confirmed as the Decision 0.4 field asymmetry, not a bug
 
@@ -578,6 +675,18 @@ this run, and the full set is reported above, not a selected best-of-3.
 - **Self-check:** *Why is it still defensible for the main comparison to report mean ± SD
   over 3 seeds while the ablation arms report only 1 seed each, when both are measuring
   model performance? What would you say if an examiner called this inconsistent?*
+
+- **Addendum, 2026-10-08 — the cost predicted here showed up concretely:** the real
+  ablation run (5 arms, seed 0) came back with every single arm's PR-AUC higher than the
+  full model's, including a near-zero +0.0056 for E4 — a uniform direction across 4
+  independent category removals that is at least as consistent with "the full model's
+  seed-0 PR-AUC happened to land on the low side" as with "every category genuinely hurts
+  PR-AUC." This is exactly the situation "what I gave up" above named in advance: with no
+  second seed for any arm, there is no way to check how much of that pattern is the real
+  effect of removing a category versus ordinary run-to-run training noise (already
+  documented as real and non-trivial on this GPU setup — see the Stage 5 epoch-count
+  entry). Full reading in `methodology.md`, "Ablation (O5)." Reported as what this run
+  showed, not smoothed into a stronger claim than the data supports.
 
 ---
 

@@ -214,10 +214,19 @@ excuse to touch the test set twice.*
   came back near-identical and both showed no lexicon matches — investigated and confirmed
   as the already-logged Decision 0.4 field-asymmetry risk actually showing up, not a bug;
   full write-up with verification steps in decisions.md and methodology.md.
-- [ ] Run Stage 9: full metric set on the test set, **used exactly once**; leave-one-category-
-  out ablation at whatever seed count Day 3 settled on; Tier 2 temporal transfer (T1/T2/T3)
-  — Tier 2 is ready on both sides, so this runs for real, not as the qualitative fallback;
-  source-probe leakage test, reported regardless of outcome.
+- [x] Stage 9, Part 1 — one-time test-set evaluation (O2/O3), 2026-10-08. Baselines (3
+  seeds, seeds 1-2 refit for parity) + main model (3 existing checkpoints) evaluated once
+  on the 2,682-row test split. Multi-signal model beats both baselines on F1 (+0.034 vs
+  LogReg, +0.088 vs RF); beats LogReg on PR-AUC (+0.060) but NOT RF (-0.006, a reversal of
+  the validation-side result) — reported honestly, not smoothed over. Full table and
+  reading in `methodology.md`. Four Stage 9 design decisions (thresholds, "used once"
+  scope, baseline seed parity, ablation comparison basis) logged in `decisions.md` before
+  this ran. Per Decision 2: no further model/feature/seed changes are permitted now that
+  test has been seen.
+- [ ] Run Stage 9, Part 2: leave-one-category-out ablation at the seed count Day 3 settled
+  on (1 seed/arm); Tier 2 temporal transfer (T1/T2/T3) — Tier 2 is ready on both sides, so
+  this runs for real, not as the qualitative fallback; source-probe leakage test, reported
+  regardless of outcome.
 - [ ] Commit. Tick §7.5 boxes. Write the raw numbers into `methodology.md` immediately —
   don't let them live only in a notebook.
 
@@ -497,13 +506,18 @@ Section 8 below still apply unchanged to every stage.
 - [x] Fraud, legitimate, and ambiguous examples run and captured
 - [x] Results written into `methodology.md`, kept separate from Stage 9
 
-### Stage 9 — Evaluation (Day 4)
+### Stage 9 — Evaluation (Day 4) — Part 1 done, 2026-10-08
 
-- [ ] Full metric set computed on test set, used once
-- [ ] Ablation run at whatever seed count Day 3 settled on
+- [x] Full metric set computed on test set, used once (baselines + main model, 3 seeds
+  each) — `src/evaluation/stage9_test_eval.py`, `reports/stage9_test_results.json`
+- [x] Ablation run, 2026-10-08 (1 seed/arm, Day 3 budget) — all 4 evidence categories
+  lower F1 when removed (E1 most, E3 least); `has_company_logo` removal improves both F1
+  and PR-AUC, supporting the pre-registered suspicion it's a dataset-construction
+  artifact. PR-AUC deltas flagged as not separable from run-to-run noise (no per-arm seed
+  estimate) — see `methodology.md`, "Ablation (O5)."
 - [ ] Tier 2 transfer run (ready on both sides — not the qualitative fallback)
 - [ ] Source-probe leakage test run and reported regardless of outcome
-- [ ] Results written into `methodology.md`
+- [x] Part 1 results written into `methodology.md` ("Final test-set evaluation (O2/O3)")
 
 ### Tier 2 collection (Day 1 only) — ✅ ALL CLOSED, 2026-10-07
 

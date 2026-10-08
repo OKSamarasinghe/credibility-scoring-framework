@@ -675,6 +675,70 @@ does not fit Day 4 alongside Stage 9's full test evaluation, Tier 2 transfer tes
 source-probe leakage test, Stage 7's SHAP, and Stage 8's API wiring. Full reasoning and
 what this costs (no per-arm variance estimate) in `decisions.md`, 2026-10-08.
 
+### Final test-set evaluation (O2/O3) — Stage 9, 2026-10-08
+
+_Measured by `src.evaluation.stage9_test_eval` on the 2,682-row EMSCAD test split (130
+fraud) — touched for the first time here, per the one-time-evaluation design logged in
+`decisions.md`, 2026-10-08, "Stage 9 design decisions." Baseline seed 0 loaded from the
+exact Stage 5 checkpoint; seeds 1–2 refit on train only (Decision 3, same file). All 3
+DistilBERT+evidence checkpoints are Stage 5's originals, inference only, not retrained.
+Full per-seed detail: `reports/stage9_test_results.json`._
+
+| Model | Split | Precision | Recall | F1 (fraud) | PR-AUC | ROC-AUC |
+|---|---|---|---|---|---|---|
+| TF-IDF + LogReg | validation | 0.464 | 0.692 | 0.556 | 0.655 | 0.931 |
+| TF-IDF + LogReg | **test** | 0.522 | 0.738 | 0.611 ± 0.000 | 0.653 ± 0.000 | 0.929 ± 0.000 |
+| TF-IDF + RF | validation | 0.881 | 0.362 | 0.513 | 0.682 | 0.940 |
+| TF-IDF + RF | **test** | 0.918 ± 0.026 | 0.400 ± 0.008 | 0.557 ± 0.011 | 0.719 ± 0.010 | 0.942 ± 0.002 |
+| DistilBERT + structured | validation | 0.634 ± 0.050 | 0.713 ± 0.004 | 0.671 ± 0.030 | 0.710 ± 0.018 | 0.934 ± 0.008 |
+| DistilBERT + structured | **test** | 0.594 ± 0.057 | 0.710 ± 0.024 | 0.645 ± 0.031 | 0.713 ± 0.022 | 0.943 ± 0.010 |
+
+_(All ± figures on the test rows are sample SD across the 3 reported seeds, recomputed
+directly from `reports/stage9_test_results.json`'s per-seed precision/recall values — the
+script's own `mean_sd` dict only aggregates the 5 metrics `_metrics()` returns in one call
+each, so P/R SD was calculated separately here rather than copied from a field that doesn't
+exist in the JSON.)_
+
+**Δ vs. baseline (test, means):** vs. LogReg: ΔF1 = **+0.034**, ΔPR-AUC = **+0.060**. vs.
+RF: ΔF1 = **+0.088**, ΔPR-AUC = **−0.006**.
+
+**Reading this, not averaging it away:**
+
+- **Every model's test numbers sit close to its validation numbers** — no model's
+  performance collapsed moving from validation to test, which is the result I'd want to
+  see given that only validation was used for every design choice (epochs, seed count,
+  checkpoint selection) up to this point. That consistency is itself informative: it's
+  evidence against validation-set overfitting in the model-selection decisions made on
+  Day 3, not just a result in its own right.
+- **F1: the multi-signal model wins outright, on both baselines, on test.** +0.034 over
+  LogReg, +0.088 over RF — a reproduction of the validation-side result (+0.115 / +0.158
+  there), smaller in absolute terms on test but in the same direction for both baselines.
+  This is the central O3 claim and it holds.
+- **PR-AUC: the win over LogReg holds (+0.060); the win over RF does not.** On validation,
+  the multi-signal model led RF on PR-AUC by +0.028. On test, that reverses to **−0.006**
+  — RF's test PR-AUC (0.719) is marginally *higher* than the multi-signal model's (0.713).
+  This is not being smoothed into "roughly comparable" — it is a real reversal of a
+  validation-side result, and Chapter 4 states it as what it is: on this specific metric,
+  against this specific baseline, the improved model does not demonstrate an advantage on
+  test. RF's own PR-AUC moved more between splits (0.682 → 0.719) than the multi-signal
+  model's did (0.710 → 0.713), which is consistent with — though does not on its own prove
+  — ordinary single-split noise at a 130-fraud test size (Known Threats to Validity already
+  names "single-split noise (~130 fraud posts in test)" as a conclusion-validity threat,
+  which is exactly what this looks like).
+- **ROC-AUC does not discriminate between these three models on either split** — all six
+  values (3 models × 2 splits) sit inside a narrow 0.929–0.943 band. The story this project
+  tells about O3 has to be an F1/precision-recall-trade-off story, not a ROC-AUC story; the
+  Stage 5 validation write-up already said this, and test confirms it rather than
+  complicating it.
+- **The operating-point shape repeats on test:** LogReg stays high-recall/low-precision
+  (0.522 P / 0.738 R), RF stays high-precision/low-recall (0.918 P / 0.400 R), and the
+  multi-signal model again sits between them (0.594 P / 0.710 R) rather than reproducing
+  either extreme — the same "more usable as a graded score" shape validation showed, now
+  confirmed out-of-sample.
+- **Per Decision 2 (`decisions.md`, 2026-10-08):** these numbers are now seen. No further
+  change to the model architecture, feature set, or seed choice is permitted for the rest
+  of this project, including in response to the RF PR-AUC result above.
+
 ### Calibration (O4) — 2026-10-08
 
 _Measured by `src.calibration.calibrate` against the seed-0 DistilBERT+evidence model's
@@ -782,16 +846,63 @@ rule-consistency as unqualified proof the model "uses" the rules.
 **Not run on the test split, anywhere** — see decisions.md for why validation was used for
 this stage instead of a test subsample.
 
-### Ablation (O5) — [DATE]
+### Ablation (O5) — Stage 9, 2026-10-08
+
+_Measured by `src.evaluation.stage9_ablation` — 5 arms, 1 seed each (seed 0), 5 epochs
+each, checkpointed on best VALIDATION F1, evaluated ONCE on test. Compared against the
+full model's seed-0 test result specifically (Decision 4, `decisions.md`), not the 3-seed
+mean. Total run time ~2.4 hours (5 arms × ~1770–1810s). Full per-epoch detail:
+`reports/stage9_ablation_results.json`. Checkpoints saved:
+`models/stage9_ablation_{arm}_seed0.*`._
 
 | Removed category | F1 | Δ F1 | PR-AUC | Δ PR-AUC |
 |---|---|---|---|---|
-| None (full model) | | — | | — |
-| − E1 Text | | | | |
-| − E2 Identity | | | | |
-| − E3 Completeness | | | | |
-| − E4 Consistency | | | | |
-| − `has_company_logo` | | | | |
+| None (full model, seed 0) | 0.6449 | — | 0.6881 | — |
+| − E1 Text | 0.6055 | **−0.0394** | 0.7063 | +0.0182 |
+| − E2 Identity | 0.6149 | **−0.0300** | 0.7068 | +0.0187 |
+| − E3 Completeness | 0.6228 | **−0.0221** | 0.7135 | +0.0254 |
+| − E4 Consistency | 0.6090 | **−0.0359** | 0.6937 | +0.0056 |
+| − `has_company_logo` | 0.6768 | **+0.0319** | 0.7159 | +0.0278 |
+
+**Reading this, with the limitation this result sits on stated up front, not buried:**
+
+- **No per-arm variance estimate exists.** This was a disclosed, accepted cost when the
+  ablation seed count was closed at 1 (not 3) per arm, 2026-10-06/08 — a GPU-time decision,
+  not a methodological ideal. It matters here specifically: DistilBERT fine-tuning on this
+  setup is not bit-exact reproducible even at a fixed seed value (`decisions.md`, Stage 5
+  epoch-count entry — cuDNN/attention kernels aren't forced deterministic), so every number
+  in this table carries ordinary run-to-run training noise on top of whatever the removed
+  category's real effect is, and there is no second run for any arm to check how much of
+  either delta is noise.
+- **F1 points the expected direction for all four evidence categories.** Removing any one
+  of E1-E4 lowers F1 (−0.022 to −0.039) — consistent with "each category contributes
+  something," the basic claim multi-signal evidence needs to support. Ranked by F1 drop:
+  **E1 (text/lexicon) > E4 (consistency) > E2 (identity) > E3 (completeness)** — in this
+  single-seed run, the suspicious-phrase lexicon mattered most to F1 and metadata
+  completeness mattered least. With no per-arm variance estimate, this ranking is reported
+  as what this run showed, not as a precise, statistically separated ordering.
+- **PR-AUC points the opposite direction for all four — every single arm's PR-AUC is
+  higher than the full model's**, including E4 at a near-zero +0.0056. This is the pattern
+  most at risk of being over-read: F1 (fixed 0.5 threshold) and PR-AUC (threshold-free,
+  integrates the whole precision-recall curve) can legitimately diverge for a real reason,
+  but a uniform direction across all four independent arms, on a metric Stage 9's main
+  comparison already showed to be noisy at this test size (130 fraud postings — the RF
+  PR-AUC reversal above), is at least as consistent with "the full model's seed-0 PR-AUC
+  happened to land low" as with "every evidence category genuinely hurts ranking quality."
+  **This project does not have the data to tell those two explanations apart**, and Chapter
+  4/5 should say so rather than picking the more flattering reading.
+- **`has_company_logo` is the one arm that improves on both metrics** (+0.032 F1, +0.028
+  PR-AUC) — the largest F1 gain of any arm, in the direction the project's own pre-
+  registered suspicion predicted (`sources.md` #6: this field may be unusually predictive
+  within EMSCAD for reasons of dataset construction rather than a durable fraud signal).
+  Methodology originally framed the bar as "performance sustained without it is a stronger
+  result than performance with it" — this result clears that bar: performance measurably
+  *improves* without it. This is the ablation's clearest, least noise-dependent finding,
+  because it's the only arm where both metrics agree.
+- **Per Decision 2:** these results do not justify dropping `has_company_logo` from the
+  shipped model now — that would be a model change made because of a test-set result,
+  which the "used once" guardrail forecloses for the rest of this project. It is reported
+  as a finding and a recommendation for future work, not acted on here.
 
 ### Tier 2 (O5) — [DATE]
 
