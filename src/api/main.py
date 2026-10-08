@@ -19,11 +19,15 @@ HOW THIS WAS FILLED IN, STAGE BY STAGE
     ~250MB, and reloading it per request would make /score unusably slow.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from src.api.schemas import ScoreRequest, ScoreResponse
 from src.api import pipeline
+
+FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 
 app = FastAPI(
     title="Explainable Credibility Scoring Framework — API",
@@ -70,6 +74,22 @@ def score(request: ScoreRequest):
         contradictions=explanation["contradictions"],
         verification_checklist=explanation["verification_checklist"],
     )
+
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    """Serves the manual-entry demo UI (frontend/index.html) at the bare root, which
+    previously 404'd. Purely additive: a static HTML/CSS/JS page that calls POST /score
+    on this same origin (no CORS setup needed, no new dependency, no change to any
+    existing route, pipeline, or model code). The page never auto-extracts structured
+    fields from pasted text -- every field the user doesn't fill in is left out of the
+    request entirely, same genuinely-missing semantics ScoreRequest already defines.
+    See decisions.md, 2026-10-09, "Minimal manual-entry frontend added" for why an
+    auto-parsing frontend was deliberately rejected in favour of this."""
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=404, detail="Frontend not found.")
+    return FileResponse(index_path)
 
 
 @app.get("/health")

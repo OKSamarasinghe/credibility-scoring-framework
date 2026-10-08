@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobCred — Job Posting Credibility Checker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-4z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6fc;
+    --surface: #ffffff;
+    --text: #0f1430;
+    --muted: #5b6186;
+    --border: #e2e5f6;
+    --input-bg: #f5f6fd;
+    --brand: #4f46e5;
+    --brand-dark: #3f37c9;
+    --brand-light: #eef1ff;
+    --navy-900: #090d1a;
+    --navy-800: #121a30;
+    --navy-700: #1b2746;
+    --low: #16a34a;
+    --low-bg: #ecfdf3;
+    --low-border: #bbf0d0;
+    --medium: #c2780a;
+    --medium-bg: #fff8ea;
+    --medium-border: #f6dfa8;
+    --high: #dc2626;
+    --high-bg: #fef2f2;
+    --high-border: #f8c9c9;
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --radius-sm: 10px;
+    --shadow-card: 0 30px 70px -24px rgba(79,70,229,0.32), 0 50px 100px -40px rgba(9,13,26,0.45);
+    --shadow-soft: 0 10px 30px -14px rgba(9, 13, 26, 0.14);
+    --maxw: 1180px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  a { color: inherit; }
+  .container { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 560px) { .container { padding: 0 18px; } }
+
+  /* ---------- header ---------- */
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(9, 13, 26, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .site-header .container { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 1.04rem; text-decoration: none; letter-spacing: -0.01em; }
+  .brand .mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px -4px rgba(99,102,241,0.6);
+  }
+  .brand .mark svg { width: 18px; height: 18px; }
+  .site-nav { display: flex; align-items: center; gap: 28px; }
+  .site-nav a {
+    color: rgba(255,255,255,0.72); text-decoration: none; font-size: 0.88rem; font-weight: 500;
+    transition: color .15s;
+  }
+  .site-nav a:hover { color: #fff; }
+  .nav-cta {
+    background: var(--brand); color: #fff !important; padding: 9px 18px; border-radius: 999px;
+    font-weight: 600; font-size: 0.85rem !important;
+  }
+  .nav-cta:hover { background: var(--brand-dark); }
+  @media (max-width: 760px) { .site-nav a:not(.nav-cta) { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    background: radial-gradient(1100px 500px at 15% -10%, #2a2470 0%, transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, #1c2a63 0%, transparent 55%),
+                linear-gradient(180deg, var(--navy-900) 0%, var(--navy-800) 100%);
+    color: #fff;
+    overflow: hidden;
+    padding: 76px 0 130px;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(900px 500px at 50% 0%, #000 0%, transparent 75%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 130px;
+    background: linear-gradient(180deg, transparent, var(--bg));
+    pointer-events: none;
+  }
+  .hero-copy { max-width: 740px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(99,102,241,0.16); border: 1px solid rgba(129,140,248,0.4);
+    color: #c7d2fe; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em;
+    padding: 7px 14px; border-radius: 999px; margin-bottom: 22px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #818cf8; }
+  .hero h1 {
+    font-size: clamp(2.15rem, 1.35rem + 3.2vw, 3.5rem);
+    line-height: 1.1; margin: 0 0 18px; font-weight: 800; letter-spacing: -0.02em;
+    color: #fff;
+  }
+  .hero .lead {
+    font-size: clamp(1rem, 0.92rem + 0.4vw, 1.18rem);
+    color: rgba(226,232,255,0.82); max-width: 600px; margin: 0 auto 30px;
+  }
+  .hero-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 8px; }
+  .hero-pills .pill {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.88); font-size: 0.8rem; font-weight: 500;
+    padding: 7px 13px; border-radius: 999px;
+  }
+  .hero-pills .pill svg { width: 14px; height: 14px; flex: none; opacity: 0.85; }
+
+  /* ---------- scan card ---------- */
+  .scan-card {
+    position: relative; z-index: 2;
+    max-width: 880px; margin: 46px auto 0;
+    background: var(--surface); color: var(--text);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(255,255,255,0.7);
+    padding: 36px 34px 34px;
+    overflow: hidden;
+  }
+  .scan-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, #6366f1, #4f46e5 45%, #818cf8);
+  }
+  @media (max-width: 640px) { .scan-card { padding: 24px 20px 22px; border-radius: var(--radius-md); } }
+  .scan-card .scan-head { display: flex; align-items: center; gap: 12px; margin: 0 0 4px; }
+  .scan-card .scan-head .scan-icon {
+    width: 36px; height: 36px; flex: none; border-radius: 10px;
+    background: var(--brand-light); color: var(--brand); display: flex;
+    align-items: center; justify-content: center;
+  }
+  .scan-card .scan-head .scan-icon svg { width: 19px; height: 19px; }
+  .scan-card h2 { font-size: 1.18rem; margin: 0; }
+  .scan-card .scan-sub { color: var(--muted); font-size: 0.88rem; margin: 10px 0 24px; }
+
+  label { display: block; font-size: 0.84rem; font-weight: 600; margin: 0 0 7px; }
+  .hint { font-weight: 500; color: var(--muted); font-size: 0.76rem; margin-left: 6px; }
+  .hint-required {
+    display: inline-block; background: var(--high-bg); color: var(--high);
+    font-weight: 700; font-size: 0.66rem; padding: 2px 8px; border-radius: 999px;
+    margin-left: 6px; vertical-align: middle; letter-spacing: 0.01em;
+  }
+  textarea, input[type=text], select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.93rem;
+    font-family: inherit;
+    background: var(--input-bg);
+    color: var(--text);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 60, 0.04);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  textarea::placeholder, input::placeholder { color: #9aa0c3; }
+  textarea:focus, input:focus, select:focus {
+    outline: none; border-color: var(--brand); background: #fff;
+    box-shadow: 0 0 0 4px rgba(79,70,229,0.14);
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  select { cursor: pointer; }
+  .field { margin-bottom: 18px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  details.optional {
+    margin: 4px 0 20px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+  }
+  details.optional > summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+    font-weight: 600; font-size: 0.9rem; padding: 13px 16px; color: var(--brand-dark);
+    background: var(--brand-light);
+  }
+  details.optional > summary::-webkit-details-marker { display: none; }
+  details.optional > summary::before {
+    content: "+"; font-size: 1rem; font-weight: 700; width: 18px; text-align: center;
+    transition: transform .15s;
+  }
+  details.optional[open] > summary::before { content: "–"; }
+  details.optional .optional-body { padding: 20px 16px 4px; background: #fbfbff; }
+
+  button#submitBtn {
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color: #fff; border: none;
+    padding: 14px 28px; border-radius: 999px;
+    font-size: 0.96rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 9px;
+    box-shadow: 0 14px 30px -10px rgba(79,70,229,0.55);
+    transition: transform .12s, box-shadow .12s, opacity .12s;
+    width: 100%; justify-content: center;
+    margin-top: 6px;
+  }
+  button#submitBtn svg { width: 18px; height: 18px; }
+  button#submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 18px 36px -10px rgba(79,70,229,0.65); }
+  button#submitBtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  #statusLine { margin-top: 12px; font-size: 0.84rem; color: var(--muted); text-align: center; min-height: 1.2em; }
+  #errorBox {
+    display: none; margin-top: 16px; padding: 13px 15px; border-radius: var(--radius-sm);
+    background: var(--high-bg); border: 1px solid var(--high-border); color: var(--high);
+    font-size: 0.86rem; white-space: pre-wrap;
+  }
+
+  /* ---------- results ---------- */
+  #results { display: none; margin-top: 32px; padding-top: 28px; border-top: 1.5px dashed var(--border); }
+  .result-top {
+    display: flex; align-items: center; gap: 26px; flex-wrap: wrap; margin-bottom: 28px;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 22px;
+  }
+  .score-ring-wrap { position: relative; width: 120px; height: 120px; flex: none; }
+  .score-ring-wrap svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+  .score-ring-wrap .ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+  .score-ring-wrap .ring-fg {
+    fill: none; stroke-width: 10; stroke-linecap: round;
+    transition: stroke-dashoffset 0.9s cubic-bezier(.22,1,.36,1), stroke 0.3s;
+  }
+  .score-ring-label {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-ring-label .num { font-size: 1.95rem; font-weight: 800; line-height: 1; }
+  .score-ring-label .of100 { font-size: 0.66rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .result-meta { flex: 1; min-width: 200px; }
+  .risk-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border-radius: 999px;
+    letter-spacing: 0.01em; margin-bottom: 8px;
+  }
+  .risk-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .band-Low-chip { background: var(--low-bg); color: var(--low); border: 1px solid var(--low-border); }
+  .band-Low-chip .dot { background: var(--low); }
+  .band-Medium-chip { background: var(--medium-bg); color: var(--medium); border: 1px solid var(--medium-border); }
+  .band-Medium-chip .dot { background: var(--medium); }
+  .band-High-chip { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border); }
+  .band-High-chip .dot { background: var(--high); }
+  .result-meta p { margin: 0; color: var(--muted); font-size: 0.86rem; }
+  .ring-Low { stroke: var(--low); }
+  .ring-Medium { stroke: var(--medium); }
+  .ring-High { stroke: var(--high); }
+
+  .subsection { margin-top: 22px; }
+  .subsection h3 {
+    font-size: 0.94rem; margin: 0 0 12px; font-weight: 700; color: var(--text);
+    padding-left: 11px; border-left: 3px solid var(--brand);
+  }
+  .subsection ul { margin: 0; padding-left: 0; list-style: none; }
+  .subsection li {
+    position: relative; padding-left: 22px; margin-bottom: 9px; font-size: 0.9rem;
+  }
+  .subsection li::before {
+    content: ""; position: absolute; left: 0; top: 7px; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--brand);
+  }
+  .muted-note { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .phrase-chip {
+    background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border);
+    padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+  }
+  .contradiction-item {
+    font-size: 0.88rem; margin-bottom: 8px; padding: 10px 12px;
+    background: var(--high-bg); border: 1px solid var(--high-border); border-radius: var(--radius-sm);
+  }
+  .contradiction-item .rule-tag {
+    display: inline-block; background: var(--high); color: #fff;
+    border-radius: 5px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; margin-right: 8px;
+  }
+
+  /* ---------- how it works ---------- */
+  .section { padding: 90px 0; }
+  .section-head { text-align: center; max-width: 620px; margin: 0 auto 52px; }
+  .section-head h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2.1rem); margin: 0 0 12px; letter-spacing: -0.01em; }
+  .section-head p { color: var(--muted); margin: 0; font-size: 1rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; counter-reset: step; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .step-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 28px; box-shadow: var(--shadow-soft); counter-increment: step; position: relative;
+  }
+  .step-num {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: var(--brand-light); color: var(--brand-dark); font-weight: 800; font-size: 1.05rem;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
+  }
+  .step-num::before { content: counter(step); }
+  .step-card h3 { font-size: 1.04rem; margin: 0 0 8px; }
+  .step-card p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+  /* ---------- evidence ---------- */
+  .evidence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  @media (max-width: 980px) { .evidence-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .evidence-grid { grid-template-columns: 1fr; } }
+  .evidence-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 24px; transition: transform .15s, box-shadow .15s;
+  }
+  .evidence-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); }
+  .evidence-tag {
+    display: inline-block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
+    color: var(--brand); background: var(--brand-light); padding: 4px 9px; border-radius: 6px; margin-bottom: 14px;
+  }
+  .evidence-card h3 { font-size: 0.98rem; margin: 0 0 8px; }
+  .evidence-card p { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+  /* ---------- about ---------- */
+  .about-band { background: var(--navy-900); color: rgba(255,255,255,0.88); }
+  .about-band .container { padding-top: 72px; padding-bottom: 72px; max-width: 760px; text-align: center; }
+  .about-band h2 { color: #fff; font-size: clamp(1.4rem, 1.2rem + 0.8vw, 1.9rem); margin: 0 0 14px; }
+  .about-band p { color: rgba(226,232,255,0.72); font-size: 0.96rem; margin: 0; }
+
+  /* ---------- footer ---------- */
+  footer { padding: 42px 0 38px; text-align: center; background: var(--surface); border-top: 1px solid var(--border); }
+  .footer-credit { margin: 0 0 6px; font-size: 0.92rem; color: var(--text); font-weight: 600; }
+  .footer-meta { margin: 0 0 16px; font-size: 0.8rem; color: var(--muted); }
+  .footer-note { margin: 0; font-size: 0.76rem; color: var(--muted); }
+  footer code { background: var(--brand-light); color: var(--brand-dark); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="#top">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+      </span>
+      JobCred
+    </a>
+    <nav class="site-nav">
+      <a href="#how">How it works</a>
+      <a href="#evidence">Evidence model</a>
+      <a href="#top" class="nav-cta">Check a posting</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <div class="container">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="dot"></span>Explainable AI analysis</span>
+        <h1>A credibility score for every job posting.</h1>
+        <p class="lead">Paste a job description and JobCred returns a calibrated 0–100 credibility score, built from the posting's wording, its structured details, and whether the two actually agree with each other.</p>
+        <div class="hero-pills">
+          <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>Text &amp; content cues</span>
+          <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 21c1.5-4 5-5.5 7-5.5S18.5 17 20 21"/></svg>Identity &amp; contact cues</span>
+          <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/></svg>Metadata completeness</span>
+          <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 7-7"/><path d="M20 12a8 8 0 1 1-5-7.4"/></svg>Consistency verification</span>
+        </div>
+      </div>
+
+      <form id="scoreForm">
+        <div class="scan-card">
+          <div class="scan-head">
+            <span class="scan-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </span>
+            <h2>Check a posting</h2>
+          </div>
+          <p class="scan-sub">Paste the job description below. Every extra detail you add under "Add more details" sharpens the result — any field you leave blank is treated as genuinely unknown, never guessed.</p>
+
+          <div class="field">
+            <label for="text">Job description / role details <span class="hint-required">Required</span></label>
+            <textarea id="text" required placeholder="Paste the main body of the posting here — responsibilities, role description, requirements, etc."></textarea>
+          </div>
+          <div class="field">
+            <label for="title">Job title <span class="hint">optional</span></label>
+            <input type="text" id="title" placeholder="e.g. Software Engineer">
+          </div>
+
+          <details class="optional">
+            <summary>Add more details (optional — sharpens the score)</summary>
+            <div class="optional-body">
+              <div class="field">
+                <label for="company_profile">About the employer / company profile</label>
+                <textarea id="company_profile" placeholder="Any text the posting gives about the employer itself"></textarea>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="requirements">Requirements</label>
+                  <textarea id="requirements" placeholder="Separate requirements section, if the posting has one"></textarea>
+                </div>
+                <div class="field">
+                  <label for="benefits">Benefits</label>
+                  <textarea id="benefits" placeholder="Separate benefits section, if the posting has one"></textarea>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="location">Location</label>
+                  <input type="text" id="location" placeholder="e.g. Sri Lanka, Western Province, Colombo">
+                </div>
+                <div class="field">
+                  <label for="salary_range">Salary range</label>
+                  <input type="text" id="salary_range" placeholder="e.g. 35000-40000">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="employment_type">Employment type</label>
+                  <input type="text" id="employment_type" placeholder="e.g. Full-time">
+                </div>
+                <div class="field">
+                  <label for="department">Department</label>
+                  <input type="text" id="department" placeholder="e.g. Administration">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="required_experience">Required experience</label>
+                  <input type="text" id="required_experience" placeholder="e.g. Entry level">
+                </div>
+                <div class="field">
+                  <label for="required_education">Required education</label>
+                  <input type="text" id="required_education" placeholder="e.g. Bachelor's Degree">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="industry">Industry</label>
+                  <input type="text" id="industry" placeholder="e.g. Retail">
+                </div>
+                <div class="field">
+                  <label for="function">Job function</label>
+                  <input type="text" id="function" placeholder="e.g. Administrative">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="telecommuting">Remote / work-from-home role?</label>
+                  <select id="telecommuting">
+                    <option value="">Not specified</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="has_company_logo">Listing shows a company logo?</label>
+                  <select id="has_company_logo">
+                    <option value="">Not specified</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="has_questions">Listing includes screening questions?</label>
+                <select id="has_questions">
+                  <option value="">Not specified</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <button type="submit" id="submitBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            Check credibility
+          </button>
+          <div id="statusLine"></div>
+          <div id="errorBox"></div>
+
+          <div id="results">
+            <div class="result-top">
+              <div class="score-ring-wrap">
+                <svg viewBox="0 0 128 128">
+                  <circle class="ring-bg" cx="64" cy="64" r="54"/>
+                  <circle class="ring-fg" id="ringFg" cx="64" cy="64" r="54"/>
+                </svg>
+                <div class="score-ring-label">
+                  <div class="num" id="scoreNum">—</div>
+                  <div class="of100">/ 100</div>
+                </div>
+              </div>
+              <div class="result-meta">
+                <div class="risk-chip" id="riskChip"><span class="dot"></span><span id="riskChipText"></span></div>
+                <p>Calibrated credibility score, based on the evidence available in what you submitted.</p>
+              </div>
+            </div>
+
+            <div class="subsection">
+              <h3>Why this score</h3>
+              <ul id="topReasons"></ul>
+            </div>
+
+            <div class="subsection">
+              <h3>Suspicious phrases found</h3>
+              <div id="suspiciousPhrases"></div>
+            </div>
+
+            <div class="subsection">
+              <h3>Inconsistencies found</h3>
+              <div id="contradictions"></div>
+            </div>
+
+            <div class="subsection">
+              <h3>Before you apply, verify</h3>
+              <ul id="checklist"></ul>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-head">
+        <h2>From a pasted posting to an explainable verdict</h2>
+        <p>Every score comes with the reasoning behind it — never a bare number.</p>
+      </div>
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>Submit the posting</h3>
+          <p>Paste the description text, and fill in any structured details you know — title, location, salary, employment type. Anything left blank stays genuinely unknown, not guessed.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>The model reads it</h3>
+          <p>A fine-tuned language model reads the text together with four categories of evidence — content cues, identity cues, metadata completeness, and text–metadata consistency — rather than judging the words in isolation.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>Get a calibrated, explained score</h3>
+          <p>The model's prediction is calibrated into a 0–100 credibility score, then explained with specific reasons, matched phrases, and a checklist of what to verify yourself.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="evidence" style="padding-top:0;">
+    <div class="container">
+      <div class="section-head">
+        <h2>Four categories of evidence, fused together</h2>
+        <p>Not just what the posting says — how complete it is, and whether it agrees with itself.</p>
+      </div>
+      <div class="evidence-grid">
+        <div class="evidence-card">
+          <span class="evidence-tag">E1</span>
+          <h3>Text &amp; content cues</h3>
+          <p>Scans the wording for scam-style language — artificial urgency, guaranteed pay, requests to pay money upfront.</p>
+        </div>
+        <div class="evidence-card">
+          <span class="evidence-tag">E2</span>
+          <h3>Identity &amp; contact cues</h3>
+          <p>Looks at how the employer identifies itself — a company profile, a specific location, and how applicants are asked to get in touch.</p>
+        </div>
+        <div class="evidence-card">
+          <span class="evidence-tag">E3</span>
+          <h3>Metadata completeness</h3>
+          <p>Checks which of the standard posting details are actually filled in, since postings missing basic information carry more risk.</p>
+        </div>
+        <div class="evidence-card">
+          <span class="evidence-tag">E4</span>
+          <h3>Text–metadata consistency</h3>
+          <p>Flags contradictions between the free text and the structured fields — a posting calling itself remote while also listing an office location, for example.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-band">
+    <div class="container">
+      <h2>About this project</h2>
+      <p>JobCred is the applied artefact of a Final Year Research Project, An Explainable Credibility Scoring Framework for Online Recruitment Posts Using Multi-Signal Evidence and Consistency Verification. It combines a fine-tuned transformer model with structured evidence and consistency-verification rules, so every score comes with a stated, checkable reason rather than a bare number.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <p class="footer-credit">Developed by Oshadha Samarasinghe </p>
+    <p class="footer-meta">Coventry University - 16116041 &nbsp;·&nbsp; NIBM - COBSCCOMP242P-069</p>
+    <p class="footer-note">BSc (Hons) Computing Final Year Research Project.</p>
+    <p class="footer-note"> Explainable Credibility Scoring Framework for Online Recruitment Posts Using Multi-Signal Evidence and Consistency Verification.</p>
+  </div>
+</footer>
+
+<script>
+const form = document.getElementById('scoreForm');
+const submitBtn = document.getElementById('submitBtn');
+const statusLine = document.getElementById('statusLine');
+const errorBox = document.getElementById('errorBox');
+const results = document.getElementById('results');
+
+const OPTIONAL_TEXT_FIELDS = [
+  'title', 'company_profile', 'requirements', 'benefits', 'location',
+  'salary_range', 'employment_type', 'department', 'required_experience',
+  'required_education', 'industry', 'function'
+];
+const TRISTATE_FIELDS = ['telecommuting', 'has_company_logo', 'has_questions'];
+
+function buildPayload() {
+  const text = document.getElementById('text').value.trim();
+  const payload = { text };
+
+  for (const field of OPTIONAL_TEXT_FIELDS) {
+    const v = document.getElementById(field).value.trim();
+    if (v !== '') payload[field] = v;
+  }
+  for (const field of TRISTATE_FIELDS) {
+    const v = document.getElementById(field).value;
+    if (v === 'true') payload[field] = true;
+    else if (v === 'false') payload[field] = false;
+    // '' (Not specified) -> omit entirely, left genuinely missing
+  }
+  return payload;
+}
+
+const RING_RADIUS = 54;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+function renderResults(data) {
+  const band = data.risk_band; // "Low" | "Medium" | "High"
+
+  // Score ring
+  const ringFg = document.getElementById('ringFg');
+  ringFg.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(2));
+  ringFg.classList.remove('ring-Low', 'ring-Medium', 'ring-High');
+  ringFg.classList.add('ring-' + band);
+  // animate from empty -> actual value
+  ringFg.style.strokeDashoffset = RING_CIRCUMFERENCE.toFixed(2);
+  requestAnimationFrame(() => {
+    const offset = RING_CIRCUMFERENCE * (1 - data.credibility_score / 100);
+    ringFg.style.strokeDashoffset = offset.toFixed(2);
+  });
+  document.getElementById('scoreNum').textContent = data.credibility_score;
+
+  const riskChip = document.getElementById('riskChip');
+  riskChip.className = 'risk-chip band-' + band + '-chip';
+  document.getElementById('riskChipText').textContent = band + ' risk';
+
+  const topReasons = document.getElementById('topReasons');
+  topReasons.innerHTML = '';
+  (data.top_reasons || []).forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = r;
+    topReasons.appendChild(li);
+  });
+
+  const suspiciousBox = document.getElementById('suspiciousPhrases');
+  if (data.suspicious_phrases && data.suspicious_phrases.length) {
+    suspiciousBox.innerHTML = '<div class="chip-row">' +
+      data.suspicious_phrases.map(p => `<span class="phrase-chip">"${p}"</span>`).join('') +
+      '</div>';
+  } else {
+    suspiciousBox.innerHTML = '<p class="muted-note">None found in the text.</p>';
+  }
+
+  const contradictionsBox = document.getElementById('contradictions');
+  if (data.contradictions && data.contradictions.length) {
+    contradictionsBox.innerHTML = data.contradictions.map(c =>
+      `<div class="contradiction-item"><span class="rule-tag">${c.rule}</span>${c.detail}</div>`
+    ).join('');
+  } else {
+    contradictionsBox.innerHTML = '<p class="muted-note">None found.</p>';
+  }
+
+  const checklist = document.getElementById('checklist');
+  checklist.innerHTML = '';
+  (data.verification_checklist || []).forEach(c => {
+    const li = document.createElement('li');
+    li.textContent = c;
+    checklist.appendChild(li);
+  });
+
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorBox.style.display = 'none';
+  results.style.display = 'none';
+  submitBtn.disabled = true;
+  statusLine.textContent = 'Analyzing — the first check after starting the server can take 10-20s while the model loads.';
+
+  try {
+    const payload = buildPayload();
+    const resp = await fetch('/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const body = await resp.json();
+
+    if (!resp.ok) {
+      const detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail, null, 2);
+      errorBox.textContent = `Request failed (HTTP ${resp.status}):\n${detail}`;
+      errorBox.style.display = 'block';
+      statusLine.textContent = '';
+      return;
+    }
+
+    renderResults(body);
+    statusLine.textContent = '';
+  } catch (err) {
+    errorBox.textContent = 'Could not reach the server. Is it still running?\n' + err;
+    errorBox.style.display = 'block';
+    statusLine.textContent = '';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

@@ -16,6 +16,151 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-09 — Minimal manual-entry frontend added, reopening the "backend API only"
+scope decision on purpose, not by drift
+
+- **Context:** manually testing the live API (via Swagger `/docs` and curl) surfaced a real
+  usability gap: a real user has a pasted paragraph or a link, not a 17-field JSON body.
+  `project.md`'s own Scope section lists "Frontend UI (backend API only)" under **Out of
+  scope** — this is a deliberate reopening of that decision, not an oversight, logged as
+  such rather than silently built.
+- **The actual question wasn't "frontend or not" — it was what the frontend is allowed to
+  do with the user's pasted text.** A frontend that auto-splits one pasted blob into
+  title/location/salary/etc. is the exact same heuristic Decision "Stage 8 wiring"
+  (2026-10-08) already considered and rejected as Option C: *"an untested, unvalidated
+  heuristic the model was never trained or tested against — it would silently create a
+  train/inference mismatch worse than honestly leaving a field missing."* Moving that same
+  guess from backend to frontend doesn't remove the risk, it just relocates it.
+- **Options considered:** (A) no frontend, document the gap as a limitation and move on;
+  (B) a minimal manual-entry form — separate labelled fields the human fills in directly
+  (same principle as a real job-board submission form), zero auto-parsing, calls the
+  existing `/score` unchanged; (C) a "smart" form that pre-fills fields from pasted text via
+  heuristics, user reviews/edits before submit; (D) URL auto-fetch-and-parse.
+- **Decision:** (B). Raised to the student directly (`AskUserQuestion`, 2026-10-09) given
+  this reopens an explicit scope line under a near-term deadline — not treated as a routine
+  engineering call under the standing delegation, since it changes what gets built, not how
+  an already-agreed piece gets built. Student chose B explicitly, emphasising "without
+  harming current working project."
+- **Why B over C or D:** C still ships an unvalidated heuristic to the user, just dressed as
+  a "suggestion" — the risk is softened, not removed, and it's real extra work for a benefit
+  this project doesn't need to claim. D reopens the URL-scraping/ToS question Decision
+  (2026-08-07, "Make raw text the primary API input") deliberately avoided, for reasons that
+  still hold. B needs no new heuristic, no new dependency, and cannot touch model behaviour
+  at all — it only changes how a human supplies values that were already optional inputs.
+- **Implementation, kept deliberately low-risk:** `frontend/index.html` — a single
+  self-contained static page (inline CSS/JS, no build step, no new Python dependency),
+  served by one new additive route (`GET /` in `src/api/main.py`, `include_in_schema=False`
+  so it doesn't appear in the Swagger contract). Served same-origin from the same FastAPI
+  app specifically so no CORS configuration is needed. The page builds its JSON payload by
+  only including a field if the user actually typed something into it — an empty field is
+  omitted from the request entirely, not sent as `""` or a guessed value, preserving
+  `ScoreRequest`'s existing "optional, genuinely missing if not supplied" semantics exactly.
+  `/score`, `/health`, `pipeline.py`, and every trained-model code path are untouched.
+- **What I gave up:** a documented, named limitation that would otherwise have been simple
+  to write up and leave alone. In exchange, the artefact is now actually usable by someone
+  who isn't comfortable hand-writing JSON — closer to what a real deployment would need.
+- **Self-check:** *Why does moving the "split pasted text into fields" logic into a frontend
+  not make it safer than doing the same guess in the backend — and what makes option B
+  immune to that specific risk in a way option C isn't?*
+
+### Addendum (2026-10-09, same day) -- visual redesign of the same frontend, no field or
+  logic changes
+
+- **Context:** once the manual-entry form (above) was working, the request was to make the
+  same page "next level and fully attractive," full-screen, mobile-responsive, with
+  https://jobscamscore.com/ as a style reference. This is a visual-design iteration of the
+  decision already logged above, not a new functional or scope decision -- logged as an
+  addendum rather than a fresh entry.
+- **What changed:** `frontend/index.html` was rewritten as a styled single-page layout --
+  sticky header/nav, a dark hero section, the same form moved into an elevated "scan card,"
+  an animated SVG score-ring in place of the old plain coloured circle, phrase/risk chips in
+  place of plain list items, plus three added marketing-style sections ("How it works," an
+  "Evidence model" section describing E1-E4 descriptively (no invented numbers or claims),
+  and a plain, modest "about" paragraph identifying it as a final-year research artefact).
+  Mobile responsiveness via CSS media queries (640/760/860/980px breakpoints) and
+  `clamp()`-based fluid type; no JS framework, no build step, no new dependency.
+- **What did NOT change, verified before deployment:** every field `id` the JS reads
+  (`text`, `title`, `company_profile`, `requirements`, `benefits`, `location`,
+  `salary_range`, `employment_type`, `department`, `required_experience`,
+  `required_education`, `industry`, `function`, `telecommuting`, `has_company_logo`,
+  `has_questions`) is unchanged from the first version. `buildPayload()`'s omit-if-empty
+  logic -- the part that preserves `ScoreRequest`'s genuinely-missing semantics -- is
+  byte-for-byte the same function, only the result-rendering code was rewritten to animate
+  the new SVG ring instead of recolouring a plain div. `/score`, `/health`, `pipeline.py`,
+  and `src/api/main.py`'s route itself (still `GET /`, still `include_in_schema=False`) were
+  not touched a second time.
+- **Verification before deployment:** checked the rewritten file for duplicate element
+  `id`s (none) and balanced opening/closing tags for every structural element (div,
+  section, form, header, footer, main, script, style, svg -- all matched) before pushing it
+  to the device, specifically because this file merges two design iterations and that is
+  exactly the kind of change where a leftover duplicate id or an unclosed tag silently
+  breaks the JS without raising an error.
+- **What I gave up:** nothing functional -- this is presentation only. The cost is pure
+  styling effort; no new risk to the trained model, the API contract, or the
+  genuinely-missing-field semantics the earlier decision protected.
+- **Self-check:** *If you temporarily deleted every line of CSS from this file, would the
+  underlying form still collect and submit exactly the same JSON payload as the first
+  version? (It should -- styling and data-collection were kept strictly separate on
+  purpose.)*
+
+### Addendum 2 (2026-10-09, same day) -- second visual pass: naming, copy, and polish,
+  still no field or logic changes
+
+- **Context:** after seeing the first redesign, the feedback was that the input fields
+  looked flat/mismatched against the dark hero, the page needed a real product name, the
+  placeholder example ("Coordinator") should be something more universally recognisable,
+  the section copy should read less like internal jargon, and the project needed a visible,
+  properly-placed academic attribution. This is a second iteration on the same decision
+  above, not a new scope or functional change.
+- **Naming:** named the page "CredLens" -- a short, literal name (credibility + the idea of
+  a lens/inspection) that ties to the "Explainable AI" framing already used elsewhere in the
+  project, rather than an invented buzzword. Used consistently in the page `<title>`, header
+  logo, and footer.
+- **Visual fixes:** gave inputs/selects/textareas a distinct light-indigo tint
+  (`--input-bg`) and an inset shadow instead of a near-white background that was barely
+  distinguishable from the white card behind it; added a brand-gradient accent strip to the
+  top of the "scan card" and an indigo-tinted glow in its shadow so the white card reads as
+  part of the same blue theme as the dark hero instead of looking like an unrelated flat
+  white box dropped onto it; replaced the ALL-CAPS tracked-letter-spacing style previously
+  used for "Why this score" / "Suspicious phrases found" / etc. with sentence case plus a
+  left accent bar, and removed the same ALL-CAPS treatment from the "How it works" /
+  "Evidence model" section eyebrows -- both were flagged against this project's own
+  frontend-design guidance as a generic templated-AI tell, not a deliberate choice for this
+  brief.
+- **Copy:** rewrote the hero headline to state the product's actual deliverable ("A
+  credibility score for every job posting") instead of a single-word-accented slogan;
+  rewrote the evidence-model and how-it-works card copy in plainer, less jargon-heavy
+  language aimed at a job seeker rather than an engineer; changed the job-title placeholder
+  from "Coordinator" to "Software Engineer" as requested.
+- **Attribution:** added a footer block naming the author and the academic context in the
+  conventional place for authorship credit (page footer, not the marketing hero) --
+  "Developed by Oshadha Samarasinghe (O.K. Samarasinghe) for a BSc (Hons) Computing
+  final-year research project", with the registration details (Coventry University / NIBM,
+  COBSCCOMP242P-069, 16116041) on a second line, kept separate from the project-description
+  paragraph in the "About this project" section above it.
+- **What did NOT change, verified before deployment (same discipline as Addendum 1):**
+  every field `id` the JS reads is unchanged; `buildPayload()` and the omit-if-empty logic
+  are untouched; `/score`, `/health`, `pipeline.py`, and `src/api/main.py`'s route are
+  untouched. Checked again for duplicate element ids, balanced tags (div/section/form/
+  header/footer/main/script/style/svg/details/select/label), and that every id referenced
+  by the JS (all 16 form fields plus the 12 result-panel ids) is actually present in the
+  markup, before pushing to the device.
+- **Deployment note:** the first `device_commit_files` call for this version reported
+  success (`written`, no `rejected` entries) but the device file's md5sum did not change --
+  confirmed by re-checking immediately after. A second `device_commit_files` call with
+  `force: true` against the same staged path did update it, verified by md5sum matching the
+  staged file exactly. Recorded here in case this silent-no-op-on-first-attempt pattern
+  recurs; the fix was simply to re-verify by md5sum after every device_commit_files call
+  rather than trusting a "written" response alone, which is already this project's standing
+  practice.
+- **What I gave up:** nothing functional. Styling, copy, and attribution placement only.
+- **Self-check:** *Why does giving the input fields a distinct tint instead of leaving them
+  near-white actually fix a "theme mismatch" complaint, rather than just being a cosmetic
+  preference -- what was the field doing before that made it look unrelated to the card
+  around it?*
+
+---
+
 ## 2026-10-08 — Stage 9, Part 3 design decisions: Tier 2 transfer (T1/T2/T3) and the
 source-probe leakage test, logged before touching Tier 2 for evaluation purposes
 
