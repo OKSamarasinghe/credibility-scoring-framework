@@ -675,12 +675,48 @@ does not fit Day 4 alongside Stage 9's full test evaluation, Tier 2 transfer tes
 source-probe leakage test, Stage 7's SHAP, and Stage 8's API wiring. Full reasoning and
 what this costs (no per-arm variance estimate) in `decisions.md`, 2026-10-08.
 
-### Calibration (O4) — [DATE]
+### Calibration (O4) — 2026-10-08
 
-- Calibrator selected: [ Platt / isotonic / none ] — reason: [ ]
-- Brier score before / after: [ ] / [ ]
-- ECE before / after: [ ] / [ ]
-- Risk band thresholds: [ ]
+_Measured by `src.calibration.calibrate` against the seed-0 DistilBERT+evidence model's
+raw output on validation (n=2682, 130 fraud) — the same model and split Stage 5 reports.
+Platt scaling fit on the raw pre-sigmoid logit; isotonic regression fit on the raw
+post-sigmoid probability; both evaluated against the raw (uncalibrated) output. Fit AND
+evaluated on validation only, per the project's "calibrator on validation, test used once"
+guardrail — the numbers below are what SELECTED the calibrator, not the final citable
+calibration result (that comes from Stage 9's one-time test-set run of whichever
+calibrator was picked here)._
+
+| Calibrator | Brier | ECE |
+|---|---|---|
+| None (raw) | 0.0275 | 0.0231 |
+| Platt | 0.0212 | 0.0050 |
+| **Isotonic (selected)** | **0.0199** | **~0.0000** |
+
+**Calibrator selected: isotonic** — lowest on both Brier and ECE, no disagreement between
+the two criteria. The reliability curve (`reports/stage6_reliability_curve.png`) shows the
+raw model is genuinely overconfident: predicted probabilities sit visibly below the
+diagonal through the mid-range, then jump sharply only in the 0.9–1.0 bin. Both
+calibrators correct this; isotonic tracks the diagonal most closely.
+
+**A necessary caveat on the ECE≈0.000 figure:** isotonic regression is flexible enough
+(effectively many degrees of freedom) that it can closely trace the empirical calibration
+curve of the exact data it was fit on — several of its reliability bins match mean
+confidence to actual fraction-positive to 3+ decimal places, which is expected of a method
+with this much flexibility, not evidence the model is perfectly calibrated in general. The
+preference for isotonic over Platt is still real (it also wins on Brier, a less gameable
+metric), but this specific ECE number is a validation-set selection statistic, not the
+model's true, generalizable calibration error. **The honest, citable calibration result
+is whatever Stage 9 reports when this same frozen isotonic calibrator is applied once to
+the untouched test set** — not this number.
+
+**Risk bands (provisional):** Low 0–33, Medium 34–66, High 67–100, applied to the
+calibrated 0–100 score. Simple terciles, not validated against an external standard —
+`PROJECT_PLAN.md` already records evaluation thresholds as open pending supervisor input;
+revisit if a contact window opens before submission.
+
+Calibrated-score summary on validation: mean 4.8, range [0.0, 95.7] — consistent with the
+true ~4.8% fraud base rate, a reasonable sign the calibrated score isn't systematically
+shifted.
 
 ### Explanation fidelity (O4) — [DATE]
 

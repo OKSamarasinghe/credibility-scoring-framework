@@ -16,6 +16,50 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 6 complete: isotonic selected over Platt, with an honest caveat about what its ECE=0.000 actually means
+
+- **Results on validation (seed-0 DistilBERT+evidence model, n=2682):**
+
+  | Calibrator | Brier | ECE |
+  |---|---|---|
+  | None (raw) | 0.0275 | 0.0231 |
+  | Platt | 0.0212 | 0.0050 |
+  | Isotonic | 0.0199 | ~0.0000 |
+
+  No disagreement between the two metrics — isotonic wins on both, cleanly. The reliability
+  curve shows the raw model is genuinely overconfident (predictions sit below the diagonal
+  through the mid-range, then jump sharply only in the 0.9–1.0 bin), and both calibrators
+  visibly correct it.
+- **Decision:** isotonic selected, saved to `models/stage6_calibrator.joblib`.
+- **The caveat, stated plainly:** isotonic's near-zero ECE is partly an artefact of fitting
+  and evaluating on the SAME validation set. Isotonic regression is a flexible, non-
+  parametric, many-degrees-of-freedom fit — several of its reliability bins show mean
+  confidence matching the actual fraction positive to 3+ decimal places, which is exactly
+  what you'd expect from a method with enough flexibility to closely trace its own
+  training sample's empirical curve. Platt (a single-parameter logistic fit) has much less
+  room to do this, which is part of why its ECE (0.005) is non-zero but still good. This
+  does not mean isotonic was the wrong pick — it won on Brier too, a different and less
+  gameable metric, so the preference is real, not just an artefact. But the exact ECE=0.000
+  number should not be quoted as the model's true calibration error; it is a validation-set
+  selection statistic, not the final answer.
+- **Why this isn't a problem for the project's "test used once" guardrail:** this is
+  precisely the situation that guardrail exists for. The calibrator was chosen here, on
+  validation, exactly once. Stage 9's one-time test-set evaluation applies this same frozen
+  isotonic calibrator (not re-selected, not re-fit) and reports ITS Brier/ECE — that number,
+  not this one, is what Chapter 4 should present as the real calibration result.
+- **Risk bands:** provisional terciles (Low 0–33, Medium 34–66, High 67–100) on the
+  calibrated 0–100 score. Not validated against any external standard — logged as such
+  because `PROJECT_PLAN.md` already records success thresholds as open pending supervisor
+  input. Revisit if a supervisor contact window opens.
+- **What I gave up:** a clean, uncomplicated "ECE went from 0.023 to 0.000" headline
+  number. Reporting the honest version (real but likely overstated at exactly 0, confirm
+  on test) costs a cleaner story in exchange for not overclaiming in Chapter 4.
+- **Self-check:** *Why can isotonic regression report a near-perfect ECE on the same data
+  it was fit on, when Platt scaling can't do the same thing nearly as easily — and what
+  does that imply about which number you trust more going into Stage 9?*
+
+---
+
 ## 2026-10-08 — Stage 5 main comparison complete: DistilBERT + structured evidence beats both baselines; ablation seed count (Decision 2, 2026-10-06) closed at 1 seed, from measured timing
 
 ### 1. Main comparison result (O3)

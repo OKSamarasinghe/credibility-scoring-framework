@@ -1,0 +1,258 @@
+{
+  "seed": 0,
+  "n_val": 2682,
+  "metrics": {
+    "none": {
+      "brier": 0.027534307911992073,
+      "ece": 0.023116036784251084
+    },
+    "platt": {
+      "brier": 0.021153468638658524,
+      "ece": 0.0050362013197051865
+    },
+    "isotonic": {
+      "brier": 0.019904322922229767,
+      "ece": 1.349645450788423e-06
+    }
+  },
+  "selected_calibrator": "isotonic",
+  "selection_criterion": "lowest ECE on validation (Brier reported as secondary check)",
+  "reliability_bins": {
+    "none": [
+      {
+        "bin_lo": 0.0,
+        "bin_hi": 0.1,
+        "n": 2481,
+        "mean_confidence": 0.005208190530538559,
+        "fraction_positive": 0.01128577186618299
+      },
+      {
+        "bin_lo": 0.1,
+        "bin_hi": 0.2,
+        "n": 32,
+        "mean_confidence": 0.1412055343389511,
+        "fraction_positive": 0.1875
+      },
+      {
+        "bin_lo": 0.2,
+        "bin_hi": 0.30000000000000004,
+        "n": 6,
+        "mean_confidence": 0.2372579425573349,
+        "fraction_positive": 0.16666666666666666
+      },
+      {
+        "bin_lo": 0.30000000000000004,
+        "bin_hi": 0.4,
+        "n": 8,
+        "mean_confidence": 0.3637019395828247,
+        "fraction_positive": 0.125
+      },
+      {
+        "bin_lo": 0.4,
+        "bin_hi": 0.5,
+        "n": 6,
+        "mean_confidence": 0.4454595148563385,
+        "fraction_positive": 0.16666666666666666
+      },
+      {
+        "bin_lo": 0.5,
+        "bin_hi": 0.6000000000000001,
+        "n": 13,
+        "mean_confidence": 0.5511107444763184,
+        "fraction_positive": 0.15384615384615385
+      },
+      {
+        "bin_lo": 0.6000000000000001,
+        "bin_hi": 0.7000000000000001,
+        "n": 6,
+        "mean_confidence": 0.6682751178741455,
+        "fraction_positive": 0.16666666666666666
+      },
+      {
+        "bin_lo": 0.7000000000000001,
+        "bin_hi": 0.8,
+        "n": 10,
+        "mean_confidence": 0.767086386680603,
+        "fraction_positive": 0.2
+      },
+      {
+        "bin_lo": 0.8,
+        "bin_hi": 0.9,
+        "n": 19,
+        "mean_confidence": 0.8502482175827026,
+        "fraction_positive": 0.3157894736842105
+      },
+      {
+        "bin_lo": 0.9,
+        "bin_hi": 1.0,
+        "n": 101,
+        "mean_confidence": 0.9844724535942078,
+        "fraction_positive": 0.8118811881188119
+      }
+    ],
+    "platt": [
+      {
+        "bin_lo": 0.0,
+        "bin_hi": 0.1,
+        "n": 2513,
+        "mean_confidence": 0.01180584728717804,
+        "fraction_positive": 0.013529645841623557
+      },
+      {
+        "bin_lo": 0.1,
+        "bin_hi": 0.2,
+        "n": 19,
+        "mean_confidence": 0.14770637452602386,
+        "fraction_positive": 0.15789473684210525
+      },
+      {
+        "bin_lo": 0.2,
+        "bin_hi": 0.30000000000000004,
+        "n": 20,
+        "mean_confidence": 0.23694315552711487,
+        "fraction_positive": 0.15
+      },
+      {
+        "bin_lo": 0.30000000000000004,
+        "bin_hi": 0.4,
+        "n": 19,
+        "mean_confidence": 0.35691243410110474,
+        "fraction_positive": 0.15789473684210525
+      },
+      {
+        "bin_lo": 0.4,
+        "bin_hi": 0.5,
+        "n": 13,
+        "mean_confidence": 0.4534638822078705,
+        "fraction_positive": 0.5384615384615384
+      },
+      {
+        "bin_lo": 0.5,
+        "bin_hi": 0.6000000000000001,
+        "n": 10,
+        "mean_confidence": 0.5366539359092712,
+        "fraction_positive": 0.5
+      },
+      {
+        "bin_lo": 0.6000000000000001,
+        "bin_hi": 0.7000000000000001,
+        "n": 8,
+        "mean_confidence": 0.6584582924842834,
+        "fraction_positive": 0.625
+      },
+      {
+        "bin_lo": 0.7000000000000001,
+        "bin_hi": 0.8,
+        "n": 14,
+        "mean_confidence": 0.756646454334259,
+        "fraction_positive": 0.7142857142857143
+      },
+      {
+        "bin_lo": 0.8,
+        "bin_hi": 0.9,
+        "n": 31,
+        "mean_confidence": 0.8714473247528076,
+        "fraction_positive": 0.8709677419354839
+      },
+      {
+        "bin_lo": 0.9,
+        "bin_hi": 1.0,
+        "n": 35,
+        "mean_confidence": 0.9110195636749268,
+        "fraction_positive": 0.9428571428571428
+      }
+    ],
+    "isotonic": [
+      {
+        "bin_lo": 0.0,
+        "bin_hi": 0.1,
+        "n": 2461,
+        "mean_confidence": 0.009753469377756119,
+        "fraction_positive": 0.009752133279154815
+      },
+      {
+        "bin_lo": 0.1,
+        "bin_hi": 0.2,
+        "n": 112,
+        "mean_confidence": 0.1696428507566452,
+        "fraction_positive": 0.16964285714285715
+      },
+      {
+        "bin_lo": 0.2,
+        "bin_hi": 0.30000000000000004,
+        "n": 0,
+        "mean_confidence": null,
+        "fraction_positive": null
+      },
+      {
+        "bin_lo": 0.30000000000000004,
+        "bin_hi": 0.4,
+        "n": 3,
+        "mean_confidence": 0.3333333432674408,
+        "fraction_positive": 0.3333333333333333
+      },
+      {
+        "bin_lo": 0.4,
+        "bin_hi": 0.5,
+        "n": 13,
+        "mean_confidence": 0.4615383744239807,
+        "fraction_positive": 0.46153846153846156
+      },
+      {
+        "bin_lo": 0.5,
+        "bin_hi": 0.6000000000000001,
+        "n": 0,
+        "mean_confidence": null,
+        "fraction_positive": null
+      },
+      {
+        "bin_lo": 0.6000000000000001,
+        "bin_hi": 0.7000000000000001,
+        "n": 0,
+        "mean_confidence": null,
+        "fraction_positive": null
+      },
+      {
+        "bin_lo": 0.7000000000000001,
+        "bin_hi": 0.8,
+        "n": 30,
+        "mean_confidence": 0.7333332896232605,
+        "fraction_positive": 0.7333333333333333
+      },
+      {
+        "bin_lo": 0.8,
+        "bin_hi": 0.9,
+        "n": 10,
+        "mean_confidence": 0.8000000715255737,
+        "fraction_positive": 0.8
+      },
+      {
+        "bin_lo": 0.9,
+        "bin_hi": 1.0,
+        "n": 53,
+        "mean_confidence": 0.9434024095535278,
+        "fraction_positive": 0.9433962264150944
+      }
+    ]
+  },
+  "risk_bands_0_100": {
+    "low": [
+      0,
+      33
+    ],
+    "medium": [
+      34,
+      66
+    ],
+    "high": [
+      67,
+      100
+    ],
+    "note": "Provisional terciles, not validated against an external standard -- PROJECT_PLAN.md already logs success thresholds as open pending supervisor input."
+  },
+  "calibrated_score_summary": {
+    "mean": 4.847264289855957,
+    "min": 0.0,
+    "max": 95.65218353271484
+  }
+}

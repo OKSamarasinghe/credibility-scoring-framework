@@ -447,11 +447,15 @@ Section 8 below still apply unchanged to every stage.
   `methodology.md`), mean ± SD reported for both
 - [x] Test set not yet touched
 
-### Stage 6 — Calibration (Day 3)
+### Stage 6 — Calibration (Day 3) — ✅ COMPLETE, 2026-10-08 (still a day early)
 
-- [ ] Platt and isotonic both tried, selected on validation
-- [ ] Brier score, ECE, reliability curve reported
-- [ ] Risk-band thresholds set
+- [x] Platt and isotonic both tried, selected on validation (isotonic won on both Brier
+  and ECE — no disagreement between the two criteria)
+- [x] Brier score, ECE, reliability curve reported (raw 0.0275/0.0231 → isotonic
+  0.0199/~0.0000; caveat on the ECE figure's optimism logged in `decisions.md` — the real
+  citable number comes from Stage 9's test-set run)
+- [x] Risk-band thresholds set (provisional terciles: Low 0–33, Medium 34–66, High 67–100
+  — flagged as not supervisor-validated, matching the already-open thresholds item below)
 
 ### Stage 7 — Explainability (Day 4)
 
