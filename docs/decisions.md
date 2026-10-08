@@ -16,6 +16,59 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 5 improved-model fusion: E1 kept as an explicit structured feature, not left implicit in DistilBERT's text input; pos_weight used as loss-level class-imbalance control
+
+- **Context:** writing `src/models/train_distilbert.py` (the O3 "DistilBERT + structured
+  evidence" model) required deciding exactly what goes into the fused feature vector
+  alongside DistilBERT's text embedding, and how to carry the "identical class weighting"
+  rule (2026-08-07) across to an architecture where sklearn's `class_weight="balanced"`
+  doesn't apply.
+
+### 1. E1 (suspicious-phrase lexicon) is included as a structured feature, even though DistilBERT reads the same text directly
+
+- **Options considered:** (A) leave E1 out of the structured vector — DistilBERT already
+  sees the raw words the lexicon matches against, so including E1 too looks like feeding
+  the model the same information twice; (B) include E1 as a structured feature exactly
+  like E2/E3/E4.
+- **Why B:** two reasons. First, decisions.md (2026-10-06, Decision 2) already names E1 as
+  one of the five leave-one-category-out ablation arms (E1, E2, E3, E4, `has_company_logo`)
+  — that only makes sense if E1 is a distinct, removable *input* to the fused model, not
+  something sitting implicitly inside the token sequence where it can't be ablated without
+  also removing the text itself. Second, a hand-coded lexicon match is a much lower-
+  variance signal than whatever DistilBERT might or might not learn to extract from the
+  same tokens in a short fine-tuning run — handing the model the explicit flag is a
+  deliberate inductive bias, not strictly redundant information.
+- **What I gave up:** a cleaner information-theoretic story ("every structured feature adds
+  genuinely new information DistilBERT couldn't get from the text alone"). E1 doesn't
+  satisfy that; E2/E3/E4 do (they come from metadata fields DistilBERT's text input never
+  sees). This is now a stated asymmetry inside "structured evidence," not something to
+  discover for the first time at the viva.
+- **Self-check:** *If ablating E1 removes the lexicon flag but DistilBERT still sees the
+  same words either way, what exactly does the E1 ablation arm measure — and how is that
+  different from what the E2/E3/E4 ablation arms measure?*
+
+### 2. Class imbalance in the DistilBERT arm: `pos_weight` in `BCEWithLogitsLoss`, not a literal translation of `class_weight="balanced"`
+
+- **Options considered:** (A) try to replicate sklearn's exact "balanced" formula inside
+  the PyTorch loss; (B) use `pos_weight = n_negative / n_positive` on the training fold,
+  the standard PyTorch idiom for binary class imbalance, documented as equivalent in
+  principle rather than identical in formula.
+- **Why B:** sklearn's `class_weight="balanced"` reweights both classes by
+  `n_samples / (n_classes * n_samples_class)`; `pos_weight` only reweights the positive
+  term inside `BCEWithLogitsLoss`. There is no architecture-neutral way to make these
+  numerically identical — they operate on different loss functions entirely. Option A would
+  have produced a false sense of exactness without actually matching anything.
+- **What I gave up:** the ability to claim the baseline and improved models use literally
+  the same class-weighting formula. They use the same *principle* (upweight the minority
+  class by its training-fold imbalance ratio), applied at the point each architecture
+  allows it to be applied. The controlled-comparison claim in Chapter 3/4 should say exactly
+  that, not overstate it as "identical."
+- **Self-check:** *Why can't `class_weight="balanced"` and `pos_weight` be made numerically
+  identical, and does that difference threaten the "both arms differ in only one thing"
+  guardrail, or not?*
+
+---
+
 ## 2026-10-08 — Stage 4 lexicon design: delegated decision on tuning-contamination risk and two out-of-scope patterns
 
 - **Context:** building the real C1, C3–C6 lexicons raised a risk I flagged before writing

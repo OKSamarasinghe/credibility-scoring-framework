@@ -432,13 +432,15 @@ Section 8 below still apply unchanged to every stage.
 
 ### Stage 5 — Model development (Day 3)
 
-- [ ] TF-IDF + Logistic Regression baseline trained
-- [ ] TF-IDF + Random Forest baseline trained
+- [x] TF-IDF + Logistic Regression baseline trained (0.556 F1, 0.931 ROC-AUC, validation)
+- [x] TF-IDF + Random Forest baseline trained (0.513 F1, 0.940 ROC-AUC, validation)
 - [ ] One DistilBERT fine-tuning run timed; ablation seed count decided and logged
-- [ ] Identical class weighting confirmed on both models
-- [ ] Hyperparameters/threshold fitted on validation only
-- [ ] 3-seed repetition completed on the main comparison, mean ± SD reported
-- [ ] Test set not yet touched
+- [x] Identical class weighting confirmed on both baseline models (`class_weight="balanced"`)
+- [ ] Hyperparameters/threshold fitted on validation only (improved model — baseline used
+  default 0.5 threshold, no tuning)
+- [x] 3-seed repetition completed on the baseline comparison, mean ± SD reported — improved
+  model's 3-seed run still pending the seed-count decision below
+- [x] Test set not yet touched
 
 ### Stage 6 — Calibration (Day 3)
 
