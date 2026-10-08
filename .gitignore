@@ -223,5 +223,7 @@ data/interim/
 model_artifacts/
 *.pkl
 *.joblib
+*.pt
+*.safetensors
 /audit/audit_report.md
 /audit/audit_results.json

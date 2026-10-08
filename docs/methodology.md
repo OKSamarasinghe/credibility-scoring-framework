@@ -638,11 +638,42 @@ solver is close to deterministic given fixed data) and small for RF (genuine see
 sensitivity, as expected). These are the numbers the improved model (O3) must beat to
 justify the added complexity of DistilBERT + structured evidence.
 
-### Multi-signal results (O3) — [DATE]
+### Multi-signal results (O3) — 2026-10-08
+
+_Measured by `src.models.train_distilbert` against the same `data/interim/stage3_split.csv`
+split and validation set the baselines used. 3 seeds (0/1/2), 5 epochs each — 5 was not
+assumed; it came from a 6-epoch probe (seed 0) whose validation F1 peaked at epoch 4 and
+fell at epoch 5 while train loss kept dropping, the standard overfitting signature (full
+curve and reasoning in `decisions.md`, 2026-10-08). Each seed's checkpoint is from
+whichever epoch had that run's best validation F1 — not necessarily its last epoch.
+Structured evidence vector: all 46 E1–E4 features (see Stage 4), concatenated with
+DistilBERT's [CLS] embedding before a small MLP head. `pos_weight` in `BCEWithLogitsLoss`
+for class imbalance — the loss-level analogue of the baselines' `class_weight="balanced"`,
+not a numerically identical formula (see `decisions.md`, 2026-10-08, for why the two
+can't be made identical). Full per-seed detail: `reports/stage5_distilbert_timing.json`._
 
 | Model | Precision | Recall | F1 (fraud) | PR-AUC | ROC-AUC | Δ F1 vs. baseline |
 |---|---|---|---|---|---|---|
-| DistilBERT + structured evidence | | | | | | |
+| TF-IDF + LogReg (baseline) | 0.464 | 0.692 | 0.556 | 0.655 | 0.931 | — |
+| TF-IDF + RF (baseline) | 0.881 | 0.362 | 0.513 | 0.682 | 0.940 | — |
+| DistilBERT + structured evidence | 0.634 ± 0.050 | 0.713 ± 0.004 | **0.671 ± 0.030** | 0.710 ± 0.018 | 0.934 ± 0.008 | +0.115 vs. LogReg, +0.158 vs. RF |
+
+**Reading this, not just reporting it:** the multi-signal model's F1 and PR-AUC clearly
+exceed both baselines, and its precision/recall sit in between LogReg's (high recall, low
+precision) and RF's (high precision, low recall) rather than reproducing either extreme —
+a more usable operating point for a credibility *score*, not just a classifier. ROC-AUC,
+by contrast, is roughly level with both baselines (0.934 vs. 0.931 / 0.940): the gain this
+run shows is concentrated in F1/PR-AUC, not a uniform lift across every metric, and
+Chapter 4 should say that plainly rather than imply the improvement is across the board.
+This was not a selected best-of-3 — all 3 pre-committed seeds (2026-09-20 decision) are
+reported above as run, not cherry-picked.
+
+**Ablation seed count, now closed (was conditional since 2026-10-06):** 1 seed per
+leave-one-category-out arm (E1, E2, E3, E4, `has_company_logo`), not 3, decided from the
+measured ~324.5s/epoch timing above — 3-seed ablation would cost ~6.75 GPU-hours, which
+does not fit Day 4 alongside Stage 9's full test evaluation, Tier 2 transfer test,
+source-probe leakage test, Stage 7's SHAP, and Stage 8's API wiring. Full reasoning and
+what this costs (no per-arm variance estimate) in `decisions.md`, 2026-10-08.
 
 ### Calibration (O4) — [DATE]
 

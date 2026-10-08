@@ -82,10 +82,24 @@ INPUT
     data/interim/stage3_split.csv — same file train_baseline.py reads.
 
 OUTPUT
-    reports/stage5_distilbert_timing.json — timing, peak GPU memory, per-epoch val metrics,
-    and the exact config used (epochs, batch size, max length, lr, seed). Overwritten each
-    run; rename it to stage5_distilbert_results.json once this is the real (not timing-only)
-    run you intend to cite in methodology.md.
+    - reports/stage5_distilbert_timing.json — timing, peak GPU memory, per-epoch val
+      metrics, and the exact config used (epochs, batch size, max length, lr, seed).
+      Overwritten each run; rename it to stage5_distilbert_results.json once this is the
+      real (not timing-only) run you intend to cite in methodology.md.
+    - models/distilbert_fused_state_dict_seed{N}.pt,
+      models/distilbert_structured_scaler_seed{N}.joblib,
+      models/distilbert_structured_feature_meta_seed{N}.joblib — the checkpoint from
+      whichever epoch had the BEST validation F1 in *this* run (not necessarily the last
+      epoch), overwritten within a run whenever a later epoch beats it, but never across
+      seeds (seed-suffixed filenames) -- an earlier version of this script used one fixed
+      filename and would have silently overwritten seed 0's checkpoint the moment seed 1
+      ran; caught before it happened. Skipped entirely when --subsample is set (a sanity-
+      check run has nothing worth keeping). These are what Stage 8's API and Stage 9's
+      one-time test evaluation will load -- without this, every GPU-minute spent
+      fine-tuning would have produced nothing reusable past the metrics in the JSON above.
+      Convention (matching train_baseline.py): seed 0 is "the" model Stage 8 loads by
+      default once all 3 seeds are done -- copy its 3 files to the un-suffixed names then,
+      if Stage 8 wants a fixed path.
 
 USAGE
     First, a quick pipeline sanity check on a small subsample (seconds, not minutes) BEFORE
@@ -372,6 +386,14 @@ def run(
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
 
+    # Checkpoint on best validation F1 seen so far, not the last epoch -- fine-tuning
+    # for too many epochs can overfit this small a training set (12.5k rows), and "last
+    # epoch" and "best epoch" are not reliably the same thing. This is NOT the threshold-
+    # setting the project's guardrails warn against (a decision threshold chosen after
+    # seeing test results) -- it's ordinary early-stopping-by-checkpoint on VALIDATION,
+    # the same split train_baseline.py reports its metrics on, with test still untouched.
+    best_val_f1 = -1.0
+    best_epoch = None
     epoch_log = []
     for epoch in range(epochs):
         model.train()
@@ -404,8 +426,33 @@ def run(
              "train_loss": running_loss / len(train_ds), "val_metrics": val_metrics}
         )
 
+        if not subsample and val_metrics["f1"] > best_val_f1:
+            best_val_f1 = val_metrics["f1"]
+            best_epoch = epoch
+            MODELS_DIR.mkdir(exist_ok=True)
+            import joblib
+
+            # Seed-suffixed filenames -- an earlier version of this script used one fixed
+            # filename regardless of --seed, which meant running seed 1 silently overwrote
+            # seed 0's saved checkpoint with no warning. Caught before it could happen: the
+            # 3-seed main comparison needs all 3 checkpoints to survive, not just the last
+            # one run. Convention matches train_baseline.py's ("seed 0 arbitrarily chosen as
+            # the saved model" for Stage 8): once all 3 seeds are done, copy seed 0's three
+            # files to the un-suffixed names if Stage 8 wants a fixed path to load from.
+            torch.save(model.state_dict(), MODELS_DIR / f"distilbert_fused_state_dict_seed{seed}.pt")
+            joblib.dump(scaler, MODELS_DIR / f"distilbert_structured_scaler_seed{seed}.joblib")
+            joblib.dump(
+                {"feature_names": feature_names, "feature_groups": feature_groups,
+                 "n_structured": X_train_struct.shape[1], "max_length": max_length,
+                 "bert_model": BERT_NAME},
+                MODELS_DIR / f"distilbert_structured_feature_meta_seed{seed}.joblib",
+            )
+            print(f"  -> new best val F1 ({best_val_f1:.4f}), checkpoint saved to {MODELS_DIR}/ (seed {seed})")
+
     summary = {
         "seed": seed,
+        "best_epoch": best_epoch,
+        "best_val_f1": best_val_f1 if best_epoch is not None else None,
         "n_train": len(train),
         "n_val": len(val),
         "subsample": subsample,

@@ -16,6 +16,145 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-08 — Stage 5 main comparison complete: DistilBERT + structured evidence beats both baselines; ablation seed count (Decision 2, 2026-10-06) closed at 1 seed, from measured timing
+
+### 1. Main comparison result (O3)
+
+3 seeds (0/1/2), 5 epochs each (the measured peak — see the epoch-count entry above),
+identical validation split, `pos_weight` class imbalance handling:
+
+| Model | Precision | Recall | F1 (fraud) | PR-AUC | ROC-AUC |
+|---|---|---|---|---|---|
+| TF-IDF + LogReg (baseline) | 0.464 | 0.692 | 0.556 | 0.655 | 0.931 |
+| TF-IDF + RF (baseline) | 0.881 | 0.362 | 0.513 | 0.682 | 0.940 |
+| DistilBERT + structured evidence | 0.634 ± 0.050 | 0.713 ± 0.004 | **0.671 ± 0.030** | 0.710 ± 0.018 | 0.934 ± 0.008 |
+
+F1 improves over both baselines (Δ +0.115 vs. LogReg, +0.158 vs. RF), with a precision/
+recall balance that sits between the two baselines rather than reproducing either one's
+extreme trade-off (LogReg: high recall/low precision; RF: high precision/low recall).
+ROC-AUC is roughly level with both baselines (0.934 vs. 0.931/0.940) — the gain is
+concentrated in F1/PR-AUC, not ROC-AUC, worth noting honestly in Chapter 4 rather than
+implying a uniform improvement across every metric.
+
+**This was not cherry-picked:** 3 seeds were pre-committed (2026-09-20 decision) before
+this run, and the full set is reported above, not a selected best-of-3.
+
+### 2. Ablation seed count (closing the 2026-10-06 conditional decision)
+
+- **Context:** 2026-10-06's Decision 2 left the Stage 9 ablation seed count (5 arms: E1,
+  E2, E3, E4, `has_company_logo`) conditional on a real per-epoch timing, to be measured on
+  "Day 3." That timing is now in hand: ~324.5s/epoch average across the two clean 5-epoch
+  runs (seed 1: 325.6s avg; seed 2: 323.4s avg).
+- **The arithmetic:** at 5 epochs/arm (the same count just locked in for the main
+  comparison, for a fair like-for-like ablation), one full pass of all 5 ablation arms
+  costs 5 arms × 5 epochs × 324.5s ≈ 135 minutes (~2.25 hours) per seed. At 3 seeds, that's
+  ~6.75 hours of GPU time; at 1 seed, ~2.25 hours.
+- **Decision:** 1 seed per ablation arm, not 3. Stage 9 (per `PROJECT_PLAN.md` §0.5, Day 4)
+  already has to fit the full one-time test-set evaluation, the Tier 2 temporal-transfer
+  test, the source-probe leakage test, Stage 7's SHAP explanations (already flagged in the
+  plan as its own time risk), and Stage 8's API wiring and demo — all on one day already
+  named as "the most likely day to run over." ~6.75 hours for ablation alone does not
+  fit alongside that; ~2.25 hours does.
+- **What I gave up:** a per-category variance estimate for the ablation — each arm's Δ
+  will be a single point, not a mean ± SD like the main comparison gets. That is a real,
+  disclosed reduction in rigor for the ablation specifically, not a silent one; it should
+  be stated as a limitation wherever the ablation results are reported, not left implicit.
+  The main 3-seed comparison above is unaffected by this — it's already complete.
+- **Self-check:** *Why is it still defensible for the main comparison to report mean ± SD
+  over 3 seeds while the ablation arms report only 1 seed each, when both are measuring
+  model performance? What would you say if an examiner called this inconsistent?*
+
+---
+
+## 2026-10-08 — Stage 5 epoch count resolved: 5 epochs, from a measured peak, not a guess; checkpoint filenames fixed to not overwrite across seeds
+
+- **Context:** the 6-epoch probe (seed 0) gave a real learning curve instead of a guess:
+
+  | epoch | val F1 | ROC-AUC | train loss |
+  |---|---|---|---|
+  | 0 | 0.404 | 0.908 | 0.744 |
+  | 1 | 0.580 | 0.941 | 0.381 |
+  | 2 | 0.540 | 0.932 | 0.220 |
+  | 3 | 0.607 | 0.945 | 0.125 |
+  | **4** | **0.667** | 0.942 | 0.107 |
+  | 5 | 0.620 | 0.934 | 0.058 |
+
+- **Decision:** 5 epochs (indices 0–4) for the main 3-seed comparison. F1 peaked at epoch
+  4 and fell at epoch 5 while train loss kept dropping sharply (0.107 → 0.058) — model
+  still fitting the training data harder, validation getting worse. That is the standard
+  signature of overfitting onset, not noise (epoch 2's smaller dip, by contrast, recovered
+  the next epoch — ordinary run-to-run variance, not a trend reversal).
+- **Why this resolves the earlier "4 vs. probe first" decision correctly:** the probe
+  (logged above, same date) was taken specifically so the epoch count wouldn't be picked
+  for speed before confirming convergence — this is that confirmation. 4 epochs would have
+  stopped short of the real peak; 6+ would have kept training past it for no benefit.
+- **A reproducibility note, logged honestly:** the first --epochs 4 run's own epoch-3
+  result (F1 0.589, same seed 0) does not exactly match the 6-epoch probe's epoch-3 result
+  (F1 0.607), despite nominally identical settings. This is expected GPU non-determinism
+  (cuDNN/attention kernels aren't bit-exact across runs unless deterministic mode is
+  explicitly forced, which this script doesn't do) — not a bug, and not a reason to distrust
+  the peak-then-decline trend, which is far larger than this run-to-run noise. Worth a
+  sentence in Chapter 3 if asked why two "identical" runs differ slightly.
+- **Checkpoint-filename bug caught before it caused damage:** the script originally saved
+  the best checkpoint to one fixed filename regardless of `--seed`, which meant running
+  seed 1 next would have silently overwritten seed 0's already-good checkpoint with no
+  warning. Fixed to seed-suffixed filenames
+  (`distilbert_fused_state_dict_seed{N}.pt` etc.) before any further seed was run. Seed 0's
+  checkpoint, already on disk from the probe (the only run whose best epoch happens to be
+  epoch 4, exactly what was decided), is reused as seed 0 of the final 3-seed comparison
+  rather than retrained — the checkpoint-on-best-F1 design meant it already represents the
+  trained-to-peak result, so re-running it would cost ~22 minutes to reproduce (not exactly,
+  per the note above) a result already in hand.
+- **What I gave up:** exactness. Seed 0's "official" checkpoint was produced inside a
+  6-epoch run rather than a clean standalone 5-epoch run — methodologically equivalent
+  (same code path trains epoch 4 identically either way) but not identical bytes, given the
+  non-determinism noted above. Chosen over spending ~22 more minutes to replace a result
+  that would differ only by run-to-run GPU noise anyway.
+- **Self-check:** *Why does train loss still falling while validation F1 falls count as
+  stronger evidence of overfitting than validation F1 falling alone — what would it mean if
+  train loss had also started rising at epoch 5?*
+
+---
+
+## 2026-10-08 — Stage 5 epoch count for the main comparison: delegated decision, probe to 6 epochs before locking the 3-seed run
+
+- **Context:** the first real (full-dataset) DistilBERT+evidence run, 4 epochs, 1 seed,
+  showed validation F1 still rising each epoch (0.412 → 0.566 → 0.569 → 0.589) while train
+  loss kept falling fast (0.743 → 0.125). That result already beats both baselines
+  (LogReg F1 0.556, RF F1 0.513), which is encouraging, but 4 epochs was an arbitrary
+  starting number, not a measured stopping point — I hadn't yet seen whether F1 keeps
+  climbing, plateaus, or starts falling (overfitting) past epoch 3. I asked which way to
+  resolve this and was given full authority to decide ("I give you full power to take the
+  right decision").
+- **Options considered:** (A) lock in 4 epochs now and spend the saved time running seeds
+  1 and 2 at that count (~45 min for the full 3-seed main comparison); (B) spend one more
+  run (fresh, not resumed — the script doesn't support checkpoint-resume — so a full
+  6-epoch run, ~33 min) on seed 0 alone first, to see epochs 4 and 5 before deciding the
+  final count for all 3 seeds.
+- **Why B:** O3 ("does the fused evidence improve on text-only detection") is one of this
+  project's core research questions. The baseline models (LogReg, RF) were each fit to
+  their own natural stopping point by their solvers in a single call — they were not cut
+  short. If DistilBERT's epoch count is picked for speed before confirming it has actually
+  converged, the O3 comparison silently becomes "undertrained-DistilBERT vs. fully-fit
+  baseline," a different and weaker question than the one O3 asks, and that bias would be
+  invisible in the final numbers unless I can point to the epoch curve and say where it
+  leveled off. The checkpoint-on-best-F1 mechanism already built into the script means
+  there is no downside to running longer: if epoch 5 or 6 is worse, the saved checkpoint
+  stays at whichever epoch was actually best, so the extra 33 minutes either confirms 4
+  was already close to optimal, or catches a real gain I would otherwise have left on the
+  table for all 3 seeds.
+- **What I gave up:** about 30 extra minutes today, and the possibility that this was
+  unnecessary caution if epoch 4 turns out to already be the peak. Given this decision
+  feeds a core RQ and the cost is small relative to the time already available this week,
+  that trade was worth taking.
+- **Self-check:** *Why does training the baseline models "to convergence" (via their
+  solver's own stopping rule) and training DistilBERT for a fixed, arbitrarily-chosen
+  epoch count threaten the O3 comparison's fairness, and what does the checkpoint-on-
+  best-F1 mechanism do to make "just run a few more epochs to check" a low-risk way to
+  resolve that?*
+
+---
+
 ## 2026-10-08 — Stage 5 improved-model fusion: E1 kept as an explicit structured feature, not left implicit in DistilBERT's text input; pos_weight used as loss-level class-imbalance control
 
 - **Context:** writing `src/models/train_distilbert.py` (the O3 "DistilBERT + structured

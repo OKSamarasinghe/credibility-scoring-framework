@@ -430,16 +430,21 @@ Section 8 below still apply unchanged to every stage.
 - [x] All C1–C6 evaluable-coverage figures re-measured against real lexicons
 - [x] Decision 0.3 applied consistently (and reconciled — see `decisions.md`, 2026-10-08)
 
-### Stage 5 — Model development (Day 3)
+### Stage 5 — Model development (Day 3) — ✅ COMPLETE, 2026-10-08 (a day early)
 
 - [x] TF-IDF + Logistic Regression baseline trained (0.556 F1, 0.931 ROC-AUC, validation)
 - [x] TF-IDF + Random Forest baseline trained (0.513 F1, 0.940 ROC-AUC, validation)
-- [ ] One DistilBERT fine-tuning run timed; ablation seed count decided and logged
-- [x] Identical class weighting confirmed on both baseline models (`class_weight="balanced"`)
-- [ ] Hyperparameters/threshold fitted on validation only (improved model — baseline used
-  default 0.5 threshold, no tuning)
-- [x] 3-seed repetition completed on the baseline comparison, mean ± SD reported — improved
-  model's 3-seed run still pending the seed-count decision below
+- [x] DistilBERT fine-tuning timed (~324.5s/epoch measured); ablation seed count decided
+  (1 seed/arm, not 3 — ~6.75 GPU-hours didn't fit Day 4) and logged in `decisions.md`
+- [x] Identical class weighting confirmed on both baseline models (`class_weight="balanced"`);
+  DistilBERT arm uses `pos_weight` as the loss-level analogue (not numerically identical,
+  logged as a disclosed difference in `decisions.md`)
+- [x] Epoch count (5) fitted on validation only, via a 6-epoch probe showing the F1 peak —
+  never touched test. Other hyperparameters (lr, batch size, max_length) documented
+  choices, not tuned against validation performance.
+- [x] 3-seed repetition completed on BOTH the baseline comparison and the improved model
+  (DistilBERT + structured evidence: F1 0.671 ± 0.030, beats both baselines — see
+  `methodology.md`), mean ± SD reported for both
 - [x] Test set not yet touched
 
 ### Stage 6 — Calibration (Day 3)
