@@ -16,6 +16,263 @@ _Last updated: 2026-10-09_
 
 ---
 
+## 2026-10-09 — "for this posting" appended to every `_describe_feature()` template, after the merged "All observations" view surfaced a live example a user could genuinely misread as a general rule
+
+- **Context:** testing the just-rebuilt results panel (previous entry) surfaced a real
+  posting that scored **100/100, Low risk**, with **0% of structured fields filled in**, and
+  four separate "All observations" lines all reading as "`<field>` was missing/blank, which
+  **raised** the score" (location field-present, location-specificity, industry field, and
+  `E3_completeness_score` itself all fired in the credibility-raising direction; only "an
+  employer profile was missing" correctly read as lowering it). Read cold, those four lines
+  say "leaving fields blank is good for your score" — a plausible, wrong, and actively
+  harmful takeaway for an artefact whose whole second objective is explaining itself
+  faithfully. This is the same pattern already logged above (the finders.lk 100/100 case) —
+  this is a third live instance of it, now with the merged-observations view making it much
+  more visible than the old three-separate-lists layout did.
+
+- **Diagnosed, not assumed, before touching anything:** confirmed this is not a bug. SHAP is
+  correctly reporting each feature's measured marginal contribution to THIS ONE prediction
+  (KernelSHAP against `state.scaler.mean_` as background, same config Stage 7 validated) —
+  it's a faithful local explanation of what the model actually learned from EMSCAD, not a
+  computation error. Re-training or re-engineering features to force "intuitive" directions
+  was explicitly ruled out: Stage 9 is closed (the test set is closed), and "fixing" the
+  model's behaviour to match intuition would mean overriding what it actually learned, which
+  is a methodological line I'm not willing to cross two weeks before submission just to make
+  one screen read better.
+
+- **So the fix is wording, not computation.** Split the problem in two, same as I talked
+  through with the AI assistant before touching code: (a) is the model wrong — no; (b) is the
+  *sentence* misleading on its own, out of context — yes, because "which raised the score"
+  reads as a general claim and nothing in the sentence says otherwise.
+
+- **What changed, in `_describe_feature()` (`src/api/pipeline.py`) only:**
+  - Every one of its 13 return statements ends in the literal clause
+    `, which {direction} the score.` — confirmed by grep (exactly 13 occurrences of
+    `{direction} the score.` in the whole file, all inside this one function) before touching
+    anything, so a single mechanical find-and-replace was safe and exhaustive rather than
+    editing 13 branches by hand and risking missing one or wording one differently.
+  - Replaced `{direction} the score.` → `{direction} the score for this posting.`
+    everywhere, via one `replace_all`. Deliberately did **not** reword the "raised"/"lowered"
+    part itself or restructure the sentences — appending a qualifier after the existing
+    clause means the literal substrings `"raised the score"` / `"lowered the score"` are
+    still byte-for-byte present, which matters because `frontend/index.html`'s
+    `renderResults()` already parses those exact substrings to colour each "All
+    observations" line red/green (see the previous entry). Checked this explicitly before
+    editing — confirmed the frontend needed **zero** changes for this fix, which is the
+    difference between a wording tweak and an afternoon of re-testing two coupled systems.
+  - No change to feature engineering, SHAP computation, calibration, thresholds, or any
+    numeric output. `credibility_score` and `risk_band` for every posting are bit-for-bit
+    identical before and after this change — only the explanation strings changed.
+  - `frontend/index.html`: added one static caveat line (plain `.muted-note` text, no new
+    JS) above the "All observations" list: *"Each line reflects the model's reasoning for
+    THIS posting only, not a general rule — the same detail (e.g. a blank field) can count
+    differently on a different posting, depending on everything else in it."* Belt-and-braces
+    with the per-line "for this posting" wording — the per-line fix catches someone who reads
+    only one bullet, the caveat catches someone who skims the section as a whole.
+
+- **Why the per-line fix over just a banner, or instead of it:** a single disclaimer at the
+  top of the section is cheap but easy to skim past; the misleading claim is literally
+  re-asserted on every line below it, so I wanted the correction present at the point of
+  contact, not just once above it. Doing only the banner was the cheaper option I'd
+  floated first; decided against it alone because it protects someone who reads the section
+  header, not someone who reads one bullet mid-scroll and stops.
+
+- **What I considered and explicitly rejected:** rewriting the 13 templates into full new
+  sentences (e.g. "the model associated this with a higher score, specific to this posting")
+  instead of just appending a suffix. More natural-sounding, but changes 13 full sentences
+  instead of one shared literal, multiplies the surface area for a typo or an inconsistent
+  tone across templates, and — critically — any phrasing that doesn't preserve the literal
+  "raised the score"/"lowered the score" substrings breaks the frontend's existing red/green
+  logic silently (everything would render as the 'neutral' grey/no-colour case, with no error
+  thrown). Given the deadline, the minimal, mechanically-verifiable fix beat the more
+  polished one.
+
+- **Verified, not assumed, before pushing:** grepped `tests/` and `src/` on the actual
+  machine for any test or script asserting these exact strings — none found; only
+  `pipeline.py` itself and its own `__pycache__` reference `_describe_feature`, and the two
+  smoke-test scripts (`stage8_smoke_test.py`, `stage8b_select.py`) just pass `top_reasons`
+  through as data, no string assertions. `python3 -I` syntax-check on the edited file;
+  isolated `exec()` of just `RULE_FIELD` + `_describe_feature()` run against five real
+  sample inputs (including the exact `C2_field_present`/blank-location case from the
+  screenshot, the fallback branch, and an `E3`/`E2` case) confirmed correct output text AND
+  confirmed `"raised the score"` and `"lowered the score"` are both still present verbatim
+  across the samples. Frontend: duplicate-id check, `getElementById` coverage check, and
+  `node --check` on the extracted script all re-run clean after the caveat-line addition.
+  Pushed to the actual files on the student's machine via `device_commit_files` with an
+  `expectedMtimeMs` guard (not a blind overwrite), then independently re-verified via
+  `sha256sum` run directly in the device's own shell (not just trusting the bridge's
+  "written" response) before calling it done — both files matched the container's hash
+  exactly.
+
+- **One thing the student needs to do, that I can't do for them:** if the FastAPI server is
+  currently running from an earlier session, it has the old `pipeline.py` already loaded in
+  memory — Python doesn't hot-reload a running process's imports. The server needs restarting
+  (or already runs with `--reload`) before this wording shows up in a live `/score` response;
+  until then, new requests will still show the old phrasing even though the file on disk is
+  already fixed.
+
+- **What I gave up:** nothing measured — this is a strict subset of the existing explanation
+  strings with four words appended. The only cost is 13 slightly longer sentences.
+
+- **Revisit if:** Chapter 6 wants the fuller, non-mechanical reword (the rejected option
+  above) once there's time to re-verify both files together properly instead of under
+  deadline pressure.
+
+- **Self-check:** *Why was it safe to fix this with one `replace_all` across 13 templates
+  instead of editing each one individually — what specific thing did I check first that made
+  that safe, and what would have made it unsafe?*
+
+---
+
+## 2026-10-09 — Frontend results panel restructured as a merged, report-style layout, deliberately NOT adopting jobscamscore.com's company/platform/scam-database verification sections
+
+- **Context:** reviewed jobscamscore.com (14 screenshots) as a competitor/UX reference.
+  Their results page is denser and more "report-like" than JobCred's: an executive-summary
+  paragraph, a merged "All Observations" list instead of three separate flat lists, a
+  staged loading screen, and paired red-flag/green-signal styling. But most of what makes
+  their page feel authoritative — Company Verification (real website/LinkedIn/Glassdoor/
+  Crunchbase lookups), "Listing Found on Platforms" (Indeed/ZipRecruiter/Monster
+  cross-referencing), and Scam Reports (external scam-database checks) — depends on live
+  external API calls JobCred's backend does not make. `pipeline.py` only computes E1–E4 from
+  text and structured fields the user types in; there is no company/LinkedIn/platform/
+  scam-database lookup anywhere in the codebase.
+
+- **Decision: copy the presentation pattern, not the unverifiable content.** Building UI
+  that shows "Company Website ✓ / LinkedIn Page ✓ / Found on 3 platforms" without a real
+  check behind it would be fabricated verification — green checkmarks implying something
+  never happened. This also directly re-opens a standing rule of this project: the external
+  company-presence check is explicitly **API-only, qualitative, and excluded from the
+  measured framework** (see the standing rules at the top of this file / `SKILL.md`) — it is
+  not to be reintroduced as a fabricated or even a real fifth measured category in the UI.
+  So nothing was added that isn't already one of the four fields `ScoreResponse` returns
+  (`credibility_score`, `risk_band`, `top_reasons`, `suspicious_phrases`, `contradictions`,
+  `verification_checklist` — see `schemas.py`). This was a presentation-only restructuring of
+  `frontend/index.html`; zero backend changes, zero new fields.
+
+- **What changed, concretely (all in `renderResults()` and the results markup):**
+  1. **"Summary"** — a one-line, fully templated roll-up sentence (`Scored X/100 (Y risk).
+     <top_reasons[0]>. N inconsistencies found... N suspicious phrases matched...`), built
+     only from fields already rendered below it. Not a second model call, not an
+     LLM-generated narrative like jobscamscore's — it cannot say anything the rest of the
+     panel doesn't already show, by construction.
+  2. **"All observations"** — merges `contradictions` and `top_reasons` into one list instead
+     of the old three-section split ("Why this score" / "Suspicious phrases found" /
+     "Inconsistencies found"). Contradictions are always shown as red flags with their rule
+     tag. Each `top_reasons` string is colour-coded by parsing the *same* "raised the score" /
+     "lowered the score" wording `pipeline.py`'s `_describe_feature()` already puts in the
+     string (`direction = "lowered" if shap_value > 0 else "raised"`, confirmed in
+     `pipeline.py`) — so the red/green split is reading an existing, already-signed piece of
+     text, not a new judgement call invented in the frontend. A `top_reasons` entry that
+     duplicates a contradiction's own `detail` string (pipeline.py seeds `top_reasons` with
+     `contradictions[*].detail` first — confirmed in `build_explanation()`) is skipped so it
+     isn't shown twice. Suspicious phrases render underneath as quoted chips (the literal
+     matched text, unchanged from before).
+  3. **"Recommendations"** — the old "Before you apply, verify" heading renamed; same
+     `verification_checklist` data, no content change.
+  4. **Loading stepper** — `/score` is one blocking request; the backend emits no per-stage
+     progress events. The new stepper advances on a fixed 3.2s timer through labels
+     describing the pipeline's real stage order (read text → check structured fields → run
+     model → explain prediction), with a spinner (not a checkmark) on the current line, so it
+     cannot be read as confirming any stage actually finished — it's a wait indicator, not a
+     verified progress log. The existing honest copy ("the first check can take 10-20s while
+     the model loads") was kept alongside it, not replaced.
+
+- **Why this is acceptable to build at all, given the project only computes four evidence
+  categories:** jobscamscore's density comes from two genuinely separable things —
+  (a) more *data sources* (external lookups JobCred doesn't have), and (b) better
+  *presentation* of the data already computed. Only (b) was adopted. The self-check for this
+  is whether every new UI string traces back to an existing API field — it does; verified by
+  grepping `schemas.py`'s `ScoreResponse` fields against every `data.*` access added to
+  `renderResults()`.
+
+- **Verified before deploying, same discipline as every prior frontend pass in this file:**
+  no duplicate `id`s (checked programmatically, both the container copy and the file actually
+  on the student's machine); `node --check` on the extracted `<script>` block (both copies);
+  every `getElementById` target confirmed present in the markup; `buildPayload()` confirmed
+  byte-identical to before (diffed, not eyeballed). Logic-level simulation of the new
+  `renderResults()` against two mock `ScoreResponse` payloads (a flagged posting with a
+  duplicate contradiction/top_reason pair, and a clean posting with zero contradictions and
+  zero suspicious phrases) confirmed: the duplicate contradiction text is shown exactly once
+  (as the red flag with its rule tag, not twice), `raised`/`lowered` wording maps to
+  signal/flag correctly, and the "No single feature dominated..." fallback renders as
+  neutral rather than crashing or defaulting to red. Pushed to the actual file on the
+  student's machine via `device_commit_files` (not retyped through the chat — an earlier
+  attempt at hand-transcribing a patch script round-tripped a comment with a doubled
+  parenthesis, which is exactly the class of silent corruption this discipline exists to
+  catch) and confirmed byte-for-byte via `sha256sum` on both sides after the push
+  (`29f8e5f4...` on both), plus a second `sha256sum` + `grep` check on the device's shell
+  directly (not just the bridge's own "written" response) before calling it done.
+
+- **What I gave up:** none of jobscamscore's external-verification sections. That's a
+  deliberate scope decision, not an oversight — building real Company/LinkedIn/platform/
+  scam-database checks would mean adding exactly the fifth measured category this project's
+  standing rules already closed off, on top of needing live third-party API access this
+  project doesn't have budget or scope for in the time remaining.
+
+- **Revisit if:** a future iteration of this project explicitly adds a real (not fabricated)
+  external verification layer as a *separate*, clearly-labelled, non-measured feature — the
+  same boundary the existing "external company-presence check" rule already draws.
+
+- **Self-check:** *Why does the red/green colour on each "All observations" line not count as
+  a new, invented judgement — what in `pipeline.py` already determines it before the
+  frontend ever sees the string?*
+
+---
+
+## 2026-10-09 — Frontend UX polish: Clear-form button, styled file-upload button, and a
+copy pass over the status/error messages — display only, no scoring logic touched
+
+- **Context:** three requests after the explainability-wording fix above — (1) no way to
+  clear the form without reloading the page, (2) the native "Choose File" button for the
+  screenshot upload had no styling at all, clashing with the rest of the page, (3) a general
+  ask to review every visible message for tone/clarity, with several already-live strings
+  quoted back as the standard to match.
+
+- **Clear-form button:** added `button#clearBtn` next to the submit button inside a new
+  `.form-actions` flex row (submit keeps most of the width, clear is a smaller neutral
+  outline button that turns red-tinted on hover, signalling "this resets everything" without
+  being alarming by default — same visual language as the rest of the page). Its handler
+  calls the browser's native `form.reset()`, closes the "Add more details" panel, and clears
+  the result panel / status / error text — nothing else. It does not call `buildPayload()`,
+  `renderResults()`, or touch the submit handler in any way; it's a fully independent click
+  listener added right before the existing submit listener.
+
+- **File-upload button styling:** restyled via `::file-selector-button` /
+  `::-webkit-file-upload-button` (the real, standard CSS hook for this exact problem) plus a
+  themed border/background on the input itself, matching the other form fields. Deliberately
+  NOT replaced with a hidden-input-plus-label fake button — that pattern needs new JS to keep
+  `imageInput.files[0]` wired to a visible trigger, which is unnecessary risk for a purely
+  cosmetic request when the standard pseudo-element does the same job with zero JS changes.
+
+- **Copy pass:** of the quoted "approved" strings, every one was already live verbatim — no
+  change needed there. Tightened the ones NOT quoted (all in the URL-fetch/screenshot-OCR
+  click handlers and the submit error paths): "Paste a URL first." →
+  "Paste a job posting URL first."; "Choose an image file first." → "Choose a screenshot
+  first."; the various "Could not reach/read/fetch..." strings reworded to "Couldn't ...,
+  then try again." for a slightly warmer, more consistent register; the raw
+  `Request failed (HTTP ...)` prefix softened to `Something went wrong (HTTP ...)` while
+  keeping the actual status code and server detail intact (still useful for debugging, just
+  less alarming as a first line). No status/error string was removed or made less
+  informative, only reworded.
+
+- **Verified before deploying, same discipline as the two earlier frontend passes
+  (2026-10-09, "visual redesign" addenda, this file further below):** no duplicate element
+  `id`s (38 unique, checked programmatically); every opening/closing structural tag pair
+  balanced (div/section/form/header/footer/main/script/style/svg/details/select/label/
+  button/nav); every id the JS references via `getElementById` is actually present in the
+  markup (21 checked, 0 missing); `buildPayload()` confirmed byte-identical to before;
+  `renderResults()` and the submit handler's core fetch/payload logic confirmed unchanged by
+  direct string match, not just "looks right." Pushed to the device and verified by
+  `md5sum` before telling the student it was done (matched on the first attempt this time).
+
+- **What I gave up:** nothing functional. Pure presentation and wording.
+
+- **Self-check:** *why does `form.reset()` safely clear the URL/image inputs too, even
+  though they're not part of `buildPayload()`'s field list — what makes them "form
+  elements" in the same sense as the scored fields?*
+
+---
+
 ## 2026-10-09 — Found, and the student independently confirmed with a controlled test: the
 score is sensitive to whether the job-title field is filled in, holding the suspicious text
 fixed — flagged as a limitation, not fixed

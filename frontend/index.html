@@ -200,6 +200,9 @@
   details.optional[open] > summary::before { content: "–"; }
   details.optional .optional-body { padding: 20px 16px 4px; background: #fbfbff; }
 
+  .form-actions { display: flex; gap: 12px; margin-top: 6px; }
+  @media (max-width: 480px) { .form-actions { flex-direction: column; } }
+
   button#submitBtn {
     background: linear-gradient(135deg, var(--brand), var(--brand-dark));
     color: #fff; border: none;
@@ -208,12 +211,23 @@
     cursor: pointer; display: inline-flex; align-items: center; gap: 9px;
     box-shadow: 0 14px 30px -10px rgba(79,70,229,0.55);
     transition: transform .12s, box-shadow .12s, opacity .12s;
-    width: 100%; justify-content: center;
-    margin-top: 6px;
+    flex: 1; justify-content: center;
   }
   button#submitBtn svg { width: 18px; height: 18px; }
   button#submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 18px 36px -10px rgba(79,70,229,0.65); }
   button#submitBtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  button#clearBtn {
+    background: #fff; color: var(--muted); border: 1.5px solid var(--border);
+    padding: 14px 22px; border-radius: 999px;
+    font-size: 0.9rem; font-weight: 600; font-family: inherit;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    white-space: nowrap; flex: none;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  button#clearBtn svg { width: 16px; height: 16px; }
+  button#clearBtn:hover { border-color: var(--high); color: var(--high); background: var(--high-bg); }
+  @media (max-width: 480px) { button#clearBtn { width: 100%; justify-content: center; } }
   #statusLine { margin-top: 12px; font-size: 0.84rem; color: var(--muted); text-align: center; min-height: 1.2em; }
   #errorBox {
     display: none; margin-top: 16px; padding: 13px 15px; border-radius: var(--radius-sm);
@@ -229,7 +243,21 @@
   .import-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
   .import-row:last-of-type { margin-bottom: 0; }
   .import-row input[type=text] { flex: 1; min-width: 0; }
-  .import-row input[type=file] { flex: 1; min-width: 0; font-size: 0.85rem; padding: 9px 10px; }
+  .import-row input[type=file] {
+    flex: 1; min-width: 0; font-size: 0.83rem; padding: 7px 10px; color: var(--muted);
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--input-bg); cursor: pointer;
+  }
+  .import-row input[type=file]::file-selector-button,
+  .import-row input[type=file]::-webkit-file-upload-button {
+    background: var(--brand); color: #fff; border: none; font-family: inherit;
+    padding: 7px 14px; border-radius: 999px; font-weight: 600; font-size: 0.78rem;
+    cursor: pointer; margin-right: 10px; transition: background .15s;
+  }
+  .import-row input[type=file]:hover::file-selector-button,
+  .import-row input[type=file]:hover::-webkit-file-upload-button {
+    background: var(--brand-dark);
+  }
   .import-btn {
     flex: none; background: #fff; border: 1.5px solid var(--brand); color: var(--brand-dark);
     font-weight: 600; font-size: 0.84rem; padding: 0 16px; border-radius: var(--radius-sm);
@@ -305,6 +333,53 @@
     display: inline-block; background: var(--high); color: #fff;
     border-radius: 5px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; margin-right: 8px;
   }
+
+  /* ---------- summary + merged observations (all built from the existing score /
+     top_reasons / suspicious_phrases / contradictions fields -- no new API data) ---------- */
+  .exec-summary {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 14px 16px; font-size: 0.92rem; color: var(--text); margin: 0; line-height: 1.55;
+  }
+  .obs-list { margin: 0 0 4px; padding-left: 0; list-style: none; }
+  .obs-item { position: relative; padding-left: 26px; margin-bottom: 10px; font-size: 0.9rem; line-height: 1.5; }
+  .obs-item::before {
+    content: ""; position: absolute; left: 2px; top: 6px; width: 9px; height: 9px; border-radius: 50%;
+  }
+  .obs-item.flag::before { background: var(--high); box-shadow: 0 0 0 3px var(--high-bg); }
+  .obs-item.signal::before { background: var(--low); box-shadow: 0 0 0 3px var(--low-bg); }
+  .obs-item.neutral::before { background: var(--muted); box-shadow: 0 0 0 3px var(--border); }
+  .rule-tag {
+    display: inline-block; background: var(--high); color: #fff;
+    border-radius: 5px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; margin-right: 8px;
+  }
+  .obs-item.signal .rule-tag { background: var(--low); }
+  .obs-caveat { margin-bottom: 12px; }
+  .obs-phrases { margin-top: 2px; }
+  .obs-phrases-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; margin-right: 2px; }
+
+  /* ---------- loading stepper (shown only while the real /score request is in flight --
+     labels describe the pipeline's real stages but don't claim to track live completion
+     events the backend doesn't send; it's a wait indicator, not a verified checklist) ---------- */
+  .loading-stepper { display: none; margin-top: 14px; }
+  .loading-stepper.active { display: flex; flex-direction: column; gap: 9px; }
+  .loading-step {
+    display: flex; align-items: center; gap: 10px; font-size: 0.83rem; color: var(--muted);
+    opacity: 0.5; transition: opacity .2s, color .2s;
+  }
+  .loading-step .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex: none;
+  }
+  .loading-step .spinner {
+    width: 12px; height: 12px; border-radius: 50%; flex: none;
+    border: 2px solid var(--brand-light); border-top-color: var(--brand);
+    animation: loading-spin .7s linear infinite; display: none;
+  }
+  .loading-step.current { opacity: 1; color: var(--text); font-weight: 600; }
+  .loading-step.current .dot { display: none; }
+  .loading-step.current .spinner { display: block; }
+  .loading-step.done { opacity: 0.85; color: var(--brand-dark); }
+  .loading-step.done .dot { background: var(--brand-dark); }
+  @keyframes loading-spin { to { transform: rotate(360deg); } }
 
   /* ---------- how it works ---------- */
   .section { padding: 90px 0; }
@@ -508,11 +583,18 @@
             </div>
           </details>
 
-          <button type="submit" id="submitBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            Check credibility
-          </button>
+          <div class="form-actions">
+            <button type="submit" id="submitBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              Check credibility
+            </button>
+            <button type="button" id="clearBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+              Clear form
+            </button>
+          </div>
           <div id="statusLine"></div>
+          <div id="loadingStepper" class="loading-stepper"></div>
           <div id="errorBox"></div>
 
           <div id="results">
@@ -534,22 +616,19 @@
             </div>
 
             <div class="subsection">
-              <h3>Why this score</h3>
-              <ul id="topReasons"></ul>
+              <h3>Summary</h3>
+              <p class="exec-summary" id="execSummary"></p>
             </div>
 
             <div class="subsection">
-              <h3>Suspicious phrases found</h3>
-              <div id="suspiciousPhrases"></div>
+              <h3>All observations</h3>
+              <p class="muted-note obs-caveat">Each line reflects the model's reasoning for THIS posting only, not a general rule — the same detail (e.g. a blank field) can count differently on a different posting, depending on everything else in it.</p>
+              <ul class="obs-list" id="allObservations"></ul>
+              <div id="phraseChipRow" class="chip-row obs-phrases"></div>
             </div>
 
             <div class="subsection">
-              <h3>Inconsistencies found</h3>
-              <div id="contradictions"></div>
-            </div>
-
-            <div class="subsection">
-              <h3>Before you apply, verify</h3>
+              <h3>Recommendations</h3>
               <ul id="checklist"></ul>
             </div>
           </div>
@@ -625,7 +704,7 @@
 
 <footer>
   <div class="container">
-    <p class="footer-credit">Developed by Oshadha Samarasinghe </p>
+    <p class="footer-credit">Developed by Oshadha Samarasinghe</p>
     <p class="footer-meta">Coventry University - 16116041 &nbsp;·&nbsp; NIBM - COBSCCOMP242P-069</p>
     <p class="footer-note">BSc (Hons) Computing Final Year Research Project.</p>
     <p class="footer-note"> Explainable Credibility Scoring Framework for Online Recruitment Posts Using Multi-Signal Evidence and Consistency Verification.</p>
@@ -686,31 +765,65 @@ function renderResults(data) {
   riskChip.className = 'risk-chip band-' + band + '-chip';
   document.getElementById('riskChipText').textContent = band + ' risk';
 
-  const topReasons = document.getElementById('topReasons');
-  topReasons.innerHTML = '';
-  (data.top_reasons || []).forEach(r => {
+  // ---------- Summary + merged observations (restructured 2026-10-09) ----------
+  // Everything below is built ONLY from the four fields the API already returns
+  // (top_reasons, suspicious_phrases, contradictions, credibility_score/risk_band).
+  // No new backend call, no fabricated verification data -- just one merged,
+  // colour-coded presentation of the same evidence instead of three flat lists.
+  const topReasons = data.top_reasons || [];
+  const suspiciousPhrases = data.suspicious_phrases || [];
+  const contradictions = data.contradictions || [];
+
+  // Plain-English roll-up sentence. Entirely templated from the fields rendered
+  // below it -- not a model-generated narrative, so it can't say anything the
+  // rest of the panel doesn't already show.
+  let summary = `Scored ${data.credibility_score}/100 (${band} risk).`;
+  if (topReasons[0]) summary += ' ' + topReasons[0];
+  summary += contradictions.length
+    ? ` ${contradictions.length} inconsistenc${contradictions.length === 1 ? 'y' : 'ies'} found between the text and the listed details.`
+    : ' No inconsistencies found between the text and the listed details.';
+  if (suspiciousPhrases.length) {
+    summary += ` ${suspiciousPhrases.length} suspicious phrase${suspiciousPhrases.length === 1 ? '' : 's'} matched in the text.`;
+  }
+  document.getElementById('execSummary').textContent = summary;
+
+  // Merged "All observations" list: contradictions are always flags (red); each
+  // top_reason is coloured by parsing the SAME "raised/lowered the score" wording
+  // pipeline.py's _describe_feature() already puts in the string -- not a new
+  // judgement call, just reading the direction that's already written into the text.
+  // A top_reason that's just a contradiction's own detail string (pipeline.py seeds
+  // top_reasons with contradiction.detail first) is skipped here so it isn't shown twice.
+  const obsList = document.getElementById('allObservations');
+  obsList.innerHTML = '';
+  const shownTexts = new Set();
+  contradictions.forEach(c => {
+    shownTexts.add(c.detail);
     const li = document.createElement('li');
-    li.textContent = r;
-    topReasons.appendChild(li);
+    li.className = 'obs-item flag';
+    li.innerHTML = `<span class="rule-tag">${c.rule}</span>${c.detail}`;
+    obsList.appendChild(li);
   });
-
-  const suspiciousBox = document.getElementById('suspiciousPhrases');
-  if (data.suspicious_phrases && data.suspicious_phrases.length) {
-    suspiciousBox.innerHTML = '<div class="chip-row">' +
-      data.suspicious_phrases.map(p => `<span class="phrase-chip">"${p}"</span>`).join('') +
-      '</div>';
-  } else {
-    suspiciousBox.innerHTML = '<p class="muted-note">None found in the text.</p>';
+  topReasons.forEach(r => {
+    if (shownTexts.has(r)) return;
+    const kind = r.includes('lowered the score') ? 'flag'
+      : r.includes('raised the score') ? 'signal'
+      : 'neutral';
+    const li = document.createElement('li');
+    li.className = 'obs-item ' + kind;
+    li.textContent = r;
+    obsList.appendChild(li);
+  });
+  if (!obsList.children.length) {
+    obsList.innerHTML = '<li class="obs-item neutral">No individual signal stood out in this prediction.</li>';
   }
 
-  const contradictionsBox = document.getElementById('contradictions');
-  if (data.contradictions && data.contradictions.length) {
-    contradictionsBox.innerHTML = data.contradictions.map(c =>
-      `<div class="contradiction-item"><span class="rule-tag">${c.rule}</span>${c.detail}</div>`
-    ).join('');
-  } else {
-    contradictionsBox.innerHTML = '<p class="muted-note">None found.</p>';
-  }
+  // Raw matched wording from E1's lexicon, shown underneath as quoted chips --
+  // the actual text, not a re-description of it.
+  const phraseRow = document.getElementById('phraseChipRow');
+  phraseRow.innerHTML = suspiciousPhrases.length
+    ? '<span class="obs-phrases-label">Flagged wording:</span>' +
+      suspiciousPhrases.map(p => `<span class="phrase-chip">"${p}"</span>`).join('')
+    : '';
 
   const checklist = document.getElementById('checklist');
   checklist.innerHTML = '';
@@ -750,9 +863,9 @@ function fillTextForReview(extractedText, extractedTitle) {
 
 fetchUrlBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
-  if (!url) { importStatus.textContent = 'Paste a URL first.'; return; }
+  if (!url) { importStatus.textContent = 'Paste a job posting URL first.'; return; }
   fetchUrlBtn.disabled = true;
-  importStatus.textContent = 'Fetching — some sites may be slow, or may not allow this.';
+  importStatus.textContent = 'Fetching — this can take a few seconds, and some sites may not allow it.';
   try {
     const resp = await fetch('/extract-url', {
       method: 'POST',
@@ -761,13 +874,13 @@ fetchUrlBtn.addEventListener('click', async () => {
     });
     const body = await resp.json();
     if (!resp.ok) {
-      importStatus.textContent = typeof body.detail === 'string' ? body.detail : 'Could not fetch that URL.';
+      importStatus.textContent = typeof body.detail === 'string' ? body.detail : "Couldn't fetch that URL — try pasting the text directly instead.";
       return;
     }
     fillTextForReview(body.text, body.title);
     importStatus.textContent = 'Fetched — review and edit the text below, then submit when ready.';
   } catch (err) {
-    importStatus.textContent = 'Could not reach the server to fetch that URL.';
+    importStatus.textContent = "Couldn't reach the server to fetch that URL. Make sure it's running, then try again.";
   } finally {
     fetchUrlBtn.disabled = false;
   }
@@ -775,25 +888,80 @@ fetchUrlBtn.addEventListener('click', async () => {
 
 extractImageBtn.addEventListener('click', async () => {
   const file = imageInput.files && imageInput.files[0];
-  if (!file) { importStatus.textContent = 'Choose an image file first.'; return; }
+  if (!file) { importStatus.textContent = 'Choose a screenshot first.'; return; }
   extractImageBtn.disabled = true;
-  importStatus.textContent = 'Reading text from the image…';
+  importStatus.textContent = 'Reading the text from your screenshot — this can take a few seconds.';
   try {
     const formData = new FormData();
     formData.append('file', file);
     const resp = await fetch('/extract-image', { method: 'POST', body: formData });
     const body = await resp.json();
     if (!resp.ok) {
-      importStatus.textContent = typeof body.detail === 'string' ? body.detail : 'Could not read that image.';
+      importStatus.textContent = typeof body.detail === 'string' ? body.detail : "Couldn't read that image — try a clearer screenshot, or paste the text directly.";
       return;
     }
     fillTextForReview(body.text, body.title);
     importStatus.textContent = 'Extracted — review and edit the text below, then submit when ready.';
   } catch (err) {
-    importStatus.textContent = 'Could not reach the server to process that image.';
+    importStatus.textContent = "Couldn't reach the server to process that image. Make sure it's running, then try again.";
   } finally {
     extractImageBtn.disabled = false;
   }
+});
+
+// ---------- Loading stepper (added 2026-10-09) ----------
+// /score is a single blocking request -- the backend doesn't emit per-stage progress
+// events, so this does NOT claim each line below has actually completed. It advances
+// on a fixed timer purely as a wait indicator, through labels describing the pipeline's
+// real stage order (feature extraction -> model inference -> SHAP explanation), with a
+// spinner (not a checkmark) on the current line so it never implies a verified result.
+const loadingStepper = document.getElementById('loadingStepper');
+const LOADING_STAGES = [
+  'Reading the posting text',
+  'Checking structured fields',
+  'Running the credibility model',
+  'Explaining the prediction',
+];
+let loadingTimer = null;
+
+function startLoadingStepper() {
+  loadingStepper.innerHTML = LOADING_STAGES
+    .map(label => `<div class="loading-step"><span class="dot"></span><span class="spinner"></span>${label}</div>`)
+    .join('');
+  loadingStepper.classList.add('active');
+  const steps = Array.from(loadingStepper.querySelectorAll('.loading-step'));
+  let current = 0;
+  const mark = () => steps.forEach((s, i) => {
+    s.classList.toggle('done', i < current);
+    s.classList.toggle('current', i === current);
+  });
+  mark();
+  loadingTimer = setInterval(() => {
+    current = Math.min(current + 1, steps.length - 1);
+    mark();
+  }, 3200);
+}
+
+function stopLoadingStepper() {
+  if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
+  loadingStepper.classList.remove('active');
+  loadingStepper.innerHTML = '';
+}
+
+// ---------- Clear form (added 2026-10-09) ----------
+// Pure reset of inputs and the visible result panels. Does not touch buildPayload(),
+// renderResults(), or the submit handler below.
+const clearBtn = document.getElementById('clearBtn');
+clearBtn.addEventListener('click', () => {
+  form.reset();
+  document.querySelectorAll('details.optional').forEach(d => { d.open = false; });
+  results.style.display = 'none';
+  errorBox.style.display = 'none';
+  errorBox.textContent = '';
+  statusLine.textContent = '';
+  stopLoadingStepper();
+  importStatus.textContent = '';
+  document.getElementById('text').focus();
 });
 
 form.addEventListener('submit', async (e) => {
@@ -802,6 +970,7 @@ form.addEventListener('submit', async (e) => {
   results.style.display = 'none';
   submitBtn.disabled = true;
   statusLine.textContent = 'Analyzing — the first check after starting the server can take 10-20s while the model loads.';
+  startLoadingStepper();
 
   try {
     const payload = buildPayload();
@@ -814,7 +983,7 @@ form.addEventListener('submit', async (e) => {
 
     if (!resp.ok) {
       const detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail, null, 2);
-      errorBox.textContent = `Request failed (HTTP ${resp.status}):\n${detail}`;
+      errorBox.textContent = `Something went wrong (HTTP ${resp.status}):\n${detail}`;
       errorBox.style.display = 'block';
       statusLine.textContent = '';
       return;
@@ -823,11 +992,12 @@ form.addEventListener('submit', async (e) => {
     renderResults(body);
     statusLine.textContent = '';
   } catch (err) {
-    errorBox.textContent = 'Could not reach the server. Is it still running?\n' + err;
+    errorBox.textContent = "Couldn't reach the server — make sure it's still running, then try again.\n" + err;
     errorBox.style.display = 'block';
     statusLine.textContent = '';
   } finally {
     submitBtn.disabled = false;
+    stopLoadingStepper();
   }
 });
 </script>

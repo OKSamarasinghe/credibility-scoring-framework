@@ -310,36 +310,48 @@ def _describe_feature(name: str, value: float, shap_value: float) -> str:
     # direction is the OPPOSITE of the raw SHAP sign. See decisions.md, 2026-10-08,
     # "Stage 8 smoke test caught an inverted credibility score" -- same root cause as the
     # score-computation fix in run_inference(), caught in the same pass.
+    #
+    # "for this posting" suffix added 2026-10-09 (decisions.md) -- a real live result (a
+    # posting with 0% of structured fields filled in) produced FOUR separate lines reading
+    # "<field> was missing, which raised the score", which a user can easily misread as a
+    # general rule ("leaving fields blank is good"). It isn't: each of these is a single
+    # KernelSHAP attribution for THIS ONE prediction, conditioned on every other feature's
+    # value in this specific posting -- not a trend, not advice, and not guaranteed to hold
+    # the same way on a different posting. Deliberately kept the literal substrings "raised
+    # the score" / "lowered the score" byte-for-byte unchanged (only appending text after
+    # them) because frontend/index.html's renderResults() keys its red/green colouring off
+    # exactly those two substrings -- this is a wording-only change, nothing computational,
+    # and the frontend needed no corresponding edit.
     direction = "lowered" if shap_value > 0 else "raised"
     base, _, cat = name.partition("=")
 
     if base == "E3_completeness_score":
-        return f"Only {value * 100:.0f}% of standard posting fields were filled in, which {direction} the score."
+        return f"Only {value * 100:.0f}% of standard posting fields were filled in, which {direction} the score for this posting."
     if base.startswith("E3_") and base.endswith("_present"):
         field = base[len("E3_"):-len("_present")]
         state_word = "was provided" if value >= 0.5 else "was missing"
-        return f"The '{field}' field {state_word}, which {direction} the score."
+        return f"The '{field}' field {state_word}, which {direction} the score for this posting."
     if base == "E2_company_profile_present":
         state_word = "was provided" if value >= 0.5 else "was missing"
-        return f"An employer profile {state_word}, which {direction} the score."
+        return f"An employer profile {state_word}, which {direction} the score for this posting."
     if base == "E2_company_profile_length":
-        return f"The employer profile is {value:.0f} characters long, which {direction} the score."
+        return f"The employer profile is {value:.0f} characters long, which {direction} the score for this posting."
     if base in ("E2_url_token_count", "E2_email_token_count", "E2_phone_token_count"):
         kind = base.split("_")[1]
         return (
             f"The posting text contains {value:.0f} embedded {kind} reference(s), "
-            f"which {direction} the score."
+            f"which {direction} the score for this posting."
         )
     if base == "E2_location_specificity":
         label = cat or "none"
         state_word = "was specified at this level" if value >= 0.5 else "was NOT specified at this level"
-        return f"The posting's location ({label}) {state_word}, which {direction} the score."
+        return f"The posting's location ({label}) {state_word}, which {direction} the score for this posting."
     if base.startswith("E1_phrase_"):
         group = base[len("E1_phrase_"):].replace("_", " ")
         state_word = "was found" if value >= 0.5 else "was NOT found"
-        return f"Text matching the '{group}' phrase group {state_word}, which {direction} the score."
+        return f"Text matching the '{group}' phrase group {state_word}, which {direction} the score for this posting."
     if base == "E1_suspicious_phrase_count":
-        return f"{value:.0f} suspicious-phrase group(s) matched in the text, which {direction} the score."
+        return f"{value:.0f} suspicious-phrase group(s) matched in the text, which {direction} the score for this posting."
     # C1-C6 "field_present" -- was this metadata detail even given, independent of
     # whether it's consistent with the text (that's the separate C{i}_contradiction
     # feature, already shown via its own evidence string). Added 2026-10-09 (decisions.md)
@@ -349,11 +361,11 @@ def _describe_feature(name: str, value: float, shap_value: float) -> str:
     if m:
         field_label = RULE_FIELD.get(int(m.group(1)), base).replace("_", " ")
         state_word = "was given" if value >= 0.5 else "was left blank"
-        return f"The posting's '{field_label}' detail {state_word}, which {direction} the score."
+        return f"The posting's '{field_label}' detail {state_word}, which {direction} the score for this posting."
     if base == "E4_contradiction_count":
         return (
             f"{value:.0f} of the posting's details didn't match what the text said "
-            f"(out of up to 6 checked), which {direction} the score."
+            f"(out of up to 6 checked), which {direction} the score for this posting."
         )
     # C1-C6 "contradiction" itself, for the NOT-fired case only -- a FIRED contradiction
     # (value=1) is already excluded here and shown instead via its own evidence string in
@@ -366,15 +378,15 @@ def _describe_feature(name: str, value: float, shap_value: float) -> str:
         field_label = RULE_FIELD.get(int(m.group(1)), base).replace("_", " ")
         return (
             f"No mismatch was found between the posting's '{field_label}' detail and the "
-            f"text, which {direction} the score."
+            f"text, which {direction} the score for this posting."
         )
     if base == "C6_text_salary_field_absent":
         state_word = "was found" if value >= 0.5 else "was NOT found"
         return (
             f"A dollar figure mentioned in the text despite no salary range being listed "
-            f"{state_word}, which {direction} the score."
+            f"{state_word}, which {direction} the score for this posting."
         )
-    return f"The '{name}' signal {direction} the score."
+    return f"The '{name}' signal {direction} the score for this posting."
 
 
 def _is_bookkeeping_feature(name: str) -> bool:
