@@ -96,6 +96,34 @@ class ScoreRequest(BaseModel):
         return self
 
 
+class UrlExtractRequest(BaseModel):
+    """
+    Request body for POST /extract-url. This is a pre-fill convenience, separate from
+    ScoreRequest -- it does NOT feed ScoreRequest.url (that field's /score-level stub is
+    untouched and still returns 501). The extracted text is returned to the frontend for
+    the user to read and edit before they ever submit anything to /score.
+    """
+    url: str = Field(..., description="Job posting URL to fetch and extract text from.")
+
+
+class ExtractResponse(BaseModel):
+    """
+    Shared response shape for POST /extract-url and POST /extract-image. Carries extracted
+    text for user review, nothing more -- it is never auto-submitted to /score.
+    """
+    title: Optional[str] = Field(
+        default=None, description="Extracted page/job title, if one was found."
+    )
+    text: str = Field(
+        description="Extracted plain text. The user reviews/edits this before pasting it "
+                    "into the posting-text field and submitting to /score."
+    )
+    source_url: Optional[str] = Field(
+        default=None,
+        description="The URL this was extracted from. Omitted for image/OCR extraction."
+    )
+
+
 class Contradiction(BaseModel):
     rule: str          # e.g. "C1"
     field: str          # e.g. "telecommuting"

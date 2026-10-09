@@ -1,6 +1,6 @@
 # decisions.md — Design Decisions & Rationale
 
-_Last updated: 2026-10-08_
+_Last updated: 2026-10-09_
 
 > **What this file is.** One entry for every real design decision in my project: what I
 > decided, what else I considered, why I went this way, and what it cost me. This is the
@@ -13,6 +13,182 @@ _Last updated: 2026-10-08_
 > to test myself against.
 >
 > Format: newest at the top.
+
+---
+
+## 2026-10-09 — URL and screenshot input added as pre-fill conveniences, not as changes to
+/score, ScoreRequest, or the trained pipeline
+
+- **Context:** with development otherwise complete and Stage 9's test set closed, the
+  student asked whether two convenience inputs could still be added without undoing any of
+  that: (1) paste a job-posting URL, (2) upload a screenshot/image of a posting. Both were
+  requested together, with explicit instruction that the already-working development must
+  not be harmed.
+
+- **Decision:** added two new, purely additive FastAPI routes — `POST /extract-url` and
+  `POST /extract-image` — plus two new Pydantic models (`UrlExtractRequest`,
+  `ExtractResponse`) in `schemas.py`. Both routes do exactly one thing: return extracted
+  text (and a title, for the URL case) for the frontend to drop into the *existing* `text`/
+  `title` fields, for the user to read and edit before pressing the *existing* submit button
+  that calls `/score`. Nothing is auto-submitted. `ScoreRequest.url` and `/score`'s own
+  `if request.url: raise HTTPException(501, ...)` stub are untouched — these new routes do
+  not implement that field, they sit entirely outside it.
+
+- **Why this doesn't reopen or contradict the 2026-08-07 decision ("Make raw text the
+  primary API input, with URL support best-effort only"):** that decision was about what
+  the *scored artefact* accepts as input — and it still only accepts raw text (plus the
+  optional structured fields), unchanged. These two new routes are acquisition conveniences
+  that sit in front of that same text box, not a second input path into the model. The
+  2026-08-07 reasoning (ToS risk, page-structure fragility) is exactly why these are kept
+  separate from `/score` and framed as best-effort, reviewable pre-fill rather than silent
+  auto-ingestion.
+
+- **Options considered (URL fetching):**
+  - (A) Wire a real fetch into `ScoreRequest.url` / the `/score` 501 stub directly.
+    Rejected — this would make the scored artefact's behaviour depend on a fetch outcome
+    outside Stage 9's already-closed, tested/validated pipeline, and would blur the
+    "demonstration vs evaluation" line the project guardrails insist on keeping separate.
+  - (B) A separate `/extract-url` endpoint, text handed back for review. **Chosen.**
+  - For which sites to allow: (i) hardcode a small allowlist of known-good sites, or
+    (ii) check each site's own `robots.txt` at request time via `urllib.robotparser`, with
+    a small hardcoded exclusion list only for sites that are technically fetchable but
+    contractually/practically wrong to fetch anyway. **Chose (ii) + a one-item exclusion
+    list (LinkedIn)** — robots.txt is the site's own stated policy and generalises to sites
+    never tested (this is what makes topjobs.lk get excluded automatically, without needing
+    it hardcoded); LinkedIn is excluded outright on top of that because its job pages are
+    client-side rendered, so the posting text is not present in the static HTML
+    `trafilatura` would fetch, and separately because scraping LinkedIn breaches its ToS.
+
+- **Options considered (OCR engine):** `pytesseract` (wraps the system Tesseract binary) vs
+  `easyocr` (pure-pip, no system binary, could reuse the student's existing
+  CUDA/torch stack). Tested `pytesseract` directly against all 8 of the student's real
+  example job-ad images — results were consistently clean and highly readable. **Chose
+  `pytesseract`** on that measured result, even though it costs the student a one-time
+  system-level Tesseract install on Windows (not just `pip install`) that I cannot perform
+  remotely. `easyocr` was not run head-to-head against the same images — the decision is
+  "pytesseract measured good enough," not "pytesseract beats easyocr," which would be an
+  unmade comparison.
+
+- **What I gave up / what remains unverified:**
+  - I could not personally execute a real fetch against any external job site from any
+    tool available to me in this session — my own sandbox and the device's Linux VM both
+    hit identical `403 Forbidden` / "Tunnel connection failed" errors from their own
+    outbound proxies when I tried `ikman.lk` directly. The `/extract-url` route's logic
+    (exclusion check, robots.txt check, trafilatura wiring, error handling) was verified
+    with mocked network calls in my own sandbox (`test_new_routes.py`, 11/11 checks
+    passed) and reasoned about using WebFetch as an imperfect proxy signal against the
+    student's 6 real URLs earlier in this session — but its real-world behaviour against
+    real sites has NOT been run end-to-end by me. `src/api/live_extract_check.py` is the
+    standalone script (same pattern as the existing `live_api_check.py`) for the student
+    to run themselves, with real network access, to get that real signal.
+  - `pytesseract`'s quality test used only the 8 images already in hand, not a broader
+    sample — "works well on these 8" is the actual, honest claim, not "works on all
+    screenshots."
+  - The Tesseract binary install is a manual, one-time step on the student's own machine
+    (documented separately) that I cannot do for them.
+
+- **Revisit if:** either route turns out to fail on the majority of the student's actual
+  demo sites/images when they run the real checks themselves — in which case the honest
+  move is to report the limitation in the thesis, not to keep tuning against the 8 images.
+
+- **Self-check:** *Why doesn't adding `/extract-url` reopen the 2026-08-07 decision to keep
+  URL input out of `/score`, and what specifically did I never verify myself about this
+  feature?*
+
+- **Addendum, same day — real `pip install` caught a dependency conflict I missed:** when
+  the student ran `pip install -r requirements.txt` on the real machine, pip reported
+  `ResolutionImpossible`: `trafilatura==2.3.1` actually requires `charset_normalizer>=3.5.2`,
+  `lxml>=6.1.3`, and `urllib3>=2.8.0`, but I had only checked that `trafilatura==2.3.1`
+  itself existed on PyPI, not its own dependency floor against the versions already pinned
+  in `requirements.txt` (`charset-normalizer==3.5.1`, `lxml==6.1.2`, `urllib3==2.7.0`). Fixed
+  by bumping those three pins to the exact minimums trafilatura needs, and explicitly
+  pinning trafilatura's own new transitive dependencies (`babel`, `courlan`, `dateparser`,
+  `htmldate`, `justext`, `lxml_html_clean`, `pytz`, `tld`, `tzlocal`) at the versions a clean
+  resolver picked — matching this file's existing convention of pinning every transitive
+  dependency, not just top-level ones. Verified this time with a real `pip install
+  --dry-run` against the exact final `requirements.txt` in a fresh venv (not just checking
+  version existence) — resolved cleanly, "Would install" the full closure, zero conflicts.
+  **Lesson for next time:** when adding a new pinned dependency to an already-pinned
+  requirements file, check its dependency floor against the existing pins before handing it
+  to the student, not just that the version string resolves.
+
+- **Addendum, same day — real-world URL testing found two more real problems, both fixed:**
+  the student ran all 6 of their real candidate URLs through the live `/extract-url` route
+  for the first time (something I could not do myself, per the addendum above). Results:
+  **ikman.lk worked perfectly** (clean title + text, scored correctly end to end) --
+  the first genuine, live, external confirmation this feature actually works, not just
+  reasoned-about. **LinkedIn was correctly rejected**, as designed. But two real problems
+  surfaced:
+  1. **topjobs.lk was NOT rejected, and shouldn't have let through either way.** The
+     robots.txt check (the general mechanism meant to catch exactly this site) let it
+     through -- I confirmed separately, by trying the exact same URL from my own tools,
+     that its robots.txt DOES disallow at least some crawlers from that page (I got
+     `ROBOTS_DISALLOWED` myself). The per-user-agent robots.txt rule my code checks
+     against evidently isn't the one that caught it. Worse, independent of the robots.txt
+     question, what got extracted wasn't the job posting at all -- it was account/
+     navigation chrome ("Apply by email", "create your personalised digital CV"). **Fix:**
+     hardcoded `topjobs.lk` into the same exclusion list as LinkedIn, rather than trying to
+     debug robots.txt per-user-agent matching edge cases under today's deadline. This also
+     fixes the bad-content problem for free, since the site is now rejected outright.
+  2. **xpress.jobs "succeeded" but returned garbage.** The extracted "text" was the literal
+     client-side fallback string `"You need to enable JavaScript to run this app."` --
+     confirms the earlier suspicion (xpress.jobs is JS-rendered) but the route returned
+     this as a 200 success instead of catching it. **Fix:** added a content-quality check
+     before returning a result -- reject (422, clear message) if the extracted text is
+     under 100 characters or contains a known JS-required placeholder phrase. This is a
+     general guard, not a site-specific patch, so it should also catch other JS-rendered
+     sites not yet tested, though that's untested, not guaranteed.
+  - **Verified in my own sandbox, not just reasoned about this time:** re-ran the full
+    route through `test_new_routes.py`'s harness with 2 new cases (topjobs.lk-shaped URL
+    now correctly rejected; a mocked "enable JavaScript" response now correctly rejected)
+    plus a regression check that a real, well-formed posting (the same shape as the
+    student's working ikman.lk case) still succeeds. 6/6 passed.
+  - **What this means for the write-up:** the honest claim for this feature is "worked
+    cleanly on ikman.lk, correctly declined LinkedIn and (now) topjobs.lk, and now gives a
+    clear error instead of garbage on JS-rendered sites like xpress.jobs" -- not "works on
+    all sites." This is exactly the kind of result a research prototype should report:
+    real, mixed, and not cherry-picked to the one case that worked first.
+  - **Self-check:** *Why did I trust robots.txt as the general mechanism, and what did the
+    real test show about that trust?*
+
+- **Addendum, same day — broad real-world test across 13 real Sri Lankan/international job
+  sites, after the topjobs.lk/xpress.jobs fixes above:** the student tested well beyond the
+  original 6 candidate URLs. Results:
+  - **Extracted cleanly (8 sites):** ikman.lk, finders.lk, rooster.jobs, jobpal.lk,
+    jobeka.lk, itpro.lk, dreamjobs.lk. **skyjobs.lk** returned only minimal text via
+    `/extract-url` (the posting is apparently mostly image-based on that site) -- the
+    student used `/extract-image` (screenshot) on the same posting instead and it worked.
+    This is a real demonstration of why both features exist, not just one: they cover
+    different failure modes of the same underlying problem (getting posting text into the
+    box for review).
+  - **Correctly declined, exactly as designed (4 sites):** LinkedIn and topjobs.lk
+    (hardcoded exclusion), xpress.jobs (content-quality guard), and **unjobs.org** --
+    caught by the general robots.txt mechanism on its own, with no special-casing needed.
+    This is useful evidence the robots.txt check *does* work as a general mechanism --
+    topjobs.lk was the one site where it didn't, not proof the whole approach is unreliable.
+  - **Failed, but gracefully (1 site):** Indeed -- clean "could not reach the URL, or the
+    site blocked the request" message, not a crash. Expected: Indeed is a major aggregator
+    that blocks most automated access.
+  - **Net result:** 8 of 13 real sites tested extract cleanly; every failure mode produced
+    a clear, honest message rather than a crash or silently-wrong result (after the two
+    fixes above). This is the actual, defensible claim for the thesis: broad coverage
+    across real local job boards, honest and non-crashing behaviour on the rest, not "works
+    everywhere."
+  - **Self-check:** *What's the difference between a site "not supported" and a site
+    exposing a bug, and how do I tell them apart from the error message alone?*
+
+- **Addendum, same day — Timesjobs.lk confirmed clean, closing out real-world testing:**
+  the one unclear result from the addendum above is resolved: Timesjobs.lk gives a clean
+  `"www.timesjobs.lk's robots.txt disallows automated access to this page."` message, not
+  a crash -- the general robots.txt mechanism catching a second site on its own (after
+  unjobs.org), with no special-casing needed. (Separately, that posting's actual content
+  is itself an image on the page, not text -- so even an allowed fetch wouldn't have
+  recovered real text there without OCR; not actionable, just noted.) **Final tally across
+  13 real sites tested: 8 extract cleanly, 5 declined or failed with a clear message, 0
+  crashes.** Real-world testing of both pre-fill features is now complete.
+  - **Self-check:** *Across the 13 sites tested, which failures were "mechanism working as
+    designed" versus "bug Claude had to fix," and how would I tell an examiner the
+    difference in one sentence?*
 
 ---
 

@@ -221,6 +221,25 @@
     font-size: 0.86rem; white-space: pre-wrap;
   }
 
+  /* ---------- import helpers (URL / screenshot pre-fill) ---------- */
+  .import-box {
+    margin: 0 0 22px; padding: 16px 16px 14px; border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm); background: #fbfbff;
+  }
+  .import-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .import-row:last-of-type { margin-bottom: 0; }
+  .import-row input[type=text] { flex: 1; min-width: 0; }
+  .import-row input[type=file] { flex: 1; min-width: 0; font-size: 0.85rem; padding: 9px 10px; }
+  .import-btn {
+    flex: none; background: #fff; border: 1.5px solid var(--brand); color: var(--brand-dark);
+    font-weight: 600; font-size: 0.84rem; padding: 0 16px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background .15s;
+  }
+  .import-btn:hover:not(:disabled) { background: var(--brand-light); }
+  .import-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .import-status { font-size: 0.8rem; color: var(--muted); min-height: 1.1em; margin-top: 2px; }
+  .import-note { font-size: 0.76rem; color: var(--muted); margin: 2px 0 14px; }
+
   /* ---------- results ---------- */
   #results { display: none; margin-top: 32px; padding-top: 28px; border-top: 1.5px dashed var(--border); }
   .result-top {
@@ -380,6 +399,19 @@
             <h2>Check a posting</h2>
           </div>
           <p class="scan-sub">Paste the job description below. Every extra detail you add under "Add more details" sharpens the result — any field you leave blank is treated as genuinely unknown, never guessed.</p>
+
+          <div class="import-box">
+            <div class="import-row">
+              <input type="text" id="urlInput" placeholder="Paste a job posting URL (e.g. https://ikman.lk/...)">
+              <button type="button" id="fetchUrlBtn" class="import-btn">Fetch text from URL</button>
+            </div>
+            <div class="import-row">
+              <input type="file" id="imageInput" accept="image/*">
+              <button type="button" id="extractImageBtn" class="import-btn">Extract text from screenshot</button>
+            </div>
+            <div id="importStatus" class="import-status"></div>
+          </div>
+          <p class="import-note">Both are best-effort helpers — some sites block automated fetching (terms of service), and OCR on a blurry screenshot may miss text. Either way, nothing is submitted automatically: the extracted text lands in the box below for you to check and edit first.</p>
 
           <div class="field">
             <label for="text">Job description / role details <span class="hint-required">Required</span></label>
@@ -691,6 +723,78 @@ function renderResults(data) {
   results.style.display = 'block';
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ---------- URL / screenshot pre-fill helpers (added 2026-10-09) ----------
+// Both of these only ever write into the existing #text / #title fields, for the user to
+// review and edit. Neither one calls /score and neither changes buildPayload(),
+// renderResults(), or the submit handler below in any way.
+const urlInput = document.getElementById('urlInput');
+const fetchUrlBtn = document.getElementById('fetchUrlBtn');
+const imageInput = document.getElementById('imageInput');
+const extractImageBtn = document.getElementById('extractImageBtn');
+const importStatus = document.getElementById('importStatus');
+
+function fillTextForReview(extractedText, extractedTitle) {
+  const textArea = document.getElementById('text');
+  const titleInput = document.getElementById('title');
+  if (textArea.value.trim() === '') {
+    textArea.value = extractedText;
+  } else {
+    textArea.value = textArea.value.trim() + '\n\n' + extractedText;
+  }
+  if (extractedTitle && titleInput.value.trim() === '') {
+    titleInput.value = extractedTitle;
+  }
+  textArea.focus();
+}
+
+fetchUrlBtn.addEventListener('click', async () => {
+  const url = urlInput.value.trim();
+  if (!url) { importStatus.textContent = 'Paste a URL first.'; return; }
+  fetchUrlBtn.disabled = true;
+  importStatus.textContent = 'Fetching — some sites may be slow, or may not allow this.';
+  try {
+    const resp = await fetch('/extract-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const body = await resp.json();
+    if (!resp.ok) {
+      importStatus.textContent = typeof body.detail === 'string' ? body.detail : 'Could not fetch that URL.';
+      return;
+    }
+    fillTextForReview(body.text, body.title);
+    importStatus.textContent = 'Fetched — review and edit the text below, then submit when ready.';
+  } catch (err) {
+    importStatus.textContent = 'Could not reach the server to fetch that URL.';
+  } finally {
+    fetchUrlBtn.disabled = false;
+  }
+});
+
+extractImageBtn.addEventListener('click', async () => {
+  const file = imageInput.files && imageInput.files[0];
+  if (!file) { importStatus.textContent = 'Choose an image file first.'; return; }
+  extractImageBtn.disabled = true;
+  importStatus.textContent = 'Reading text from the image…';
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await fetch('/extract-image', { method: 'POST', body: formData });
+    const body = await resp.json();
+    if (!resp.ok) {
+      importStatus.textContent = typeof body.detail === 'string' ? body.detail : 'Could not read that image.';
+      return;
+    }
+    fillTextForReview(body.text, body.title);
+    importStatus.textContent = 'Extracted — review and edit the text below, then submit when ready.';
+  } catch (err) {
+    importStatus.textContent = 'Could not reach the server to process that image.';
+  } finally {
+    extractImageBtn.disabled = false;
+  }
+});
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();

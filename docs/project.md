@@ -336,36 +336,87 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
   all three versions before deploying. `/score`, `/health`, `pipeline.py`, and every
   trained-model code path are untouched. Student confirmed it working, committed, and
   pushed.
-- **Two further frontend input options discussed, deliberately deferred, not decided --
-  2026-10-09:** letting the user submit a job-posting URL (already explicitly rejected
-  twice before, 2026-08-07 and as "Option D" in the 2026-10-09 frontend decision, for
-  scraping-robustness and ToS reasons -- flagged again here so the next session doesn't
-  re-litigate from scratch) and a screenshot/OCR upload (new idea, never decided; would need
-  a new system dependency (Tesseract), a new file-upload endpoint, and carries real OCR-
-  accuracy risk). Both named as real scope, not polish, given the fixed deadline. Student
-  said: discuss later, not now.
+- **URL and screenshot/OCR input built, 2026-10-09 (same day, after being deferred
+  earlier that day):** two new, purely additive FastAPI routes, `POST /extract-url` and
+  `POST /extract-image`, plus two new schemas (`UrlExtractRequest`, `ExtractResponse`).
+  Both only ever return extracted text (and title, for URL) for the frontend to drop into
+  the existing `text`/`title` fields for review -- nothing is auto-submitted, and neither
+  route touches `/score`, `ScoreRequest.url`'s still-unimplemented 501 stub, `pipeline.py`,
+  or any trained-model code. This does NOT reopen the 2026-08-07 "raw text is the primary
+  input" decision -- `/score` still only accepts text; these are pre-fill conveniences in
+  front of that same box, not a second path into the model. URL fetching
+  (`trafilatura`) checks each site's own `robots.txt` at request time, plus two hardcoded
+  exclusions (LinkedIn -- client-side-rendered pages, and ToS; topjobs.lk -- added after
+  real testing showed the robots.txt check alone didn't reliably catch it, see below), plus
+  a content-quality guard that rejects extracted text that's too short or matches known
+  "enable JavaScript" placeholder phrases (added after real testing caught xpress.jobs
+  returning exactly that string as if it were a valid posting). OCR (`pytesseract` + the
+  system Tesseract binary) was chosen over `easyocr` after testing directly against all 8
+  of the student's real example job-ad images with clean, legible results; on the real
+  Windows machine, `pytesseract` needed a fallback to the installer's default path because
+  the UB-Mannheim Tesseract installer doesn't add itself to PATH (now handled in code, no
+  manual PATH edit needed). All of the above logged in full in `decisions.md`,
+  2026-10-09, "URL and screenshot input added as pre-fill conveniences" and its four
+  addenda (the dependency-conflict fix, the Tesseract-PATH fix, and two real-world test
+  rounds). **Real-world URL testing is now done, by the student, with real internet access
+  -- something Claude could never do itself** (every fetch tool available to Claude is
+  blocked from reaching external sites by its own outbound proxy). Across **13 real job
+  sites**: **8 extracted cleanly** (ikman.lk, finders.lk, rooster.jobs, jobpal.lk,
+  jobeka.lk, itpro.lk, dreamjobs.lk, plus skyjobs.lk via the screenshot/OCR fallback when
+  URL extraction alone wasn't enough -- a genuine demonstration of why both features exist,
+  not just one); **4 correctly declined** (LinkedIn, topjobs.lk, xpress.jobs, and
+  unjobs.org -- the last caught by the general robots.txt mechanism on its own, with no
+  special-casing, which is good evidence that mechanism does generally work); **1 failed
+  gracefully** (Indeed -- clear "could not reach / site blocked" message, not a crash).
+  **The honest claim for the write-up:** broad coverage across real local job boards,
+  clean/non-crashing behaviour on the rest -- not "works on every site," which was never
+  the goal (per the student's own framing: "Dont need to work for all websites"). Frontend
+  UI added (a URL box + Fetch button, a file input + Extract button), verified
+  structurally (no duplicate ids, balanced tags, the existing submit handler/
+  `buildPayload`/`renderResults` confirmed byte-identical before and after).
+  `requirements.txt` updated
+  (`trafilatura==2.3.1`, `pytesseract==0.3.13`, `python-multipart==0.0.32`, plus
+  `trafilatura`'s own transitive dependencies, and three existing pins bumped to satisfy
+  it -- see `decisions.md` addendum) --
+  **student still needs to `pip install -r requirements.txt` and install the Tesseract
+  OCR binary on Windows before either feature works on their machine; see "Next
+  actions."**
 - **Not yet started (writing, not development):** Chapters 4-6 of the dissertation (Chapter
   4 can now be drafted — Stage 9's real measurements exist); the AI-use declaration; the
   research paper (stretch goal, named first to go if time runs out).
 
 ### Next actions (in order)
 
-1. ~~Live API test~~ — ✅ done, 2026-10-08 (see above). Development is complete.
-2. **Chapter 4 (Results)** — can be drafted now; every number it needs exists in
+1. ~~Install dependencies + Tesseract OCR binary~~ — ✅ done, 2026-10-09 (one real
+   dependency conflict and one PATH issue hit and fixed along the way; see `decisions.md`).
+2. ~~Live URL/OCR testing with real internet access~~ — ✅ done, 2026-10-09, well beyond
+   the original 6 URLs (13 real sites tested; 8 clean, 4 correctly declined, 1 graceful
+   failure). Two real bugs this testing caught were fixed same-day (topjobs.lk slipping
+   through, xpress.jobs returning a JS-placeholder as if it were real text). Full results
+   in `decisions.md`.
+3. **Delete two harmless leftover debug files** in the project root
+   (`req_utf8_debug.txt`, `req_final_check_debug.txt` — Claude couldn't delete them
+   itself, permission-gated) before committing; don't stage them.
+4. **Commit and push** (student commits, not Claude). **Development is now fully
+   complete, including both extra input features, live-tested with real data.**
+5. **Chapter 4 (Results)** — can be drafted now; every number it needs exists in
    `methodology.md`. Write from the measured tables only, not from memory of what was
    expected.
-3. **Chapter 5 (Discussion)** — interpret Stage 9's honestly-reported findings (the RF
+6. **Chapter 5 (Discussion)** — interpret Stage 9's honestly-reported findings (the RF
    PR-AUC reversal, the ablation's noise-indistinguishable PR-AUC pattern, the Tier 2
    source-probe artefact and what it does and doesn't undermine, the `has_company_logo`
    finding). State the self-set-thresholds limitation here if no supervisor contact window
    opens this week — **open question, needs an answer before this chapter is written.**
-4. **Chapter 6 (Conclusion)** — contributions, and limitations named plainly: the Tier 2
+7. **Chapter 6 (Conclusion)** — contributions, and limitations named plainly: the Tier 2
    source-asymmetry/missingness artefact, the Tier 2 ethics-approval status (still open),
    the E2 contact-token inertness on live text, the 70/15/15-split-not-nested-CV trade-off,
-   the un-reviewed architecture choice.
-5. **AI-use declaration** — programme-required; write once the wording/placement
-   requirement is confirmed.
-6. **Research paper** — stretch goal only, per the triage order fixed 2026-10-06.
+   the un-reviewed architecture choice. The URL/OCR pre-fill features can be described
+   honestly now with real numbers (8/13 sites), not as a caveat about unverified behaviour.
+8. **AI-use declaration** — programme-required; write once the wording/placement
+   requirement is confirmed. Must now also cover this session's URL/OCR feature work
+   (including the bugs Claude introduced and fixed, and the ones the student's own testing
+   caught that Claude had missed).
+9. **Research paper** — stretch goal only, per the triage order fixed 2026-10-06.
 
 ---
 
