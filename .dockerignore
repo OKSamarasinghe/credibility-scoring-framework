@@ -1,0 +1,22 @@
+# Keep the Docker build context small -- none of this is needed to serve
+# /score, /health, /extract-url, /extract-image. Model weights are fetched
+# inside the Dockerfile from Hugging Face, not copied from here, so the full
+# (gitignored, 2.3GB) local models/ folder never needs to enter the build.
+.git/
+.gitignore
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+notebooks/
+reports/
+tests/
+docs/
+models/
+audit/
+*.md
+_diag/
+_*.py
+_*.log
+_*.csv
