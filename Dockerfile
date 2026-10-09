@@ -39,7 +39,7 @@ COPY src/ src/
 COPY frontend/ frontend/
 
 # --- Model weights (seed0 only) ---
-ARG HF_MODEL_REPO=<HF_USERNAME>/<HF_REPO>
+ARG HF_MODEL_REPO=OshadhaK/jobcred-model
 RUN mkdir -p models && \
     curl -fL -o models/distilbert_fused_state_dict_seed0.pt \
       "https://huggingface.co/${HF_MODEL_REPO}/resolve/main/distilbert_fused_state_dict_seed0.pt" && \
