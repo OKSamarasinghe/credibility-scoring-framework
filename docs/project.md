@@ -1,6 +1,6 @@
 # project.md — An Explainable Credibility Scoring Framework for Online Recruitment Posts
 
-_Last updated: 2026-10-08_
+_Last updated: 2026-10-09_
 
 > **How to use this file.** Paste it at the start of every AI working session, before doing
 > any work. Keep it current — update "Where I am right now" at the end of each session,
@@ -59,28 +59,41 @@ recruitment posts using multi-signal evidence and consistency verification.
 
 ---
 
-## Research objectives (v3 — finalised 2026-08-07)
+## Research objectives (v4 — finalised 2026-10-09, supersedes v3)
+
+Plain-language rewording of v3 for the thesis's 1.3 section, checked sentence-by-sentence
+against what was actually built and evaluated before being accepted — see `decisions.md`,
+2026-10-09, "Research objectives and questions reworded to v4". No substance changed except
+RQ3, which was reworded for precision (see that entry for why).
 
 | # | Label | Statement (short form) | Type |
 |---|---|---|---|
-| O1 | Evidence Taxonomy | Define and validate a four-category credibility evidence taxonomy, validated by manual audit of a stratified EMSCAD sample | Must-have |
-| O2 | Baseline Model | Develop and benchmark a TF-IDF baseline with classical classifiers on a leakage-controlled, duplicate-aware split | Must-have |
-| O3 | Multi-Signal Model | Combine transformer text representation with structured evidence and consistency-contradiction flags; quantify the change under matched conditions | Must-have |
-| O4 | Explainable Decision Module | Deliver a backend API converting calibrated probabilities into a 0–100 credibility score with verified explanations | Must-have |
-| O5 | Evaluation & Generalisability | Evaluate with full metric set, ablation per evidence category, and temporal generalisability on contemporary postings | Must-have — **complete, 2026-10-08**: full metric set, ablation, and Tier 2 temporal transfer all run once; see "Where I am right now" |
+| O1 | Evidence Taxonomy | Define a structured set of credibility evidence categories for online job postings, validated by manually reviewing a sample of postings from the benchmark dataset | Must-have |
+| O2 | Baseline Model | Build and test a baseline fraud-detection model using standard text-based machine learning methods, trained on a carefully split, leakage-controlled dataset, and compare its results with those reported in earlier published studies | Must-have |
+| O3 | Multi-Signal Model | Build an improved model combining a more advanced text-understanding method with the defined evidence categories and consistency checks, and measure how much this changes fraud-detection performance compared with the baseline model, under matched training conditions | Must-have |
+| O4 | Explainable Decision Module | Design an explainable decision module that turns the model's output into a clear credibility score with defined risk levels, supported by reasons generated automatically and checked against fixed rules | Must-have |
+| O5 | Evaluation & Generalisability | Evaluate the complete framework using standard performance and calibration testing, check whether its explanations genuinely reflect the model's decisions, measure how much each evidence category contributes through ablation analysis, and test how well the framework performs on a newly collected, independent set of recent job postings | Must-have — **complete, 2026-10-08**: full metric set, calibration, explanation-faithfulness check, ablation, and Tier 2 temporal transfer all run once; see "Where I am right now" |
 
-Full statements: see `Research_Objectives_and_Questions_Final.docx`.
+Full statements: see `Research_Objectives_and_Questions_Final.docx` — **needs updating to
+v4 wording; still shows v3 as of 2026-10-09.**
 
 **Rule I am holding myself to:** no objective states its own expected result. O3 quantifies
 the *extent of change*, not an improvement. A negative finding still completes the objective.
 
-## Research questions
+## Research questions (v4 — finalised 2026-10-09, supersedes v3)
 
-- **RQ1** — What structured evidence categories can be reliably extracted from online recruitment posts to support credibility assessment?
-- **RQ2** — How effectively can a baseline text-based model identify fraudulent recruitment posts under leakage-controlled evaluation conditions, and how does this compare with published EMSCAD studies?
-- **RQ3** — To what extent does adding structured evidence features and text–metadata consistency verification to a transformer-based representation affect fraud-class detection performance?
-- **RQ4** — How can model-agnostic explanation methods and rule-based evidence summaries be combined to produce faithful, user-interpretable reasons for a calibrated credibility score?
-- **RQ5** — How does the complete framework perform under standard predictive, calibration and ablation-based evaluation, and to what extent does that performance generalise to contemporary recruitment fraud?
+- **RQ1** — What types of information can be reliably taken from online job postings to support a credibility assessment?
+- **RQ2** — How effective is a baseline text-based model at detecting fraudulent postings under leakage-controlled testing, and how do its results compare with those of earlier published studies?
+- **RQ3** — To what extent does combining a more advanced text-understanding method with structured evidence features and consistency checks change fraud-detection performance, compared with the baseline model, under matched conditions?
+- **RQ4** — How can model-based explanations and rule-based summaries be combined to produce a credibility score with reasons that are both faithful to the model and easy for a user to understand?
+- **RQ5** — How well does the complete framework perform under standard predictive, calibration and ablation testing, and how well does it perform on a set of recent job postings?
+
+**RQ3 note:** the v3 wording ("adding...to a transformer-based representation") was
+ambiguous between two different comparisons — against the O2 baseline (already measured,
+Stage 9 Part 1) or against a transformer-only/zero-evidence ablation (never run; Stage 9's
+leave-one-category-out ablation removes categories one at a time, not all four at once).
+v4 is worded to match only the comparison that was actually run. See `decisions.md`,
+2026-10-09, for the full reasoning.
 
 ---
 
@@ -308,6 +321,29 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
   unit tests pass together, not just individually as each was built.
 - **The artefact itself (the backend credibility-scoring API) is now fully built, trained,
   evaluated, and verified end-to-end.** Nothing technical remains outstanding.
+- **Frontend UI added, iterated, tested, and committed -- 2026-10-09.** Reopens the
+  "backend API only" line in Scope on purpose, logged as a decision (see `decisions.md`,
+  2026-10-09, plus two addenda) rather than by drift. `frontend/index.html` -- a
+  self-contained static page, no build step, no new Python dependency -- served via one
+  new additive route (`GET /` in `src/api/main.py`). Three passes: (1) a minimal
+  manual-entry form, zero auto-parsing, confirmed working end-to-end by the student
+  (real pasted posting scored correctly); (2) a visual redesign for polish and mobile
+  responsiveness; (3) a naming/copy/attribution pass -- named **JobCred**, footer credits
+  "Developed by Oshadha Samarasinghe, Coventry University - 16116041, NIBM -
+  COBSCCOMP242P-069". Every pass verified structurally (no duplicate element ids, balanced
+  tags, every id the JS reads present in the markup) and confirmed the `<script>` block
+  (field collection, omit-if-empty payload logic, the `/score` call) byte-identical across
+  all three versions before deploying. `/score`, `/health`, `pipeline.py`, and every
+  trained-model code path are untouched. Student confirmed it working, committed, and
+  pushed.
+- **Two further frontend input options discussed, deliberately deferred, not decided --
+  2026-10-09:** letting the user submit a job-posting URL (already explicitly rejected
+  twice before, 2026-08-07 and as "Option D" in the 2026-10-09 frontend decision, for
+  scraping-robustness and ToS reasons -- flagged again here so the next session doesn't
+  re-litigate from scratch) and a screenshot/OCR upload (new idea, never decided; would need
+  a new system dependency (Tesseract), a new file-upload endpoint, and carries real OCR-
+  accuracy risk). Both named as real scope, not polish, given the fixed deadline. Student
+  said: discuss later, not now.
 - **Not yet started (writing, not development):** Chapters 4-6 of the dissertation (Chapter
   4 can now be drafted — Stage 9's real measurements exist); the AI-use declaration; the
   research paper (stretch goal, named first to go if time runs out).
@@ -401,3 +437,4 @@ C3 employment type, C4 experience level, C5 education, C6 salary.
 | 2026-10-07 (Day 1 daytime) | Tier 2 fraud-side sourcing closed out | Linked the development machine; installed and used Claude in Chrome, which successfully loaded BBB Scam Tracker where the sandboxed browser pane and WebFetch had both been stopped by a Cloudflare challenge (handled by waiting, never bypassing). Read 8 pages of BBB's "employment" search results (~80 reports), filtered to 24 containing genuinely reproduced posting-adjacent text, resolved the provenance question (each report has a unique permalink, confirmed via the page's own DOM), and wrote the result to `data/raw/tier2/tier2_fraud_raw.jsonl` with BBB-specific provenance fields kept separate from the (mostly null) EMSCAD-shaped fields. Found and logged a source-side near-duplicate pattern (one report filed under 3+ Scam IDs) as a disclosed limitation. Tier 2 collection is now fully closed. `decisions.md` and `sources.md` updated and synced; git commit for commit-attribution fix still pending (remote shell was still provisioning). |
 | 2026-10-07 (Day 1 evening) | Git commit-attribution fix resolved; docs re-synced | Remote shell came online. Backed up old history (`backup-pre-attribution-fix`), replayed `b5a45aa`/`5545d37`/`6e391b4` on a fresh branch with `Co-Authored-By`/`Claude-Session` trailers stripped (author/dates preserved, tree contents verified byte-identical to originals), reset `main` to the rewritten tip. Also corrected a standing error: the Tier 2 fraud-side JSONL was never "pending a commit" — `data/raw/` is gitignored wholesale, same as the pre-existing legit-side file; nothing was missing. Committed today's four-file docs sync (`decisions.md`, `sources.md`, `project.md`, `PROJECT_PLAN.md`) with a clean message, no AI trailer, under the student's own already-used git identity. Local `main` is now 4 commits ahead / 3 behind `origin/main`, clean of any AI trailer across the whole new range (verified by scanning every commit message) — pushing it (`git push --force-with-lease origin main`) is the one remaining student action; this session's sandboxed remote shell has no GitHub credentials to do it directly. |
 | 2026-10-08 | Stages 4-9 built, run, and committed in one day — the sprint's technical core is done | Multi-signal evidence extraction (Stage 4), baseline + DistilBERT-fusion models (Stage 5), calibration (Stage 6), SHAP explainability (Stage 7), real API wiring + Stage 8b demonstration, and Stage 9's full evaluation (one-time test-set comparison, ablation, Tier 2 temporal transfer, source-probe) all completed same-day, well ahead of the original Day 3-4 pacing. Two real bugs caught and fixed before being reported (Stage 8's inverted credibility-score direction; Stage 7's probability-space SHAP saturation). The Tier 2 source-probe's perfect ROC-AUC=1.0000 was investigated empirically (`device_bash`, direct missingness counts against the raw EMSCAD/Tier 2 files) rather than accepted at face value, and confirmed as a Tier-2-collection-wide structured-field artefact — bigger in scope than Decision 0.4 anticipated. All results written into `methodology.md`; decisions and the investigation logged in `decisions.md`; `PROJECT_PLAN.md` and this file's "Where I am right now" brought current. Per the Stage 9 design decision, no further model/feature/seed change is permitted now that test has been seen. Next: live API test, then Chapters 4-6. |
+| 2026-10-09 | Live API + full test suite confirmed; manual-entry frontend added, redesigned twice, named, and committed | Live HTTP test (`live_api_check.py`) and the full pytest suite (51/51) confirmed the artefact end-to-end -- development formally complete. A manual-entry frontend was then added as a deliberate, logged reopening of the "backend API only" scope line: built, visually redesigned twice (polish, then naming/attribution), verified structurally and against the untouched `<script>` block at every pass, named JobCred, confirmed working by the student, committed and pushed. Discussed and deferred two further input options (URL link, screenshot/OCR) at the student's request -- not decided, to revisit later. Student is now moving to thesis writing.

@@ -16,6 +16,59 @@ _Last updated: 2026-10-08_
 
 ---
 
+## 2026-10-09 — Research objectives and questions reworded to v4 (plain-language, thesis
+1.3/1.4), RQ3 corrected for precision against the now-closed Stage 9 test set
+
+- **Context:** the student brought a finalised, plain-language rewording of the project's
+  five objectives and five research questions for the thesis's 1.3/1.4 sections, asking
+  whether it still aligns with what was actually built and evaluated. Checked each
+  objective/RQ individually against the real Stage 1—9 work (not against memory of what
+  was planned).
+- **Four of five pairs aligned cleanly as written:** O1/RQ1 (taxonomy, Stage 2 manual
+  audit), O2/RQ2 (baseline model, Stage 5 + Stage 9 Part 1 — the "compare with published
+  studies" clause is a Chapter 5 writing task against sources the literature review already
+  cites, not a development gap), O4/RQ4 (explainable decision module, Stage 7 SHAP + Stage 4
+  consistency rules + Stage 8 API), O5/RQ5 (evaluation, Stage 6/9 — this version explicitly
+  names explanation-faithfulness checking as part of evaluation, which is real, already-
+  measured work from Stage 7 (SHAP vs. random-ranking control, 100% rule-consistency) that
+  the original v3 wording didn't call out explicitly; a genuine improvement, not just a
+  rewording).
+- **One real ambiguity found, not just a style issue: RQ3.** The student's first draft read
+  "...added to a text-based model, compared with a text-only baseline." That phrase is
+  genuinely ambiguous between two different comparisons:
+  - **(A)** the O2 baseline (TF-IDF + classical classifiers) — already measured in Stage 9
+    Part 1 (full multi-signal model vs. TF-IDF baseline, 3 seeds each). No new work needed.
+  - **(B)** a transformer-only, zero-structured-evidence condition, holding the text encoder
+    constant and removing all four evidence categories at once — this exact condition was
+    **never run**. Stage 9 Part 2's ablation removes evidence categories one at a time
+    (E1, E2, E3, E4, has_company_logo individually), which answers a different question
+    (each category's individual marginal contribution within the full model), not "what
+    does the full model gain over a bare transformer."
+  - This distinction matters because Stage 9's test set is already closed under the
+    "test used once" guardrail (logged 2026-10-08, before any test number was seen) —
+    if (B) were the intended claim, it could not be satisfied by any experiment run so far,
+    and none can be run now.
+- **Decision, made explicitly by the student:** keep development exactly as it is; adjust
+  wording only. Confirmed Reading (A) is what's actually being claimed (O3's own v3 wording
+  already said "compared with the baseline model", unambiguously (A) — only RQ3's phrasing
+  had drifted). RQ3 reworded to mirror O3's language exactly: "...compared with the baseline
+  model, under matched conditions" — removing "text-based model" / "text-only baseline",
+  which read like (B).
+- **What was given up:** nothing. No experiment, no code, no model. Pure wording precision,
+  decided before the wording was locked into the actual thesis document, rather than being
+  caught by an examiner after submission.
+- **Implementation:** `project.md`'s "Research objectives" / "Research questions" sections
+  replaced wholesale with this v4 wording (marked "supersedes v3", v3 wording kept
+  nowhere else in that file so there's no stale duplicate). A note flags that
+  `Research_Objectives_and_Questions_Final.docx` still shows v3 as of this entry and needs
+  updating separately to match.
+- **Self-check:** *If an examiner asked "what, exactly, is 'the baseline model' in RQ3?",
+  can you answer in one sentence without having to explain away an ambiguity? (You should
+  now be able to: it's the TF-IDF + classical-classifier model from O2/RQ2, evaluated in
+  Stage 9 Part 1.)*
+
+---
+
 ## 2026-10-09 — Minimal manual-entry frontend added, reopening the "backend API only"
 scope decision on purpose, not by drift
 
