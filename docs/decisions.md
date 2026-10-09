@@ -16,6 +16,131 @@ _Last updated: 2026-10-09_
 
 ---
 
+## 2026-10-09 — Found, and the student independently confirmed with a controlled test: the
+score is sensitive to whether the job-title field is filled in, holding the suspicious text
+fixed — flagged as a limitation, not fixed
+
+- **What happened:** the student ran the same hand-written scam text (see the earlier
+  "worst case" testing addenda below) through `/score` twice, identical in every way except
+  the "Job title" field: blank the first time, `"Data Entry Assistant"` the second. Scores:
+  **82/100 Low risk** (no title) vs. **29/100 High risk** (with title) — a large swing from
+  one short, unremarkable field.
+
+- **Mechanism, verified against the real code, not guessed:** `train_baseline.py`'s
+  `_build_text()` — which `pipeline.py`'s own docstring already names as "the same text
+  scope as training" — joins `title + description + requirements + benefits` into ONE
+  string before it ever reaches DistilBERT. So "title present vs. blank" isn't cosmetic
+  metadata; it changes the literal input sequence the text encoder reads. Given this
+  project's own earlier finding (Stage 8b, logged below) that the text-embedding pathway is
+  the dominant, SHAP-unexplained half of the final score, a changed text sequence producing
+  a changed score is mechanically expected.
+
+- **What is NOT established:** *why* adding a short, ordinary job title flips the verdict
+  this much in this direction. I can't inspect DistilBERT's attention weights or run the
+  real model myself to test further hypotheses — I only confirmed WHERE the sensitivity
+  enters (the concatenated text input), not WHY a two-word addition has this much leverage
+  over the output. This is consistent with a known property of fine-tuned transformer
+  classifiers in general (sensitivity to small, semantically-minor input changes), not
+  necessarily specific to this model or a sign of a bug.
+
+- **Why not "fixed":** there's nothing to fix in the code — the title field is correctly
+  being used exactly as it was during training, matching the trained artefact exactly.
+  "Fixing" this would mean changing what the model responds to, which is a retraining
+  question, and Stage 9 is closed. This is a genuine, now-evidenced limitation of the
+  trained model's robustness, not a software defect.
+
+- **Why this is worth more than a one-off oddity:** it's the third live result (after the
+  two earlier synthetic tests, see addendum below) where small input changes produced score
+  swings that don't obviously track "more scam-like" vs. "less scam-like" in an intuitive
+  way. Combined with the real finders.lk posting scoring 100/100 while every listed
+  structured reason pointed toward missing information — this is becoming a pattern worth
+  reporting honestly in Chapter 5 (limitations/discussion), not three unrelated surprises.
+
+- **What I did NOT do:** re-run Stage 9, retrain, or change any model/feature/threshold —
+  all out of bounds per the closed-test-set guardrail. This entry documents a finding from
+  live, informal, post-hoc testing, which is demonstration, not evaluation.
+
+- **Self-check:** *why does "the title field is being used exactly as trained" make this a
+  limitation to report rather than a bug to fix, and what would have to be true for it to
+  become a bug instead?*
+
+---
+
+## 2026-10-09 — "Why this score" no longer leaks raw internal feature names for C1-C6
+
+- **Context:** while testing live, I saw bullets reading literally `The 'C2_field_present'
+  signal lowered the score.` / `The 'C5_field_present' signal raised the score.` — a code
+  column name shown straight to an end user, unreadable without reading the source. Traced
+  the cause before touching anything: `_describe_feature()` in `src/api/pipeline.py` has
+  hand-written plain-English templates for every E1/E2/E3 feature, but none for any C1-C6
+  feature or for `E4_contradiction_count` — anything untemplated falls through to a generic
+  `f"The '{name}' signal {direction} the score."` line, which just prints the raw column
+  name. 13 features had this gap: `C{1..6}_field_present`, `C{1..6}_evaluable`, and
+  `E4_contradiction_count`.
+
+- **What I decided (three changes, all in `_describe_feature()` / `build_explanation()`,
+  nothing else):**
+  1. `C{i}_field_present` → templated using the already-existing `RULE_FIELD` dict (same
+     dict the Contradiction objects already use), e.g. *"The posting's 'required education'
+     detail was left blank, which lowered the score."* Same wording pattern as the existing
+     E3_*_present template.
+  2. `E4_contradiction_count` → templated, e.g. *"2 of the posting's details didn't match
+     what the text said (out of up to 6 checked), which lowered the score."*
+  3. `C{i}_evaluable` → **excluded from "Why this score" entirely**, via a new
+     `_is_bookkeeping_feature()` check in `build_explanation()`'s ranking loop (same
+     `continue`-and-skip pattern already used to exclude a fired rule's own
+     `C{i}_contradiction` feature). This one isn't a wording fix — it changes what's shown.
+     `evaluable` means "could this rule even be checked" (field present AND recognisable
+     text language to compare it to), not "is this suspicious." There's no honest sentence
+     that makes "could we check this" read as a reason, so rather than write a misleading
+     one, I left it out. If it previously occupied one of the 5 "why this score" slots, a
+     different, lower-ranked feature now takes that slot instead — the score and the SHAP
+     ranking itself are unchanged, only which reasons get displayed.
+
+- **Why safe to do now, with Stage 9 closed:** this is string-template and display-filter
+  code only — no change to the model, SHAP computation, calibration, the score itself,
+  `/score`'s request/response contract, or any stored Stage 9 result file. Verified before
+  touching the device copy: (a) `python -m py_compile` on the edited file; (b) an isolated
+  test (`_describe_feature`/`_is_bookkeeping_feature` sliced out of the real file and exec'd
+  standalone, since the full module needs torch/shap not installed in my sandbox) — 40/40
+  checks: all 6 `field_present` templates in both presence states and both SHAP directions,
+  `E4_contradiction_count` at two values, all 6 `evaluable` features confirmed excluded,
+  `field_present`/`contradiction` features confirmed NOT wrongly excluded, and — the
+  important regression check — the existing E1/E2/E3 templates produce byte-identical
+  output to before. Then committed straight to the device copy (no manual retyping).
+
+- **What I gave up:** showing *something* for `evaluable` rather than nothing. A translated
+  sentence would have been more "complete," but "complete and misleading" is worse than
+  "incomplete and honest" for a field that isn't itself evidence.
+
+- **Self-check:** *why is `C{i}_field_present` a real reason a reader should see, while
+  `C{i}_evaluable` is not — what's the actual difference between "was this detail given"
+  and "could we check this detail against the text"?*
+
+- **Addendum, same day — asked directly "are all of these fixed now," so I checked
+  exhaustively instead of assuming the first pass was complete:** reconstructed the exact
+  list of all 46 structured feature names from `train_distilbert.py`'s own
+  `STRUCTURED_FEATURE_GROUPS` spec (not retyped from memory) and ran every one through
+  `_describe_feature()`. Found two more real gaps the first pass missed, both in the same
+  family: `C{i}_contradiction` itself falls back to the raw name **when the rule did NOT
+  fire** (value 0) — the existing `covered` exclusion only hides it for a rule that DID
+  fire, where its evidence string is shown instead; a non-fired contradiction feature can
+  still be SHAP-ranked as a reason (e.g. "no mismatch" being reassuring) and was still
+  hitting the raw-name fallback. And `C6_text_salary_field_absent` (the supplementary C6
+  signal — field absent but text names a dollar figure anyway) had no template at all.
+  **Fixed both** with the same templating approach (reusing `RULE_FIELD`). Re-ran the
+  exhaustive 46-feature check afterward: 40 features now have real templates, 6
+  (`C{i}_evaluable`) are deliberately hidden, 0 fall back to a raw name — confirmed
+  programmatically, not just spot-checked against the two names the student happened to
+  see. Also hit the same silent device-write failure as before (`device_commit_files`
+  reported success twice with no actual change on disk) — confirmed via `md5sum` on the
+  device both times before trusting it, third attempt actually took.
+  - **Self-check:** *why did checking only the two feature names I'd personally seen fail
+    to catch the other two gaps, and what does "validated" actually require — spot-checking
+    the cases reported, or enumerating the full feature space the code can produce?*
+
+---
+
 ## 2026-10-09 — URL and screenshot input added as pre-fill conveniences, not as changes to
 /score, ScoreRequest, or the trained pipeline
 

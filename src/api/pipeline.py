@@ -58,6 +58,7 @@ OUTPUT MAPPING (new Stage 8 design work, not a re-litigation of Stage 7)
     the measured science Stage 7 already validated, not Stage 7's fidelity claims themselves.
 """
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -339,7 +340,52 @@ def _describe_feature(name: str, value: float, shap_value: float) -> str:
         return f"Text matching the '{group}' phrase group {state_word}, which {direction} the score."
     if base == "E1_suspicious_phrase_count":
         return f"{value:.0f} suspicious-phrase group(s) matched in the text, which {direction} the score."
+    # C1-C6 "field_present" -- was this metadata detail even given, independent of
+    # whether it's consistent with the text (that's the separate C{i}_contradiction
+    # feature, already shown via its own evidence string). Added 2026-10-09 (decisions.md)
+    # after a student couldn't read "C2_field_present" in the UI -- same wording style as
+    # the E3_*_present template above, using RULE_FIELD for the plain field name.
+    m = re.fullmatch(r"C([1-6])_field_present", base)
+    if m:
+        field_label = RULE_FIELD.get(int(m.group(1)), base).replace("_", " ")
+        state_word = "was given" if value >= 0.5 else "was left blank"
+        return f"The posting's '{field_label}' detail {state_word}, which {direction} the score."
+    if base == "E4_contradiction_count":
+        return (
+            f"{value:.0f} of the posting's details didn't match what the text said "
+            f"(out of up to 6 checked), which {direction} the score."
+        )
+    # C1-C6 "contradiction" itself, for the NOT-fired case only -- a FIRED contradiction
+    # (value=1) is already excluded here and shown instead via its own evidence string in
+    # top_reasons (see `covered` in build_explanation). This branch only runs for value=0,
+    # which SHAP can still rank as important (e.g. "no contradiction" being reassuring).
+    # Added 2026-10-09 in the same pass as C{i}_field_present, after checking exhaustively
+    # for every C1-C6/E4 feature rather than stopping at the two the student had seen.
+    m = re.fullmatch(r"C([1-6])_contradiction", base)
+    if m:
+        field_label = RULE_FIELD.get(int(m.group(1)), base).replace("_", " ")
+        return (
+            f"No mismatch was found between the posting's '{field_label}' detail and the "
+            f"text, which {direction} the score."
+        )
+    if base == "C6_text_salary_field_absent":
+        state_word = "was found" if value >= 0.5 else "was NOT found"
+        return (
+            f"A dollar figure mentioned in the text despite no salary range being listed "
+            f"{state_word}, which {direction} the score."
+        )
     return f"The '{name}' signal {direction} the score."
+
+
+def _is_bookkeeping_feature(name: str) -> bool:
+    """C{i}_evaluable records whether a C-rule COULD be checked at all (field present AND
+    recognisable text language to compare it to) -- it is not itself evidence of fraud, so
+    there is no honest 'which raised/lowered the score' sentence for it (unlike
+    C{i}_field_present, which IS a real signal -- missing metadata). Excluded from
+    'Why this score' entirely rather than given a misleading template. Added 2026-10-09,
+    same pass as the C{i}_field_present fix above -- see decisions.md."""
+    base, _, _ = name.partition("=")
+    return bool(re.fullmatch(r"C[1-6]_evaluable", base))
 
 
 def _build_checklist(row: pd.Series) -> list:
@@ -417,6 +463,8 @@ def build_explanation(
         if idx in covered:
             continue
         name = state.feature_names[idx]
+        if _is_bookkeeping_feature(name):
+            continue
         top_reasons.append(_describe_feature(name, float(x_row[idx]), float(shap_vals[idx])))
     if not top_reasons:
         top_reasons = ["No single feature dominated this prediction."]
