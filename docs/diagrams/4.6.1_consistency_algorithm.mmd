@@ -1,0 +1,20 @@
+flowchart TD
+    In(["Posting: text + structured fields"]) --> C1{"C1: telecommuting field\nvs. remote/on-site language in text?"}
+    C1 -->|mismatch| Flag1["Flag contradiction: location mode"]
+    C1 -->|match / not evaluable| C2{"C2: location field\nvs. location mentioned in text?"}
+    C2 -->|mismatch| Flag2["Flag contradiction: location"]
+    C2 -->|match / not evaluable| C3{"C3: employment_type field\nvs. text (e.g. full-time/part-time)?"}
+    C3 -->|mismatch| Flag3["Flag contradiction: employment type"]
+    C3 -->|match / not evaluable| C4{"C4: required_experience field\nvs. experience stated in text?"}
+    C4 -->|mismatch| Flag4["Flag contradiction: experience"]
+    C4 -->|match / not evaluable| C5{"C5: required_education field\nvs. education stated in text?"}
+    C5 -->|mismatch| Flag5["Flag contradiction: education"]
+    C5 -->|match / not evaluable| C6{"C6: salary_range field\nvs. salary stated in text?"}
+    C6 -->|mismatch| Flag6["Flag contradiction: salary"]
+    C6 -->|match / not evaluable| Out(["E4 feature vector:\neach rule's outcome + overall\nfield coverage"])
+    Flag1 --> Out
+    Flag2 --> Out
+    Flag3 --> Out
+    Flag4 --> Out
+    Flag5 --> Out
+    Flag6 --> Out

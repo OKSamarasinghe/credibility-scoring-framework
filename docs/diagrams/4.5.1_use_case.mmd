@@ -1,0 +1,16 @@
+flowchart LR
+    JS["Job seeker"]
+    API["Programmatic caller\n(external system)"]
+
+    UC1(("Submit job posting\nfor scoring"))
+    UC2(("Pre-fill fields\nfrom URL"))
+    UC3(("Pre-fill fields\nfrom screenshot"))
+    UC4(("Receive credibility score\n+ explanation"))
+
+    JS --> UC2
+    JS --> UC3
+    JS --> UC1
+    API --> UC1
+    UC1 --> UC4
+    UC2 -.extends.-> UC1
+    UC3 -.extends.-> UC1

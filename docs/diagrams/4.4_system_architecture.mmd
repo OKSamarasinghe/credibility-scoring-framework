@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph Input["Input Layer"]
+        A1["JobCred frontend\n(manual-entry form)"]
+        A2["POST /score\n(raw text + optional fields)"]
+        A3["POST /extract-url\n(pre-fill from URL)"]
+        A4["POST /extract-image\n(pre-fill from screenshot, OCR)"]
+        A5["GET /health\n(service status check)"]
+    end
+
+    subgraph Processing["Processing Layer"]
+        B1["Preprocessing\n(text cleaning, field normalisation)"]
+        B2["Evidence extraction\nE1 text cues / E2 identity cues /\nE3 metadata completeness / E4 consistency C1-C6"]
+    end
+
+    subgraph Modelling["Model Layer (loaded once at startup)"]
+        C1m["Multi-signal classifier\n(fine-tuned DistilBERT + evidence vector)"]
+        C2m["Calibrator\n(isotonic regression)"]
+        C3m["SHAP explainer"]
+    end
+
+    subgraph Output["Output Layer"]
+        D1["JSON result:\nscore, risk band, reasons,\nsuspicious phrases, contradictions, checklist"]
+    end
+
+    A1 --> A2
+    A3 --> A2
+    A4 --> A2
+    A2 --> B1 --> B2 --> C1m --> C2m --> C3m --> D1

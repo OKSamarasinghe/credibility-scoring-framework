@@ -1,0 +1,8 @@
+flowchart TD
+    Start(["Posting received\n(text + optional structured fields)"]) --> Pre["Preprocess text and fields"]
+    Pre --> Ext["Extract E1-E4 evidence\n(including C1-C6 consistency checks)"]
+    Ext --> Pred["Multi-signal model produces\nraw prediction"]
+    Pred --> Cal["Apply fitted calibrator\n-> calibrated probability"]
+    Cal --> Score["Map to 0-100 credibility score\n+ risk band"]
+    Score --> Expl["SHAP explainer ranks\ncontributing evidence"]
+    Expl --> Resp(["Return JSON: score, risk band,\nreasons, suspicious phrases,\ncontradictions, checklist"])
