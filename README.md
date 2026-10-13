@@ -11,7 +11,7 @@ human-readable explanation generated from SHAP feature attributions and rule-bas
 consistency checks — never a bare number. Built as a Design Science Research artefact, with
 a small frontend (**JobCred**) for manual testing and demonstration.
 
-## Status (2026-10-09)
+## Status
 
 The artefact is **fully built, trained, evaluated, and verified end-to-end** — all 9
 methodology stages (plus Stage 8b) are complete and committed, and the one-time test-set

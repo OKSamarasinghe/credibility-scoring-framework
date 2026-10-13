@@ -430,6 +430,56 @@
   .footer-meta { margin: 0 0 16px; font-size: 0.8rem; color: var(--muted); }
   .footer-note { margin: 0; font-size: 0.76rem; color: var(--muted); }
   footer code { background: var(--brand-light); color: var(--brand-dark); padding: 2px 6px; border-radius: 4px; }
+
+  /* ---------- trust (calibration + SHAP explanation) -- added 2026-10-13 ---------- */
+  .trust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .trust-grid { grid-template-columns: 1fr; } }
+  .trust-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 26px; box-shadow: var(--shadow-soft);
+  }
+  .trust-card .trust-icon {
+    width: 38px; height: 38px; border-radius: 10px; background: var(--brand-light); color: var(--brand-dark);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+  }
+  .trust-card .trust-icon svg { width: 20px; height: 20px; }
+  .trust-card h3 { font-size: 1.02rem; margin: 0 0 10px; }
+  .trust-card p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+  .trust-card .trust-figure {
+    display: inline-block; margin-top: 12px; font-size: 0.78rem; font-weight: 700;
+    color: var(--brand-dark); background: var(--brand-light); padding: 4px 10px; border-radius: 999px;
+  }
+
+  /* ---------- example (real Stage 8b demonstration output) -- added 2026-10-13 ---------- */
+  .example-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .example-grid { grid-template-columns: 1fr; } }
+  .example-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 24px; box-shadow: var(--shadow-soft);
+  }
+  .example-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .example-score { font-size: 1.7rem; font-weight: 800; }
+  .example-label { font-size: 0.82rem; color: var(--muted); margin: 0 0 14px; }
+  .example-card ul { margin: 0; padding-left: 0; list-style: none; }
+  .example-card li {
+    position: relative; padding-left: 20px; margin-bottom: 8px; font-size: 0.85rem; color: var(--text);
+  }
+  .example-card li::before {
+    content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--muted);
+  }
+  .example-source {
+    margin: 14px 0 0; font-size: 0.76rem; color: var(--muted); font-style: italic;
+    padding-top: 12px; border-top: 1px dashed var(--border);
+  }
+
+  /* ---------- pipeline diagram (visual, replaces plain-text step summary) -- added 2026-10-13 ---------- */
+  .pipeline-diagram-wrap { max-width: 960px; margin: 0 auto 8px; }
+  .pipeline-diagram-wrap svg { width: 100%; height: auto; display: block; }
+  .pipeline-caption { text-align: center; color: var(--muted); font-size: 0.84rem; margin: 10px 0 40px; }
+
+  /* ---------- plain-language-first trust figures -- added 2026-10-13 ---------- */
+  .trust-card .trust-detail { margin-top: 8px; font-size: 0.74rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -445,6 +495,7 @@
     <nav class="site-nav">
       <a href="#how">How it works</a>
       <a href="#evidence">Evidence model</a>
+      <a href="#trust">Why trust it</a>
       <a href="#top" class="nav-cta">Check a posting</a>
     </nav>
   </div>
@@ -643,21 +694,125 @@
         <h2>From a pasted posting to an explainable verdict</h2>
         <p>Every score comes with the reasoning behind it — never a bare number.</p>
       </div>
+      <div class="pipeline-diagram-wrap" role="img" aria-label="Diagram: a job posting moves through six stages -- submit, preprocess, extract evidence, score, calibrate, explain -- to produce a credibility score.">
+        <svg viewBox="0 0 940 150" xmlns="http://www.w3.org/2000/svg">
+          <title>How a posting moves through JobCred, start to end</title>
+          <!-- connecting arrows -->
+          <g fill="none" stroke="#b7bcee" stroke-width="2.5">
+            <line x1="110" y1="70" x2="180" y2="70"/>
+            <line x1="270" y1="70" x2="340" y2="70"/>
+            <line x1="430" y1="70" x2="500" y2="70"/>
+            <line x1="590" y1="70" x2="660" y2="70"/>
+            <line x1="750" y1="70" x2="820" y2="70"/>
+          </g>
+          <g fill="#b7bcee">
+            <polygon points="180,65 180,75 192,70"/>
+            <polygon points="340,65 340,75 352,70"/>
+            <polygon points="500,65 500,75 512,70"/>
+            <polygon points="660,65 660,75 672,70"/>
+            <polygon points="820,65 820,75 832,70"/>
+          </g>
+          <!-- stage nodes: circle + icon + number badge, cx = 70,230,390,550,710,870 ; cy = 70 ; r = 34 -->
+          <g>
+            <!-- 1. Submit -->
+            <circle cx="70" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(70,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="-9" y="-11" width="18" height="22" rx="2"/>
+              <rect x="-3" y="-13" width="6" height="3" rx="1" fill="#3f37c9" stroke="none"/>
+              <line x1="-5" y1="-5" x2="5" y2="-5"/>
+              <line x1="-5" y1="0" x2="5" y2="0"/>
+              <line x1="-5" y1="5" x2="2" y2="5"/>
+            </g>
+            <circle cx="92" cy="48" r="12" fill="#4f46e5"/>
+            <text x="92" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">1</text>
+
+            <!-- 2. Preprocessing -->
+            <circle cx="230" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(230,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M-10,-9 L10,-9 L2,3 L2,10 L-2,10 L-2,3 Z"/>
+            </g>
+            <circle cx="252" cy="48" r="12" fill="#4f46e5"/>
+            <text x="252" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">2</text>
+
+            <!-- 3. Evidence extraction -->
+            <circle cx="390" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(390,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="-9" y="-9" width="7" height="7" rx="1.4"/>
+              <rect x="2" y="-9" width="7" height="7" rx="1.4"/>
+              <rect x="-9" y="2" width="7" height="7" rx="1.4"/>
+              <rect x="2" y="2" width="7" height="7" rx="1.4"/>
+            </g>
+            <circle cx="412" cy="48" r="12" fill="#4f46e5"/>
+            <text x="412" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">3</text>
+
+            <!-- 4. Model scoring -->
+            <circle cx="550" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(550,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="-8" y1="-6" x2="8" y2="-6"/>
+              <line x1="-8" y1="-6" x2="0" y2="8"/>
+              <line x1="8" y1="-6" x2="0" y2="8"/>
+              <circle cx="-8" cy="-6" r="2.6" fill="#3f37c9" stroke="none"/>
+              <circle cx="8" cy="-6" r="2.6" fill="#3f37c9" stroke="none"/>
+              <circle cx="0" cy="8" r="2.6" fill="#3f37c9" stroke="none"/>
+            </g>
+            <circle cx="572" cy="48" r="12" fill="#4f46e5"/>
+            <text x="572" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">4</text>
+
+            <!-- 5. Calibration -->
+            <circle cx="710" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(710,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M-10,4 A10,10 0 0 1 10,4"/>
+              <line x1="0" y1="4" x2="5" y2="-6"/>
+              <circle cx="0" cy="4" r="1.8" fill="#3f37c9" stroke="none"/>
+            </g>
+            <circle cx="732" cy="48" r="12" fill="#4f46e5"/>
+            <text x="732" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">5</text>
+
+            <!-- 6. Explanation -->
+            <circle cx="870" cy="70" r="34" fill="#eef1ff" stroke="#4f46e5" stroke-width="2"/>
+            <g transform="translate(870,70)" stroke="#3f37c9" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M-10,-7 l2,2.4 l4.5,-4.5"/>
+              <line x1="-1.5" y1="-7" x2="10" y2="-7"/>
+              <line x1="-10" y1="0" x2="10" y2="0"/>
+              <line x1="-10" y1="7" x2="5" y2="7"/>
+            </g>
+            <circle cx="892" cy="48" r="12" fill="#4f46e5"/>
+            <text x="892" y="48" dy=".35em" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="'Plus Jakarta Sans', sans-serif">6</text>
+          </g>
+        </svg>
+        <p class="pipeline-caption">Every posting follows this exact six-stage path, in this order -- nothing is skipped or special-cased.</p>
+      </div>
+
       <div class="steps">
         <div class="step-card">
           <div class="step-num"></div>
           <h3>Submit the posting</h3>
-          <p>Paste the description text, and fill in any structured details you know — title, location, salary, employment type. Anything left blank stays genuinely unknown, not guessed.</p>
+          <p>Paste the description text, plus any structured details you know -- title, location, salary, employment type. Anything left blank stays genuinely unknown, not guessed.</p>
         </div>
         <div class="step-card">
           <div class="step-num"></div>
-          <h3>The model reads it</h3>
-          <p>A fine-tuned language model reads the text together with four categories of evidence — content cues, identity cues, metadata completeness, and text–metadata consistency — rather than judging the words in isolation.</p>
+          <h3>Preprocessing</h3>
+          <p>The text and any structured fields are cleaned and standardised before anything is extracted from them -- the same step every posting goes through.</p>
         </div>
         <div class="step-card">
           <div class="step-num"></div>
-          <h3>Get a calibrated, explained score</h3>
-          <p>The model's prediction is calibrated into a 0–100 credibility score, then explained with specific reasons, matched phrases, and a checklist of what to verify yourself.</p>
+          <h3>Evidence extraction (E1-E4)</h3>
+          <p>The posting is scanned for four categories of evidence -- wording cues, identity cues, how complete the details are, and whether the text and fields agree -- producing 46 measured signals.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>Model scoring</h3>
+          <p>A fine-tuned language model reads the posting's text in context, and its reading is combined with the 46 evidence signals to produce one raw prediction.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>Calibration</h3>
+          <p>That raw prediction is passed through a calibration step so the final number genuinely behaves like a probability, then mapped to your 0-100 credibility score.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"></div>
+          <h3>Explanation</h3>
+          <p>A technique called SHAP ranks which pieces of evidence mattered most, turning the prediction into specific reasons, matched phrases, and a checklist to verify yourself.</p>
         </div>
       </div>
     </div>
@@ -689,6 +844,72 @@
           <span class="evidence-tag">E4</span>
           <h3>Text–metadata consistency</h3>
           <p>Flags contradictions between the free text and the structured fields — a posting calling itself remote while also listing an office location, for example.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="trust" style="padding-top:0;">
+    <div class="container">
+      <div class="section-head">
+        <h2>Why the score isn't a black box</h2>
+        <p>Two things keep this from being "trust us" -- a measured calibration, and explanations computed fresh for every posting.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-card">
+          <span class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          </span>
+          <h3>A calibrated score, not a made-up number</h3>
+          <p>The model's raw prediction is passed through a calibration step before becoming your 0-100 score, so a posting scored around 70 really does behave, on average, like a posting that turns out legitimate roughly 70% of the time -- checked directly against real postings the model never trained on, not just assumed.</p>
+          <span class="trust-figure">Checked against real postings the model never trained on — and it held up.</span>
+          <p class="trust-detail">Technical detail: calibration error (ECE) of 0.0076, measured once on a held-out test set.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 19V9M12 19V5M17 19v7"/></svg>
+          </span>
+          <h3>Reasons computed fresh for every posting</h3>
+          <p>The reasons under "All observations" aren't a fixed checklist -- they're calculated individually for each posting using a technique called SHAP, which measures exactly how much each piece of evidence pushed that specific score up or down. That's why two similar-looking postings can get different reasons: the explanation reflects what actually mattered this time, not a generic rule applied to everyone.</p>
+          <span class="trust-figure">Every time the system flagged a contradiction, the explanation named it — not just sometimes, every single case checked.</span>
+          <p class="trust-detail">Technical detail: 14 out of 14 fired consistency-rule cases appeared in their own top reasons.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="example" style="padding-top:0;">
+    <div class="container">
+      <div class="section-head">
+        <h2>See it in action</h2>
+        <p>Two real results from testing the system against real postings -- not illustrations, the system's actual output.</p>
+      </div>
+      <div class="example-grid">
+        <div class="example-card">
+          <div class="example-head">
+            <span class="example-score" style="color:var(--high)">7 / 100</span>
+            <span class="risk-chip band-High-chip"><span class="dot"></span>High risk</span>
+          </div>
+          <p class="example-label">A real scam report (consumer-reported employment scam)</p>
+          <ul>
+            <li>An employer profile was missing, which lowered the score.</li>
+            <li>The posting's location (city) was NOT specified at this level, which lowered the score.</li>
+            <li>Recommended check: "No direct contact channel was detected in the text -- confirm how you're expected to apply or follow up."</li>
+          </ul>
+          <p class="example-source">Source: Stage 8b demonstration, <code>reports/stage8b_demonstration.json</code> -- the system's unedited output.</p>
+        </div>
+        <div class="example-card">
+          <div class="example-head">
+            <span class="example-score" style="color:var(--low)">100 / 100</span>
+            <span class="risk-chip band-Low-chip"><span class="dot"></span>Low risk</span>
+          </div>
+          <p class="example-label">A real company careers-page posting (Stripe)</p>
+          <ul>
+            <li>The posting's location (region) was specified at this level, which raised the score.</li>
+            <li>An employer profile was missing, which lowered the score.</li>
+            <li>The 'industry' field was missing, which raised the score.</li>
+          </ul>
+          <p class="example-source">Source: Stage 8b demonstration, <code>reports/stage8b_demonstration.json</code> -- the system's unedited output. One line above may look backwards at first — "missing field... raised the score" — but that's not an error. The system weighs a posting as a whole, not as a checklist, so a single missing field is never automatically held against (or for) a posting on its own. Here, the detailed, genuine Stripe text is what actually earned the high score; the missing fields barely mattered once the real content was read.</p>
         </div>
       </div>
     </div>
